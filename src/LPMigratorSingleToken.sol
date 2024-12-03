@@ -5,8 +5,9 @@ import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import "@openzeppelin/contracts/utils/Pausable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "./ISwapRouter.sol";
-import "./INonfungiblePositionManager.sol";
+import "./interfaces/ISwapRouter.sol";
+import "./interfaces/INonfungiblePositionManager.sol";
+import {console} from "forge-std/Script.sol";
 
 contract LPMigratorSingleToken is IERC721Receiver, ReentrancyGuard, Pausable {
     mapping(address => bool) public supportedTokens;
@@ -32,18 +33,14 @@ contract LPMigratorSingleToken is IERC721Receiver, ReentrancyGuard, Pausable {
      */
     constructor(
         address _nonfungiblePositionManager,
-        address[] memory _supportedTokens,
         address _baseToken,
-        address _swapRouter,
-        address _spokePool
+        address _swapRouter
+        // address _spokePool
     ) {
         nonfungiblePositionManager = _nonfungiblePositionManager;
         baseToken = _baseToken;
-        for (uint256 i = 0; i < _supportedTokens.length; i++) {
-            supportedTokens[_supportedTokens[i]] = true;
-        }
         swapRouter = _swapRouter;
-        spokePool = _spokePool;
+        // spokePool = _spokePool;
     }
 
     function onERC721Received(address, address from, uint256 tokenId, bytes memory data)
@@ -61,42 +58,58 @@ contract LPMigratorSingleToken is IERC721Receiver, ReentrancyGuard, Pausable {
     function _migratePosition(address from, uint256 tokenId, bytes memory data) internal {
         INonfungiblePositionManager nftManager = INonfungiblePositionManager(nonfungiblePositionManager);
 
+        // confirm that this tokenId is now owned by this contract
+        require(nftManager.ownerOf(tokenId) == address(this), "Token not owned by this contract");
+
         // 1. get the tokens in the position
 
-        (,, address token0, address token1,,,, uint128 liquidity,,, uint128 amount0Owed, uint128 amount1Owed) =
+        (,, address token0, address token1,,,, uint128 liquidity,,,,) =
             nftManager.positions(tokenId);
 
-        // 2. collect fees and decrease liquidity
+        require(liquidity > 0, "Liquidity is 0");
+
+        // 2. decrease liquidity
+        INonfungiblePositionManager.DecreaseLiquidityParams memory decreaseLiquidityParams = INonfungiblePositionManager
+            .DecreaseLiquidityParams({
+            tokenId: tokenId,
+            liquidity: liquidity,
+            amount0Min: 0, // todo: might need to account for slippage
+            amount1Min: 0, // todo: might need to account for slippage
+            deadline: block.timestamp + 60 // 1 min (might be too long)
+        });
+        (uint256 amount0, uint256 amount1) = nftManager.decreaseLiquidity(decreaseLiquidityParams);
+
+        // 3. collect fees
         INonfungiblePositionManager.CollectParams memory collectParams = INonfungiblePositionManager.CollectParams({
             tokenId: tokenId,
             recipient: address(this),
             amount0Max: type(uint128).max,
             amount1Max: type(uint128).max
         });
-        (uint256 amount0Fees, uint256 amount1Fees) = nftManager.collect(collectParams);
+        (uint256 amount0Collected, uint256 amount1Collected) = nftManager.collect(collectParams);
 
-        INonfungiblePositionManager.DecreaseLiquidityParams memory decreaseLiquidityParams = INonfungiblePositionManager
-            .DecreaseLiquidityParams({
-            tokenId: tokenId,
-            liquidity: liquidity,
-            amount0Min: amount0Owed, // todo: might need to account for slippage
-            amount1Min: amount1Owed, // todo: might need to account for slippage
-            deadline: block.timestamp + 60 // 1 min (might be too long)
-        });
-        (uint256 amount0, uint256 amount1) = nftManager.decreaseLiquidity(decreaseLiquidityParams);
+        // 4. burn the position
+        nftManager.burn(tokenId); // todo: check if this is needed
+
+        uint256 amountToken0 = IERC20(token0).balanceOf(address(this));
+        uint256 amountToken1 = IERC20(token1).balanceOf(address(this));
+
+        console.log("amountToken0", amountToken0);
+        console.log("amountToken1", amountToken1);
 
         // 3. swap one or both tokens for baseToken
         if (token0 != baseToken) {
             // swap token0 for baseToken
             uint256 amountToken0 = IERC20(token0).balanceOf(address(this));
-            require(amountToken0 == amount0Fees + amount0, "No token0 to swap");
+            require(amountToken0 == amount0Collected, "Incorrect amount of token0 to swap");
 
+            IERC20(token0).approve(swapRouter, amountToken0);
             ISwapRouter.ExactInputSingleParams memory params = ISwapRouter.ExactInputSingleParams({
                 tokenIn: token0,
                 tokenOut: baseToken,
                 fee: 3000, // todo: make dynamic
                 recipient: address(this),
-                deadline: block.timestamp + 60, // 1 min (might be too long)
+                // deadline: block.timestamp + 60, // 1 min (might be too long)
                 amountIn: amountToken0,
                 amountOutMinimum: 0, // todo: add slippage
                 sqrtPriceLimitX96: 0
@@ -106,13 +119,13 @@ contract LPMigratorSingleToken is IERC721Receiver, ReentrancyGuard, Pausable {
         if (token1 != baseToken) {
             // swap token1 for baseToken
             uint256 amountToken1 = IERC20(token1).balanceOf(address(this));
-            require(amountToken1 == amount1Fees + amount1, "No token1 to swap");
+            require(amountToken1 == amount1Collected, "Incorrect amount of token1 to swap");
+            IERC20(token1).approve(swapRouter, amountToken1);
             ISwapRouter.ExactInputSingleParams memory params = ISwapRouter.ExactInputSingleParams({
                 tokenIn: token1,
                 tokenOut: baseToken,
                 fee: 3000, // todo: make dynamic
                 recipient: address(this),
-                deadline: block.timestamp + 60, // 1 min (might be too long)
                 amountIn: amountToken1,
                 amountOutMinimum: 0, // todo: add slippage
                 sqrtPriceLimitX96: 0

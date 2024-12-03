@@ -8,4 +8,8 @@ contract LPMigratorSingleTokenTest is Test {
     LPMigratorSingleToken public migrator;
 
     function setUp() public {}
+
+    function test_MigratorReceivesPosition() public {
+        // todo: implement
+    }
 }
