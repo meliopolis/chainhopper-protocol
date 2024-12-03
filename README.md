@@ -1,66 +1,14 @@
-## Foundry
+This repo contains contracts for migrating a Uniswap v3 LP position across chains.
 
-**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
 
-Foundry consists of:
+## `LPMigratorSingleToken`
 
--   **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
--   **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
--   **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
--   **Chisel**: Fast, utilitarian, and verbose solidity REPL.
+On Source chain: This contract receives an LP position, unwraps it, converts it to ETH, and sends it to the bridge.
+On Destination chain: This contract receives ETH, converts it to the necessary tokens for specified LP position, and wraps it into an LP position.
 
-## Documentation
 
-https://book.getfoundry.sh/
+## `LPMigratorDualToken`
 
-## Usage
+This contract won't convert to ETH and will attempt to send both tokens via a bridge and combine them on other side.
 
-### Build
-
-```shell
-$ forge build
-```
-
-### Test
-
-```shell
-$ forge test
-```
-
-### Format
-
-```shell
-$ forge fmt
-```
-
-### Gas Snapshots
-
-```shell
-$ forge snapshot
-```
-
-### Anvil
-
-```shell
-$ anvil
-```
-
-### Deploy
-
-```shell
-$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
-```
-
-### Cast
-
-```shell
-$ cast <subcommand>
-```
-
-### Help
-
-```shell
-$ forge --help
-$ anvil --help
-$ cast --help
-```
+Note: Limited to native tokens on both chains.
