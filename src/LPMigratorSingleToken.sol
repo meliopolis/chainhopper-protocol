@@ -5,8 +5,8 @@ import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import "@openzeppelin/contracts/utils/Pausable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "./interfaces/ISwapRouter.sol";
-import "./interfaces/INonfungiblePositionManager.sol";
+import "./interfaces/external/ISwapRouter.sol";
+import "./interfaces/external/INonfungiblePositionManager.sol";
 import {console} from "forge-std/Script.sol";
 
 contract LPMigratorSingleToken is IERC721Receiver, ReentrancyGuard, Pausable {
@@ -31,12 +31,9 @@ contract LPMigratorSingleToken is IERC721Receiver, ReentrancyGuard, Pausable {
      *  Functions  *
      *
      */
-    constructor(
-        address _nonfungiblePositionManager,
-        address _baseToken,
-        address _swapRouter
-        // address _spokePool
-    ) {
+    constructor(address _nonfungiblePositionManager, address _baseToken, address _swapRouter) 
+    // address _spokePool
+    {
         nonfungiblePositionManager = _nonfungiblePositionManager;
         baseToken = _baseToken;
         swapRouter = _swapRouter;
@@ -63,8 +60,7 @@ contract LPMigratorSingleToken is IERC721Receiver, ReentrancyGuard, Pausable {
 
         // 1. get the tokens in the position
 
-        (,, address token0, address token1,,,, uint128 liquidity,,,,) =
-            nftManager.positions(tokenId);
+        (,, address token0, address token1,,,, uint128 liquidity,,,,) = nftManager.positions(tokenId);
 
         require(liquidity > 0, "Liquidity is 0");
 
