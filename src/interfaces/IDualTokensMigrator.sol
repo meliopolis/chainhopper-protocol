@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.0;
 
-interface ILPMigratorDualTokens {
+interface IDualTokensMigrator {
     struct NPMPermitParams {
         uint256 positionId;
         uint256 deadline;
@@ -12,7 +12,6 @@ interface ILPMigratorDualTokens {
 
     struct LPMigrationOrder {
         address depositor;
-        address recipient;
         uint256 positionId;
         uint256 bondAmount0;
         uint256 bondAmount1;

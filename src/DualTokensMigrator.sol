@@ -5,15 +5,17 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {INonfungiblePositionManager} from "./interfaces/external/INonfungiblePositionManager.sol";
 import {V3SpokePoolInterface} from "./interfaces/external/ISpokePool.sol";
-import {ILPMigratorDualTokens} from "./interfaces/ILPMigratorDualTokens.sol";
+import {IDualTokensMigrator} from "./interfaces/IDualTokensMigrator.sol";
 
-contract LPMigratorDualTokens is ILPMigratorDualTokens {
+contract DualTokensMigrator is IDualTokensMigrator {
     using SafeERC20 for IERC20;
 
     INonfungiblePositionManager public immutable nonfungiblePositionManager;
     V3SpokePoolInterface public immutable spokePool;
 
     uint256 private migrationId;
+    // destination chain => recipient
+    mapping(uint256 => address) private recipientMapping;
     // origin token => destination chain => destination token
     mapping(address => mapping(uint256 => address)) private tokenMapping;
 
@@ -60,8 +62,8 @@ contract LPMigratorDualTokens is ILPMigratorDualTokens {
         nonfungiblePositionManager.burn(order.positionId);
 
         // collect bonds from relayer
-        IERC20(token0).safeTransferFrom(msg.sender, address(this), order.bondAmount0);
-        IERC20(token1).safeTransferFrom(msg.sender, address(this), order.bondAmount1);
+        IERC20(token0).safeTransferFrom(order.exclusiveRelayer, address(this), order.bondAmount0);
+        IERC20(token1).safeTransferFrom(order.exclusiveRelayer, address(this), order.bondAmount1);
 
         // approve spokePool to pull tokens
         IERC20(token0).safeIncreaseAllowance(address(spokePool), amount0 + order.bondAmount0);
@@ -88,7 +90,7 @@ contract LPMigratorDualTokens is ILPMigratorDualTokens {
         // deposit tokens to initiate Across Settlement
         spokePool.depositV3(
             order.depositor,
-            order.recipient,
+            recipientMapping[order.destinationChainId],
             token0,
             tokenMapping[token0][order.destinationChainId],
             amount0,
@@ -102,7 +104,7 @@ contract LPMigratorDualTokens is ILPMigratorDualTokens {
         );
         spokePool.depositV3(
             order.depositor,
-            order.recipient,
+            recipientMapping[order.destinationChainId],
             token1,
             tokenMapping[token1][order.destinationChainId],
             amount1,
