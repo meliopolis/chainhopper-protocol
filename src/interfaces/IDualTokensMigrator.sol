@@ -10,7 +10,7 @@ interface IDualTokensMigrator {
         bytes32 s;
     }
 
-    struct LPMigrationOrder {
+    struct MigrationOrder {
         address depositor;
         uint256 positionId;
         uint256 bondAmount0;
@@ -18,18 +18,16 @@ interface IDualTokensMigrator {
         uint256 feePercentage0;
         uint256 feePercentage1;
         uint256 destinationChainId;
+        address recipient;
         address exclusiveRelayer;
         uint256 fillDeadlineBuffer;
     }
 
-    struct LPMigrationMessage {
+    struct MigrationMessage {
         uint256 migrationId;
-        address token0;
-        address token1;
         uint24 fee;
         int24 tickLower;
         int24 tickUpper;
-        uint256 amount0;
-        uint256 amount1;
+        address recipient;
     }
 }

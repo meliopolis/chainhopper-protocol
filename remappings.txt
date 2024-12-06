@@ -5,3 +5,4 @@ forge-std/=lib/forge-std/src/
 halmos-cheatcodes/=lib/openzeppelin-contracts/lib/halmos-cheatcodes/src/
 openzeppelin-contracts/=lib/openzeppelin-contracts/
 v3-periphery/=lib/v3-periphery/contracts/
+v4-periphery/=lib/v4-periphery/src/

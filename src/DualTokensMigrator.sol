@@ -14,8 +14,8 @@ contract DualTokensMigrator is IDualTokensMigrator {
     V3SpokePoolInterface public immutable spokePool;
 
     uint256 private migrationId;
-    // destination chain => recipient
-    mapping(uint256 => address) private recipientMapping;
+    // destination chain => handler
+    mapping(uint256 => address) private handlerMapping;
     // origin token => destination chain => destination token
     mapping(address => mapping(uint256 => address)) private tokenMapping;
 
@@ -25,7 +25,7 @@ contract DualTokensMigrator is IDualTokensMigrator {
     }
 
     // invoked by replayer with signed permit for this contract to operate the LP position
-    function migrateByPermit(LPMigrationOrder calldata order, NPMPermitParams calldata params) external {
+    function migrateByPermit(MigrationOrder calldata order, NPMPermitParams calldata params) external {
         // permit this contract to operate the LP position
         nonfungiblePositionManager.permit(
             address(this), params.positionId, params.deadline, params.v, params.r, params.s
@@ -75,22 +75,19 @@ contract DualTokensMigrator is IDualTokensMigrator {
         uint256 outputAmount0 = amount0 * (1e18 - order.feePercentage0) / 1e18;
         uint256 outputAmount1 = amount1 * (1e18 - order.feePercentage1) / 1e18;
         bytes memory message = abi.encode(
-            LPMigrationMessage({
+            MigrationMessage({
                 migrationId: ++migrationId,
-                token0: token0,
-                token1: token1,
                 fee: fee,
                 tickLower: tickLower,
                 tickUpper: tickUpper,
-                amount0: outputAmount0,
-                amount1: outputAmount1
+                recipient: order.recipient
             })
         );
 
         // deposit tokens to initiate Across Settlement
         spokePool.depositV3(
             order.depositor,
-            recipientMapping[order.destinationChainId],
+            handlerMapping[order.destinationChainId],
             token0,
             tokenMapping[token0][order.destinationChainId],
             amount0,
@@ -104,7 +101,7 @@ contract DualTokensMigrator is IDualTokensMigrator {
         );
         spokePool.depositV3(
             order.depositor,
-            recipientMapping[order.destinationChainId],
+            handlerMapping[order.destinationChainId],
             token1,
             tokenMapping[token1][order.destinationChainId],
             amount1,
