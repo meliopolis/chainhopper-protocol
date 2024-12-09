@@ -3,10 +3,10 @@ pragma solidity ^0.8.13;
 
 import {Script, console} from "forge-std/Script.sol";
 import {LPMigratorSingleToken} from "../src/LPMigratorSingleToken.sol";
-import {ISwapRouter} from "../src/interfaces/ISwapRouter.sol";
-import {IWETH} from "../src/interfaces/IWETH.sol";
+import {ISwapRouter} from "../src/interfaces/external/ISwapRouter.sol";
+import {IWETH} from "../src/interfaces/external/IWETH.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {INonfungiblePositionManager} from "../src/interfaces/INonfungiblePositionManager.sol";
+import {INonfungiblePositionManager} from "../src/interfaces/external/INonfungiblePositionManager.sol";
 
 // run with:
 // forge script LPMigratorSingleTokenScript --rpc-url https://virtual.base.rpc.tenderly.co/6eb474dd-5918-44a2-b618-60adb9f7fc9f --private-key $PRIVATE_KEY -vvvvv --slow

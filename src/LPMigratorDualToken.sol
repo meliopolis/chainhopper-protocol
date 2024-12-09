@@ -5,8 +5,8 @@ import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import "@openzeppelin/contracts/utils/Pausable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "./interfaces/ISwapRouter.sol";
-import "./interfaces/INonfungiblePositionManager.sol";
+import "./interfaces/external/ISwapRouter.sol";
+import "./interfaces/external/INonfungiblePositionManager.sol";
 
 contract LPMigratorSingleToken is IERC721Receiver, ReentrancyGuard, Pausable {
     mapping(address => bool) public supportedTokens;
