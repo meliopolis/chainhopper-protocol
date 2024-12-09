@@ -7,7 +7,7 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./interfaces/ISwapRouter.sol";
 import "./interfaces/INonfungiblePositionManager.sol";
-import {console} from "forge-std/Script.sol";
+import {console} from "forge-std/Script.sol"; // todo: remove
 
 contract LPMigratorSingleToken is IERC721Receiver, ReentrancyGuard, Pausable {
     mapping(address => bool) public supportedTokens;
@@ -31,12 +31,9 @@ contract LPMigratorSingleToken is IERC721Receiver, ReentrancyGuard, Pausable {
      *  Functions  *
      *
      */
-    constructor(
-        address _nonfungiblePositionManager,
-        address _baseToken,
-        address _swapRouter
-        // address _spokePool
-    ) {
+    constructor(address _nonfungiblePositionManager, address _baseToken, address _swapRouter) 
+    // address _spokePool
+    {
         nonfungiblePositionManager = _nonfungiblePositionManager;
         baseToken = _baseToken;
         swapRouter = _swapRouter;
@@ -63,8 +60,7 @@ contract LPMigratorSingleToken is IERC721Receiver, ReentrancyGuard, Pausable {
 
         // 1. get the tokens in the position
 
-        (,, address token0, address token1,,,, uint128 liquidity,,,,) =
-            nftManager.positions(tokenId);
+        (,, address token0, address token1,,,, uint128 liquidity,,,,) = nftManager.positions(tokenId);
 
         require(liquidity > 0, "Liquidity is 0");
 
@@ -77,7 +73,7 @@ contract LPMigratorSingleToken is IERC721Receiver, ReentrancyGuard, Pausable {
             amount1Min: 0, // todo: might need to account for slippage
             deadline: block.timestamp + 60 // 1 min (might be too long)
         });
-        (uint256 amount0, uint256 amount1) = nftManager.decreaseLiquidity(decreaseLiquidityParams);
+        nftManager.decreaseLiquidity(decreaseLiquidityParams);
 
         // 3. collect fees
         INonfungiblePositionManager.CollectParams memory collectParams = INonfungiblePositionManager.CollectParams({
@@ -93,9 +89,6 @@ contract LPMigratorSingleToken is IERC721Receiver, ReentrancyGuard, Pausable {
 
         uint256 amountToken0 = IERC20(token0).balanceOf(address(this));
         uint256 amountToken1 = IERC20(token1).balanceOf(address(this));
-
-        console.log("amountToken0", amountToken0);
-        console.log("amountToken1", amountToken1);
 
         // 3. swap one or both tokens for baseToken
         if (token0 != baseToken) {

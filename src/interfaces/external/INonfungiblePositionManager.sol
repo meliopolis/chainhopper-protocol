@@ -107,10 +107,5 @@ interface INonfungiblePositionManager is IERC721 {
     function mint(MintParams calldata params)
         external
         payable
-        returns (
-            uint256 tokenId,
-            uint128 liquidity,
-            uint256 amount0,
-            uint256 amount1
-        );
+        returns (uint256 tokenId, uint128 liquidity, uint256 amount0, uint256 amount1);
 }
