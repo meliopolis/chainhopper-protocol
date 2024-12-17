@@ -16,6 +16,7 @@ contract LPMigratorSingleToken is ILPMigrator {
     address public immutable baseToken; // the token that will be used to send the message to the bridge
     address public immutable swapRouter;
     V3SpokePoolInterface public immutable spokePool;
+    mapping(address => uint256) public refundAmount;
 
     /**
      *
@@ -42,19 +43,23 @@ contract LPMigratorSingleToken is ILPMigrator {
 
         (
             address recipient,
+            uint32 quoteTimestamp,
             uint32 fillDeadlineBuffer,
-            uint256 feePercentage,
+            uint256 minOutputAmount,
             address exclusiveRelayer,
+            uint32 exclusivityDeadline,
             uint256 destinationChainId,
             bytes memory mintParams
-        ) = abi.decode(data, (address, uint32, uint256, address, uint256, bytes));
+        ) = abi.decode(data, (address, uint32, uint32, uint256, address, uint32, uint256, bytes));
 
         console.log("decoded migrationParams");
 
         MigrationParams memory migrationParams = MigrationParams({
             recipient: recipient,
+            quoteTimestamp: quoteTimestamp,
             fillDeadlineBuffer: fillDeadlineBuffer,
-            feePercentage: feePercentage,
+            exclusivityDeadline: exclusivityDeadline,
+            minOutputAmount: minOutputAmount,
             exclusiveRelayer: exclusiveRelayer,
             destinationChainId: destinationChainId,
             mintParams: mintParams
@@ -68,7 +73,7 @@ contract LPMigratorSingleToken is ILPMigrator {
 
     function _migratePosition(address from, uint256 tokenId, MigrationParams memory migrationParams) internal {
         INonfungiblePositionManager nftManager = INonfungiblePositionManager(nonfungiblePositionManager);
-
+        console.log("msg.sender", msg.sender);
         require(msg.sender == nonfungiblePositionManager, "Only nonfungiblePositionManager can call this function");
         // confirm that this tokenId is now owned by this contract
         require(nftManager.ownerOf(tokenId) == address(this), "Token not owned by this contract");
@@ -144,10 +149,12 @@ contract LPMigratorSingleToken is ILPMigrator {
         }
 
         // 4. send the baseToken to the bridge with LP position info
+        // this is no longer accurate due to refunds that can be accumulated
+        // instead, need to calculate the exact amount of baseToken from the trade
         uint256 amountBaseToken = IERC20(baseToken).balanceOf(address(this));
         require(amountBaseToken >= amountBaseTokenBeforeTrades + amountOut, "baseToken balance mismatch");
 
-        uint32 quoteTimestamp = uint32(block.timestamp);
+        // uint32 quoteTimestamp = uint32(block.timestamp);
         // (
         //     address recipient,
         //     uint32 fillDeadlineBuffer,
@@ -158,11 +165,12 @@ contract LPMigratorSingleToken is ILPMigrator {
         // ) = abi.decode(data, (address, uint32, uint256, address, uint256, bytes));
 
         uint32 fillDeadline = uint32(block.timestamp + migrationParams.fillDeadlineBuffer);
-        uint256 minOutputAmount = amountBaseToken * (10000 - migrationParams.feePercentage) / 10000;
+        // uint256 minOutputAmount = amountBaseToken * (10000 - migrationParams.feePercentage) / 10000;
 
         // approve spokPool to transfer baseToken
+        // this is no longer accurate due to refunds that can be accumulated
         IERC20(baseToken).approve(address(spokePool), amountBaseToken);
-        console.log("block.timestamp", block.timestamp);
+        refundAmount[from] = amountBaseToken;
         // send ETH to bridge with message
         spokePool.depositV3(
             from, // depositor
@@ -170,13 +178,22 @@ contract LPMigratorSingleToken is ILPMigrator {
             baseToken, // inputToken
             0x0000000000000000000000000000000000000000, // outputToken; resolved automatically
             amountBaseToken, // inputAmount
-            minOutputAmount,
+            migrationParams.minOutputAmount,
             migrationParams.destinationChainId,
             migrationParams.exclusiveRelayer,
-            quoteTimestamp,
+            migrationParams.quoteTimestamp,
             fillDeadline,
-            uint32(block.timestamp - 1000), // todo: is this correct? setting exclusivityDeadline and fillDeadline to the same value
+            migrationParams.exclusivityDeadline,
             migrationParams.mintParams // message
         );
+    }
+
+    function claimRefund(address to) external {
+        // todo: implement
+        // necessary when deposit fails on the destination chain
+    }
+
+    function _refund(address to, uint256 amount) internal {
+        // todo: implement private function to refund baseToken to the depositor
     }
 }

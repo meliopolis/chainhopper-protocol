@@ -9,7 +9,7 @@ import "./interfaces/external/INonfungiblePositionManager.sol";
 import "./interfaces/external/ISpokePool.sol";
 import "./interfaces/external/AcrossMessageHandler.sol";
 import "./interfaces/ILPMigrationHandler.sol";
-// import "forge-std/console.sol";
+import "forge-std/console.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 contract LPMigrationSingleTokenHandler is ILPMigrationHandler {
@@ -17,7 +17,7 @@ contract LPMigrationSingleTokenHandler is ILPMigrationHandler {
 
     mapping(address => bool) public supportedTokens;
     address public immutable nftPositionManager;
-    address public immutable baseToken; // the token that will be used to send the message to the bridge
+    address public immutable baseToken; // token received from the bridge
     address public immutable swapRouter;
     address public immutable spokePool;
 
@@ -33,15 +33,7 @@ contract LPMigrationSingleTokenHandler is ILPMigrationHandler {
         spokePool = _spokePool;
     }
 
-    // used to receive tokens from the bridge
-    function handleV3AcrossMessage(address tokenSent, uint256 amount, address, bytes memory message) external {
-        require(msg.sender == address(spokePool), "Only spokePool can call this function");
-        require(tokenSent == baseToken, "Only baseToken can be received");
-        // 1. check the message is valid. How?
-        // per https://docs.across.to/use-cases/embedded-cross-chain-actions/cross-chain-actions-integration-guide/using-the-generic-multicaller-handler-contract#security-and-safety-considerations,
-        //  Message can be spoofed. Across doesn't guarantee the message is valid.
-
-        // message is a mintParams
+    function swapAndCreatePosition(uint256 amount, bytes memory message) external returns (uint256) {
         (
             address token0,
             address token1,
@@ -125,6 +117,27 @@ contract LPMigrationSingleTokenHandler is ILPMigrationHandler {
         }
         if (amountToken1Remaining > 0) {
             IERC20(token1).transfer(recipient, amountToken1Remaining);
+        }
+        return tokenId;
+    }
+
+    // used to receive tokens from the bridge
+    function handleV3AcrossMessage(address tokenSent, uint256 amount, address, bytes memory message) external {
+        require(msg.sender == address(spokePool), "Only spokePool can call this function");
+        require(tokenSent == baseToken, "Only baseToken can be received");
+        require(IERC20(baseToken).balanceOf(address(this)) >= amount, "Insufficient balance");
+        // 1. check the message is valid. How?
+        // per https://docs.across.to/use-cases/embedded-cross-chain-actions/cross-chain-actions-integration-guide/using-the-generic-multicaller-handler-contract#security-and-safety-considerations,
+        //  Message can be spoofed. Across doesn't guarantee the message is valid.
+
+        try this.swapAndCreatePosition(amount, message) returns (uint256 tokenId) {
+            console.log("Successfully received baseToken and position created", tokenId);
+        } catch {
+            // revert
+            (,,,,,,,,, address recipient,) = abi.decode(
+                message, (address, address, uint24, int24, int24, uint256, uint256, uint256, uint256, address, uint24)
+            );
+            IERC20(baseToken).transfer(recipient, amount);
         }
     }
 }

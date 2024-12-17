@@ -9,114 +9,22 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {INonfungiblePositionManager} from "../src/interfaces/external/INonfungiblePositionManager.sol";
 import {LPMigrationSingleTokenHandler} from "../src/LPMigrationSingleTokenHandler.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {LPMigratorScript} from "./LPMigratorScript.s.sol";
 
 // run with:
-// forge script LPMigratorSingleTokenScript --rpc-url $VIRTUAL_RPC_URL --private-key $PRIVATE_KEY -vvvvv --slow --via-ir
+// forge script LPMigratorSingleTokenScript --rpc-url $BASE_SEPOLIA_VIRTUAL_RPC_URL --private-key $PRIVATE_KEY -vvvvv --slow --via-ir
 
-contract LPMigratorSingleTokenScript is Script {
+contract LPMigratorSingleTokenScript is LPMigratorScript {
     using SafeERC20 for IERC20;
 
     LPMigratorSingleToken public migrator;
     address publicKey = vm.envAddress("PUBLIC_KEY");
-    address swapRouter = vm.envAddress("SWAP_ROUTER_ADDRESS");
-    address nftPositionManager = vm.envAddress("NFT_POSITION_MANAGER_ADDRESS");
-    address baseToken = vm.envAddress("WETH_ADDRESS");
-    address otherToken = vm.envAddress("USDC_ADDRESS");
-    address spokePool = vm.envAddress("SPOKE_POOL_ADDRESS");
+    address swapRouter = vm.envAddress("BASE_SEPOLIA_SWAP_ROUTER");
+    address nftPositionManager = vm.envAddress("BASE_SEPOLIA_NFT_POSITION_MANAGER");
+    address baseToken = vm.envAddress("BASE_SEPOLIA_WETH");
+    address otherToken = vm.envAddress("BASE_SEPOLIA_USDC");
+    address spokePool = vm.envAddress("BASE_SEPOLIA_SPOKE_POOL");
 
-    function createLPPosition() public returns (uint256) {
-        vm.startBroadcast(publicKey);
-        uint256 amountToken1 = 1 ether;
-        // wrap one ETH
-        IWETH(baseToken).deposit{value: amountToken1}();
-        uint256 baseTokenBalancePre = IERC20(baseToken).balanceOf(publicKey);
-        // get the balance of the other token
-        // uint256 otherTokenBalancePre = IERC20(otherToken).balanceOf(publicKey);
-
-        // approve swap router to use weth
-        IERC20(baseToken).approve(swapRouter, baseTokenBalancePre * 1000);
-        // takes weth, trades it for some USDC
-        ISwapRouter.ExactInputSingleParams memory params = ISwapRouter.ExactInputSingleParams({
-            tokenIn: baseToken,
-            tokenOut: otherToken,
-            fee: 500,
-            recipient: publicKey,
-            amountIn: 1000000000000000,
-            amountOutMinimum: 0,
-            sqrtPriceLimitX96: 0
-        });
-        // mainnet {"tokenIn":"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", "tokenOut":"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48","fee":"500", "recipient":"0x4bD047CA72fa05F0B89ad08FE5Ba5ccdC07DFFBF","amountIn":"1000000000000000"}
-        // base {"tokenIn":"0x4200000000000000000000000000000000000006", "tokenOut":"0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913","fee":"500", "recipient":"0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266","amountIn":"1000000000000000"}
-        uint256 amountOut = ISwapRouter(swapRouter).exactInputSingle(params);
-        // verify the trade
-        uint256 otherTokenBalancePost = IERC20(otherToken).balanceOf(publicKey);
-
-        // need to approve the nonfungible position manager to use the other token
-        IERC20(otherToken).approve(nftPositionManager, otherTokenBalancePost * 1000);
-        IERC20(baseToken).approve(nftPositionManager, baseTokenBalancePre * 1000);
-
-        // create an LP position
-        INonfungiblePositionManager.MintParams memory mintParams = INonfungiblePositionManager.MintParams({
-            token0: baseToken,
-            token1: otherToken,
-            fee: 500,
-            tickLower: -800000,
-            tickUpper: 800000,
-            amount0Desired: 1000000000000000,
-            amount1Desired: amountOut,
-            amount0Min: 0,
-            amount1Min: 0,
-            recipient: publicKey,
-            deadline: block.timestamp + 6000000000
-        });
-        (uint256 tokenId,,,) = INonfungiblePositionManager(nftPositionManager).mint(mintParams);
-        console.log("tokenId created", tokenId);
-        vm.stopBroadcast();
-        return tokenId;
-    }
-
-    function simulateTrade() public {
-        // todo: simulate a trade against the pool to collect fees
-    }
-
-    function sendMessageToHandler(LPMigrationSingleTokenHandler migrationHandler) public {
-        console.log("sending message to handler");
-        // first send the token to the Handler contract
-        uint256 baseTokenBalancePre = IERC20(baseToken).balanceOf(publicKey);
-        console.log("baseTokenBalancePre", baseTokenBalancePre);
-        vm.prank(publicKey);
-        IERC20(baseToken).safeTransferFrom(publicKey, address(migrationHandler), 1e18);
-        // wrap the token
-        // IWETH(baseToken).deposit{value: 1 ether}();
-        // send the message to the Handler contract
-        // first we construct the data
-        address token0 = baseToken;
-        address token1 = otherToken;
-        uint24 fee = 500;
-        int24 tickLower = -800000;
-        int24 tickUpper = 800000;
-        uint256 amount0Desired = 1000000000000000;
-        uint256 amount1Desired = 1000000000000000;
-        uint256 amount0Min = 0;
-        uint256 amount1Min = 0;
-        address recipient = publicKey;
-        uint24 percentToken0 = 1000;
-        bytes memory data = abi.encode(
-            token0,
-            token1,
-            fee,
-            tickLower,
-            tickUpper,
-            amount0Desired,
-            amount1Desired,
-            amount0Min,
-            amount1Min,
-            recipient,
-            percentToken0
-        );
-        vm.prank(spokePool);
-        migrationHandler.handleV3AcrossMessage(baseToken, 1 ether, publicKey, data);
-    }
 
     function run() public {
         // create the LP position and get the tokenId
@@ -143,8 +51,20 @@ contract LPMigratorSingleTokenScript is Script {
         LPMigrationSingleTokenHandler migrationHandler =
             new LPMigrationSingleTokenHandler(nftPositionManager, baseToken, swapRouter, spokePool);
 
-        sendMessageToHandler(migrationHandler);
+        vm.prank(publicKey);
+        IWETH(baseToken).deposit{value: 1 ether}();
+        this.sendMessageToHandler(address(migrationHandler), spokePool, publicKey, baseToken, otherToken);
 
         // vm.stopBroadcast();
     }
 }
+
+// 0x
+// 00000000000000000000000017f5110cd1412047d2a84f8d40c0716bc5cde0cd
+// 00000000000000000000000000000000000000000000000000000000675c5ea4
+// 0000000000000000000000000000000000000000000000000000000000000bb8
+// 0000000000000000000000000000000000000000000000000031e5af166927a5
+// 0000000000000000000000000000000000000000000000000000000000000000
+// 0000000000000000000000000000000000000000000000000000000000000000
+// 0000000000000000000000000000000000000000000000000000000000014a34
+// 0x000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000001800000000000000000000000004200000000000000000000000000000000000006000000000000000000000000036cbd53842c5426634e7929541ec2318f3dcf7e00000000000000000000000000000000000000000000000000000000000001f400000000000000000000000000000000000000000000000000000000000290b80000000000000000000000000000000000000000000000000000000000029eaa000000000000000000000000000000000000000000000000000000000de8b9a3000000000000000000000000000000000000000000000000001d76e8f68a3792000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004bd047ca72fa05f0b89ad08fe5ba5ccdc07dffbf00000000000000000000000000000000000000000000000000000193c5fd74ae0000000000000000000000000000000000000000000000000000000000001388
