@@ -8,7 +8,7 @@ import {V3SpokePoolInterface} from "./interfaces/external/ISpokePool.sol";
 import {IDualTokensHandler} from "./interfaces/IDualTokensHandler.sol";
 import {IDualTokensMigrator} from "./interfaces/IDualTokensMigrator.sol";
 
-contract DualTokensHandlerV4 is IDualTokensHandler {
+contract DualTokensHandlerV3 is IDualTokensHandler {
     struct MigrationPartial {
         address token;
         uint256 amount;
