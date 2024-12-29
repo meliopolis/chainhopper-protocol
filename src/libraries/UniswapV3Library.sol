@@ -3,10 +3,12 @@ pragma solidity =0.8.28;
 
 import {IERC20} from "openzeppelin/token/ERC20/IERC20.sol";
 import {SafeERC20} from "openzeppelin/token/ERC20/utils/SafeERC20.sol";
-import {IUniswapV3PositionManager} from "../interfaces/external/IUniswapV3.sol";
+import {IUniswapV3Pool, IUniswapV3PositionManager, ISwapRouter} from "../interfaces/external/IUniswapV3.sol";
 
 library UniswapV3Library {
     using SafeERC20 for IERC20;
+
+    bytes32 private constant POOL_INIT_CODE_HASH = 0xe34f199b19b2b4f47f68442619d555527d244f78a3297ea89325f843f87b8b54;
 
     function mintPosition(
         IUniswapV3PositionManager self,
@@ -40,5 +42,49 @@ library UniswapV3Library {
 
         IERC20(token0).safeDecreaseAllowance(address(self), amount0Desired - amount0);
         IERC20(token1).safeDecreaseAllowance(address(self), amount1Desired - amount1);
+    }
+
+    function getCurrentSqrtPriceAndTick(IUniswapV3PositionManager self, address token0, address token1, uint24 fee)
+        internal
+        view
+        returns (uint160 sqrtPriceX96, int24 tick)
+    {
+        address pool = address(
+            uint160(
+                uint256(
+                    keccak256(
+                        abi.encodePacked(
+                            hex"ff", self.factory(), keccak256(abi.encode(token0, token1, fee)), POOL_INIT_CODE_HASH
+                        )
+                    )
+                )
+            )
+        );
+
+        (sqrtPriceX96, tick,,,,,) = IUniswapV3Pool(pool).slot0();
+    }
+
+    function swap(
+        ISwapRouter self,
+        address tokenIn,
+        address tokenOut,
+        uint24 fee,
+        uint256 amountIn,
+        uint160 sqrtPriceLimitX96
+    ) internal returns (uint256 amountOut) {
+        IERC20(tokenIn).safeIncreaseAllowance(address(self), amountIn);
+
+        amountOut = self.exactInputSingle(
+            ISwapRouter.ExactInputSingleParams({
+                tokenIn: tokenIn,
+                tokenOut: tokenOut,
+                fee: fee,
+                recipient: address(this),
+                deadline: block.timestamp,
+                amountIn: amountIn,
+                amountOutMinimum: 0,
+                sqrtPriceLimitX96: sqrtPriceLimitX96
+            })
+        );
     }
 }
