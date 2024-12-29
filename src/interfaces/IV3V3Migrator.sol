@@ -13,6 +13,7 @@ interface IV3V3Migrator {
         int24 tickLower;
         int24 tickUpper;
         // others
+        address baseToken;
         uint256 minOutputAmount0;
         uint256 minOutputAmount1;
         uint32 fillDeadlineOffset;
