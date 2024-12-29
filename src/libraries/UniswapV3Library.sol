@@ -44,6 +44,39 @@ library UniswapV3Library {
         IERC20(token1).safeDecreaseAllowance(address(self), amount1Desired - amount1);
     }
 
+    function liquidatePosition(IUniswapV3PositionManager self, uint256 positionId, address recipient)
+        internal
+        returns (address token0, address token1, uint24 fee, uint256 amount0, uint256 amount1)
+    {
+        // get position info
+        uint128 liquidity;
+        (,, token0, token1, fee,,, liquidity,,,,) = self.positions(positionId);
+
+        // burn all liquidity
+        self.decreaseLiquidity(
+            IUniswapV3PositionManager.DecreaseLiquidityParams({
+                tokenId: positionId,
+                liquidity: liquidity,
+                amount0Min: 0,
+                amount1Min: 0,
+                deadline: block.timestamp
+            })
+        );
+
+        // collect all tokens
+        (amount0, amount1) = self.collect(
+            IUniswapV3PositionManager.CollectParams({
+                tokenId: positionId,
+                recipient: recipient,
+                amount0Max: type(uint128).max,
+                amount1Max: type(uint128).max
+            })
+        );
+
+        // good hygiene
+        self.burn(positionId);
+    }
+
     function getCurrentSqrtPriceAndTick(IUniswapV3PositionManager self, address token0, address token1, uint24 fee)
         internal
         view

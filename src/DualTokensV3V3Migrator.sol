@@ -1,0 +1,71 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+pragma solidity =0.8.28;
+
+import {AcrossV3Migrator} from "./base/AcrossV3Migrator.sol";
+import {IAcrossV3SpokePool} from "./interfaces/external/IAcrossV3.sol";
+import {IV3Settler} from "./interfaces/IV3Settler.sol";
+import {IV3V3Migrator} from "./interfaces/IV3V3Migrator.sol";
+import {AcrossV3Library} from "./libraries/AcrossV3Library.sol";
+
+contract DualTokensV3V3Migrator is IV3V3Migrator, AcrossV3Migrator {
+    error DestinationChainSettlerNotFound();
+
+    using AcrossV3Library for IAcrossV3SpokePool;
+
+    constructor(address _positionManager, address _spokePool) AcrossV3Migrator(_positionManager, _spokePool) {}
+
+    function _migrate(
+        address sender,
+        address token0,
+        address token1,
+        uint24,
+        uint256 positionId,
+        uint256 amount0,
+        uint256 amount1,
+        bytes memory data
+    ) internal override {
+        MigrationParams memory params = abi.decode(data, (MigrationParams));
+        require(chainSettlers[params.destinationChainId] != address(0), DestinationChainSettlerNotFound());
+
+        // prepare settlement message
+        bytes memory message = abi.encode(
+            IV3Settler.SettlementParams({
+                token0: params.token0,
+                token1: params.token1,
+                fee: params.fee,
+                tickLower: params.tickLower,
+                tickUpper: params.tickUpper,
+                recipient: params.recipient,
+                counterpartKey: amount0 > 0 && amount1 > 0
+                    ? keccak256(abi.encode(block.chainid, address(positionManager), positionId))
+                    : bytes32(0)
+            })
+        );
+
+        // initiate migration
+        if (amount0 > 0) {
+            spokePool.migrate(
+                sender,
+                params.destinationChainId,
+                chainSettlers[params.destinationChainId],
+                token0, // trusting filler to specify destination token, which should be params.token0
+                amount0,
+                params.minOutputAmount0,
+                params.fillDeadlineOffset,
+                message
+            );
+        }
+        if (amount1 > 0) {
+            spokePool.migrate(
+                sender,
+                params.destinationChainId,
+                chainSettlers[params.destinationChainId],
+                token1, // trusting filler to specify destination token, which should be params.token1
+                amount1,
+                params.minOutputAmount1,
+                params.fillDeadlineOffset,
+                message
+            );
+        }
+    }
+}
