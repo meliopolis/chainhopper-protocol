@@ -5,10 +5,10 @@ import {IERC20} from "openzeppelin/token/ERC20/IERC20.sol";
 import {SafeERC20} from "openzeppelin/token/ERC20/utils/SafeERC20.sol";
 import {AcrossV3Settler} from "./base/AcrossV3Settler.sol";
 import {IUniswapV3PositionManager} from "./interfaces/external/IUniswapV3.sol";
-import {IV3Settler} from "./interfaces/IV3Settler.sol";
+import {IDualTokensV3Settler} from "./interfaces/IDualTokensV3Settler.sol";
 import {UniswapV3Library} from "./libraries/UniswapV3Library.sol";
 
-contract DualTokensV3Settler is IV3Settler, AcrossV3Settler {
+contract DualTokensV3Settler is IDualTokensV3Settler, AcrossV3Settler {
     struct Counterpart {
         address token;
         uint256 amount;

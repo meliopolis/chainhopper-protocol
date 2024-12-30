@@ -4,14 +4,14 @@ pragma solidity =0.8.28;
 import {AcrossV3Migrator} from "./base/AcrossV3Migrator.sol";
 import {IAcrossV3SpokePool} from "./interfaces/external/IAcrossV3.sol";
 import {ISwapRouter} from "./interfaces/external/IUniswapV3.sol";
-import {IV3Settler} from "./interfaces/IV3Settler.sol";
-import {IV3V3Migrator} from "./interfaces/IV3V3Migrator.sol";
+import {ISingleTokenV3Settler} from "./interfaces/ISingleTokenV3Settler.sol";
+import {ISingleTokenV3V3Migrator} from "./interfaces/ISingleTokenV3V3Migrator.sol";
 import {AcrossV3Library} from "./libraries/AcrossV3Library.sol";
 import {UniswapV3Library} from "./libraries/UniswapV3Library.sol";
 
-contract SingleTokenV3V3Migrator is IV3V3Migrator, AcrossV3Migrator {
+contract SingleTokenV3V3Migrator is ISingleTokenV3V3Migrator, AcrossV3Migrator {
     error DestinationChainSettlerNotFound();
-    error InvalidBaseToken();
+    error InvalidOutputToken();
 
     using UniswapV3Library for ISwapRouter;
     using AcrossV3Library for IAcrossV3SpokePool;
@@ -39,8 +39,8 @@ contract SingleTokenV3V3Migrator is IV3V3Migrator, AcrossV3Migrator {
 
         // sort tokens and amounts
         (token0, token1, amount0, amount1) =
-            token0 == params.baseToken ? (token0, token1, amount0, amount1) : (token1, token0, amount1, amount0);
-        require(token0 == params.baseToken, InvalidBaseToken());
+            token0 == params.outputToken ? (token0, token1, amount0, amount1) : (token1, token0, amount1, amount0);
+        require(token0 == params.outputToken, InvalidOutputToken());
 
         // swap all token1 for token0
         if (amount1 > 0) {
@@ -55,17 +55,16 @@ contract SingleTokenV3V3Migrator is IV3V3Migrator, AcrossV3Migrator {
                 chainSettlers[params.destinationChainId],
                 token0, // trusting filler to specify destination token, which should be params.token0
                 amount0,
-                params.minOutputAmount0,
+                params.minOutputAmount,
                 params.fillDeadlineOffset,
                 abi.encode(
-                    IV3Settler.SettlementParams({
+                    ISingleTokenV3Settler.SettlementParams({
+                        recipient: params.recipient,
                         token0: params.token0,
                         token1: params.token1,
                         fee: params.fee,
                         tickLower: params.tickLower,
-                        tickUpper: params.tickUpper,
-                        recipient: params.recipient,
-                        counterpartKey: bytes32(0)
+                        tickUpper: params.tickUpper
                     })
                 )
             );

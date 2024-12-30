@@ -3,11 +3,11 @@ pragma solidity =0.8.28;
 
 import {AcrossV3Migrator} from "./base/AcrossV3Migrator.sol";
 import {IAcrossV3SpokePool} from "./interfaces/external/IAcrossV3.sol";
-import {IV3Settler} from "./interfaces/IV3Settler.sol";
-import {IV3V3Migrator} from "./interfaces/IV3V3Migrator.sol";
+import {IDualTokensV3Settler} from "./interfaces/IDualTokensV3Settler.sol";
+import {IDualTokensV3V3Migrator} from "./interfaces/IDualTokensV3V3Migrator.sol";
 import {AcrossV3Library} from "./libraries/AcrossV3Library.sol";
 
-contract DualTokensV3V3Migrator is IV3V3Migrator, AcrossV3Migrator {
+contract DualTokensV3V3Migrator is IDualTokensV3V3Migrator, AcrossV3Migrator {
     error DestinationChainSettlerNotFound();
 
     using AcrossV3Library for IAcrossV3SpokePool;
@@ -29,16 +29,16 @@ contract DualTokensV3V3Migrator is IV3V3Migrator, AcrossV3Migrator {
 
         // prepare settlement message
         bytes memory message = abi.encode(
-            IV3Settler.SettlementParams({
+            IDualTokensV3Settler.SettlementParams({
+                counterpartKey: amount0 > 0 && amount1 > 0
+                    ? keccak256(abi.encode(block.chainid, address(positionManager), positionId))
+                    : bytes32(0),
+                recipient: params.recipient,
                 token0: params.token0,
                 token1: params.token1,
                 fee: params.fee,
                 tickLower: params.tickLower,
-                tickUpper: params.tickUpper,
-                recipient: params.recipient,
-                counterpartKey: amount0 > 0 && amount1 > 0
-                    ? keccak256(abi.encode(block.chainid, address(positionManager), positionId))
-                    : bytes32(0)
+                tickUpper: params.tickUpper
             })
         );
 

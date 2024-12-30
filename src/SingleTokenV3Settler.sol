@@ -5,14 +5,14 @@ import {IERC20} from "openzeppelin/token/ERC20/IERC20.sol";
 import {SafeERC20} from "openzeppelin/token/ERC20/utils/SafeERC20.sol";
 import {AcrossV3Settler} from "./base/AcrossV3Settler.sol";
 import {IUniswapV3PositionManager, ISwapRouter} from "./interfaces/external/IUniswapV3.sol";
-import {IV3Settler} from "./interfaces/IV3Settler.sol";
+import {ISingleTokenV3Settler} from "./interfaces/ISingleTokenV3Settler.sol";
 import {BasisPoints} from "./libraries/BasisPoints.sol";
 import {FixedPoint96} from "./libraries/FixedPoint96.sol";
 import {FullMath} from "./libraries/FullMath.sol";
 import {TickMath} from "./libraries/TickMath.sol";
 import {UniswapV3Library} from "./libraries/UniswapV3Library.sol";
 
-contract SingleTokenV3Settler is IV3Settler, AcrossV3Settler {
+contract SingleTokenV3Settler is ISingleTokenV3Settler, AcrossV3Settler {
     using SafeERC20 for IERC20;
     using UniswapV3Library for IUniswapV3PositionManager;
     using UniswapV3Library for ISwapRouter;
