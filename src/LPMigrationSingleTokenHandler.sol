@@ -40,35 +40,24 @@ contract LPMigrationSingleTokenHandler is ILPMigrationHandler {
             uint24 fee,
             int24 tickLower,
             int24 tickUpper,
-            ,
-            ,
             uint256 amount0Min,
             uint256 amount1Min,
-            address recipient,
-            uint24 percentToken0 // in bps
+            address recipient
         ) = abi.decode(
-            message, (address, address, uint24, int24, int24, uint256, uint256, uint256, uint256, address, uint24)
+            message, (address, address, uint24, int24, int24, uint256, uint256, address)
         );
-        address otherToken = token0 == baseToken ? token1 : token0;
-        uint256 amountIn = 0;
-        if (token0 == baseToken) {
-            // swap token1 for baseToken
-            amountIn = amount * (10000 - percentToken0) / 10000;
-        } else if (token1 == baseToken) {
-            // swap token0 for baseToken
-            amountIn = amount * percentToken0 / 10000;
-        }
+
+        uint256 amountToTrade = token0 == baseToken ? amount - amount0Min : amount - amount1Min;
 
         // 2. swap baseToken for tokens needed in the position
-        IERC20(baseToken).approve(swapRouter, amountIn);
+        IERC20(baseToken).approve(swapRouter, amountToTrade);
 
-        // v0.1: initially we'll calculate the current price of the pool and swap assuming position will be minted at that price
         ISwapRouter.ExactInputSingleParams memory params = ISwapRouter.ExactInputSingleParams({
             tokenIn: baseToken,
-            tokenOut: otherToken,
+            tokenOut: token0,
             fee: fee,
             recipient: address(this),
-            amountIn: amountIn, // need to calculate
+            amountIn: amountToTrade,
             amountOutMinimum: 0, // todo: add slippage
             sqrtPriceLimitX96: 0
         });
@@ -77,26 +66,26 @@ contract LPMigrationSingleTokenHandler is ILPMigrationHandler {
         uint256 amount1Desired = 0;
 
         if (token0 == baseToken) {
-            amount0Desired = amount - amountIn;
+            amount0Desired = amount0Min;
             amount1Desired = amountOut;
         } else if (token1 == baseToken) {
             amount0Desired = amountOut;
-            amount1Desired = amount - amountIn;
+            amount1Desired = amount1Min;
         }
         // need to approve the nonfungible position manager to use the other token
-        IERC20(token0).approve(nftPositionManager, amount0Desired * 1000);
-        IERC20(token1).approve(nftPositionManager, amount1Desired * 1000);
+        IERC20(token0).approve(nftPositionManager, amount0Desired);
+        IERC20(token1).approve(nftPositionManager, amount1Desired);
         // 3. mint the position
         INonfungiblePositionManager.MintParams memory mintParams = INonfungiblePositionManager.MintParams({
-            token0: token0,
+            token0: token0, // assumes message has sorted token
             token1: token1,
             fee: fee,
             tickLower: tickLower,
             tickUpper: tickUpper,
             amount0Desired: amount0Desired,
             amount1Desired: amount1Desired,
-            amount0Min: amount0Min,
-            amount1Min: amount1Min,
+            amount0Min: amount0Min, // are these needed?
+            amount1Min: amount1Min, // are these needed?
             recipient: recipient,
             deadline: block.timestamp
         });
@@ -124,8 +113,11 @@ contract LPMigrationSingleTokenHandler is ILPMigrationHandler {
     // used to receive tokens from the bridge
     function handleV3AcrossMessage(address tokenSent, uint256 amount, address, bytes memory message) external {
         require(msg.sender == address(spokePool), "Only spokePool can call this function");
+        // console.log("msg.sender", msg.sender);
         require(tokenSent == baseToken, "Only baseToken can be received");
+        // console.log("tokenSent", tokenSent);
         require(IERC20(baseToken).balanceOf(address(this)) >= amount, "Insufficient balance");
+        // console.log("Received baseToken", amount);
         // 1. check the message is valid. How?
         // per https://docs.across.to/use-cases/embedded-cross-chain-actions/cross-chain-actions-integration-guide/using-the-generic-multicaller-handler-contract#security-and-safety-considerations,
         //  Message can be spoofed. Across doesn't guarantee the message is valid.
@@ -134,10 +126,17 @@ contract LPMigrationSingleTokenHandler is ILPMigrationHandler {
             console.log("Successfully received baseToken and position created", tokenId);
         } catch {
             // revert
-            (,,,,,,,,, address recipient,) = abi.decode(
-                message, (address, address, uint24, int24, int24, uint256, uint256, uint256, uint256, address, uint24)
+            (,,,,,,, address recipient) = abi.decode(
+                message, (address, address, uint24, int24, int24, uint256, uint256, address)
             );
             IERC20(baseToken).transfer(recipient, amount);
         }
+        // address recipient = abi.decode(message, (address));
+        // try IERC20(tokenSent).transfer(recipient, amount) {
+        //     console.log("Successfully transferred tokenSent to recipient");
+        // } catch {
+        //     // revert
+        //     console.log("Failed to transfer tokenSent to recipient");
+        // } 
     }
 }

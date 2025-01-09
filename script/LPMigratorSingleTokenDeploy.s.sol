@@ -30,7 +30,7 @@ contract LPMigratorSingleTokenDeployScript is Script {
             swapRouter,
             spokePool
         );
-        console.log("LPMigrationSingleTokenHandler deployed at:", address(migrator));
+        console.log("LPMigrationSingleToken deployed at:", address(migrator));
         vm.stopBroadcast();
     }
 }

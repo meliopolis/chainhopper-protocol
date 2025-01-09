@@ -6,6 +6,17 @@ import {LPMigrationSingleTokenHandler} from "../src/LPMigrationSingleTokenHandle
 
 /* Example command to run the script:
 forge script script/LPMigratorHandlerDeploy.s.sol:LPMigratorHandlerDeployScript \
+    --rpc-url $ARBITRUM_SEPOLIA_RPC_URL \
+    --private-key $PRIVATE_KEY \
+    --etherscan-api-key $ARBITRUM_ETHERSCAN_API_KEY \
+    -vvvvv \
+    --slow \
+    --verify \
+    --broadcast \
+    --sig 'run(address,address,address,address)' \
+    $ARBITRUM_SEPOLIA_NFT_POSITION_MANAGER $ARBITRUM_SEPOLIA_WETH $ARBITRUM_SEPOLIA_SWAP_ROUTER $ARBITRUM_SEPOLIA_SPOKE_POOL
+
+forge script script/LPMigratorHandlerDeploy.s.sol:LPMigratorHandlerDeployScript \
     --rpc-url $BASE_SEPOLIA_RPC_URL \
     --private-key $PRIVATE_KEY \
     --etherscan-api-key $BASE_ETHERSCAN_API_KEY \

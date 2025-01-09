@@ -14,4 +14,16 @@ interface ILPMigrator is IERC721Receiver {
         uint256 destinationChainId;
         bytes mintParams;
     }
+
+    struct MintParams {
+        address token0;
+        address token1;
+        uint24 fee;
+        int24 tickLower;
+        int24 tickUpper;
+        uint256 amount0Min;
+        uint256 amount1Min;
+        address recipient;
+        uint24 percentToken0;
+    }
 }
