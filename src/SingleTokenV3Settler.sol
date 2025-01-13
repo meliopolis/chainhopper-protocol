@@ -65,7 +65,7 @@ contract SingleTokenV3Settler is ISingleTokenV3Settler, AcrossV3Settler {
         }
 
         // mint the new position
-        (,, uint256 amount0Paid, uint256 amount1Paid) = positionManager.mintPosition(
+        (uint256 amount0Paid, uint256 amount1Paid) = positionManager.mintPosition(
             params.token0,
             params.token1,
             params.fee,

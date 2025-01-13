@@ -20,11 +20,11 @@ library UniswapV3Library {
         uint256 amount0Desired,
         uint256 amount1Desired,
         address recipient
-    ) internal returns (uint256 positionId, uint128 liquidity, uint256 amount0, uint256 amount1) {
+    ) internal returns (uint256 amount0, uint256 amount1) {
         IERC20(token0).safeIncreaseAllowance(address(self), amount0Desired);
         IERC20(token1).safeIncreaseAllowance(address(self), amount1Desired);
 
-        (positionId, liquidity, amount0, amount1) = self.mint(
+        (,, amount0, amount1) = self.mint(
             IUniswapV3PositionManager.MintParams({
                 token0: token0,
                 token1: token1,
