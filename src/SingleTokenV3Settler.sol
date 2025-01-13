@@ -28,19 +28,16 @@ contract SingleTokenV3Settler is ISingleTokenV3Settler, AcrossV3Settler {
     function _settle(address token, uint256 amount, bytes memory message) internal override {
         SettlementParams memory params = abi.decode(message, (SettlementParams));
 
-        // sort tokens
-        (address token0, address token1) =
-            params.token0 < params.token1 ? (params.token0, params.token1) : (params.token1, params.token0);
-
         // get current sqrtPriceX96 and tick
-        (uint160 sqrtPriceX96, int24 tick) = positionManager.getCurrentSqrtPriceAndTick(token0, token1, params.fee);
+        (uint160 sqrtPriceX96, int24 tick) =
+            positionManager.getCurrentSqrtPriceAndTick(params.token0, params.token1, params.fee);
 
         uint256 amount0;
         uint256 amount1;
         if (tick < params.tickLower) {
             // if we need token0 but only have token1, swap all token1 for token0
-            if (token == token1) {
-                amount0 = swapRouter.swap(token1, token0, params.fee, amount1, type(uint160).max);
+            if (token == params.token1) {
+                amount0 = swapRouter.swap(params.token1, params.token0, params.fee, amount1, type(uint160).max);
             }
         } else if (tick < params.tickUpper) {
             // get tokens's value ratios in the position
@@ -51,30 +48,37 @@ contract SingleTokenV3Settler is ISingleTokenV3Settler, AcrossV3Settler {
             );
 
             // swap token according to value ratio
-            if (token == token0) {
+            if (token == params.token0) {
                 uint256 swapAmount = amount * valueRatio1Bps / BasisPoints.UNIT;
                 amount0 = amount - swapAmount;
-                amount1 = swapRouter.swap(token0, token1, params.fee, swapAmount, 0);
+                amount1 = swapRouter.swap(params.token0, params.token1, params.fee, swapAmount, 0);
             } else {
                 uint256 swapAmount = amount * valueRatio0Bps / BasisPoints.UNIT;
-                amount0 = swapRouter.swap(token1, token0, params.fee, swapAmount, type(uint160).max);
+                amount0 = swapRouter.swap(params.token1, params.token0, params.fee, swapAmount, type(uint160).max);
                 amount1 = amount - swapAmount;
             }
         } else {
             // if we need token1 but only have token0, swap all token0 for token1
-            if (token == token0) {
-                amount1 = swapRouter.swap(token0, token1, params.fee, amount0, 0);
+            if (token == params.token0) {
+                amount1 = swapRouter.swap(params.token0, params.token1, params.fee, amount0, 0);
             }
         }
 
         // mint the new position
         (,, uint256 amount0Paid, uint256 amount1Paid) = positionManager.mintPosition(
-            token0, token1, params.fee, params.tickLower, params.tickUpper, amount0, amount1, params.recipient
+            params.token0,
+            params.token1,
+            params.fee,
+            params.tickLower,
+            params.tickUpper,
+            amount0,
+            amount1,
+            params.recipient
         );
 
         // refund any leftovers
-        if (amount0Paid < amount0) IERC20(token0).safeTransfer(params.recipient, amount0 - amount0Paid);
-        if (amount1Paid < amount1) IERC20(token1).safeTransfer(params.recipient, amount1 - amount1Paid);
+        if (amount0Paid < amount0) IERC20(params.token0).safeTransfer(params.recipient, amount0 - amount0Paid);
+        if (amount1Paid < amount1) IERC20(params.token1).safeTransfer(params.recipient, amount1 - amount1Paid);
     }
 
     function _getValueRatios(uint160 sqrtPriceX96, uint160 sqrtPriceLowerX96, uint160 sqrtPriceUpperX96)

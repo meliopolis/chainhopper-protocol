@@ -32,20 +32,25 @@ contract DualTokensV3Settler is IDualTokensV3Settler, AcrossV3Settler {
             // if expecting a counterpart, but counterpart is not present yet, store the token and amount
             counterparts[params.counterpartKey] = Counterpart(token, amount);
         } else {
-            // sort tokens and amounts
-            (address token0, address token1) =
-                params.token0 < params.token1 ? (params.token0, params.token1) : (params.token1, params.token0);
+            // match up amounts to tokens
             (uint256 amount0, uint256 amount1) =
-                token == token0 ? (amount, counterpart.amount) : (counterpart.amount, amount);
+                token == params.token0 ? (amount, counterpart.amount) : (counterpart.amount, amount);
 
             // mint the new position
             (,, uint256 amount0Paid, uint256 amount1Paid) = positionManager.mintPosition(
-                token0, token1, params.fee, params.tickLower, params.tickUpper, amount0, amount1, params.recipient
+                params.token0,
+                params.token1,
+                params.fee,
+                params.tickLower,
+                params.tickUpper,
+                amount0,
+                amount1,
+                params.recipient
             );
 
             // refund any leftovers
-            if (amount0Paid < amount0) IERC20(token0).safeTransfer(params.recipient, amount0 - amount0Paid);
-            if (amount1Paid < amount1) IERC20(token1).safeTransfer(params.recipient, amount1 - amount1Paid);
+            if (amount0Paid < amount0) IERC20(params.token0).safeTransfer(params.recipient, amount0 - amount0Paid);
+            if (amount1Paid < amount1) IERC20(params.token1).safeTransfer(params.recipient, amount1 - amount1Paid);
 
             // clear counterpart
             delete counterparts[params.counterpartKey];

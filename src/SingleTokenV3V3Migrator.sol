@@ -37,11 +37,6 @@ contract SingleTokenV3V3Migrator is ISingleTokenV3V3Migrator, AcrossV3Migrator {
         MigrationParams memory params = abi.decode(data, (MigrationParams));
         require(chainSettlers[params.destinationChainId] != address(0), DestinationChainSettlerNotFound());
 
-        // sort tokens and amounts
-        (token0, token1, amount0, amount1) =
-            token0 == params.outputToken ? (token0, token1, amount0, amount1) : (token1, token0, amount1, amount0);
-        require(token0 == params.outputToken, InvalidOutputToken());
-
         // swap all token1 for token0
         if (amount1 > 0) {
             amount0 += swapRouter.swap(token1, token0, fee, amount1, type(uint160).max);
