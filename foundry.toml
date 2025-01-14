@@ -7,7 +7,7 @@ solc = "0.8.28"
 evm_version = "cancun"
 auto_detect_remappings = false
 remappings = [
-    "openzeppelin/=lib/openzeppelin/contracts/"
+    "openzeppelin/=lib/openzeppelin-contracts/contracts/"
 ]
 
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
