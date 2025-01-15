@@ -28,7 +28,7 @@ contract DeployAllSettlers is Script {
 
 contract DeployDualTokensV3Settler is Script {
     function run(string memory chain) public {
-        uint256 deployer = vm.envUint(string(abi.encodePacked(chain, "_DEPLOYER")));
+        address deployer = vm.envAddress(string(abi.encodePacked(chain, "_DEPLOYER")));
         address positionManager = vm.envAddress(string(abi.encodePacked(chain, "_UNISWAP_V3_POSITION_MANAGER")));
         address spokePool = vm.envAddress(string(abi.encodePacked(chain, "_ACROSS_V3_SPOKE_POOL")));
 
@@ -50,7 +50,7 @@ contract DeployDualTokensV3Settler is Script {
 
 contract DeployDualTokensV4Settler is Script {
     function run(string memory chain) public {
-        uint256 deployer = vm.envUint(string(abi.encodePacked(chain, "_DEPLOYER")));
+        address deployer = vm.envAddress(string(abi.encodePacked(chain, "_DEPLOYER")));
         address positionManager = vm.envAddress(string(abi.encodePacked(chain, "_UNISWAP_V4_POSITION_MANAGER")));
         address spokePool = vm.envAddress(string(abi.encodePacked(chain, "_ACROSS_V3_SPOKE_POOL")));
 
@@ -72,7 +72,7 @@ contract DeployDualTokensV4Settler is Script {
 
 contract DeploySingleTokenV3Settler is Script {
     function run(string memory chain) public {
-        uint256 deployer = vm.envUint(string(abi.encodePacked(chain, "_DEPLOYER")));
+        address deployer = vm.envAddress(string(abi.encodePacked(chain, "_DEPLOYER")));
         address positionManager = vm.envAddress(string(abi.encodePacked(chain, "_UNISWAP_V3_POSITION_MANAGER")));
         address spokePool = vm.envAddress(string(abi.encodePacked(chain, "_ACROSS_V3_SPOKE_POOL")));
         address swapRouter = vm.envAddress(string(abi.encodePacked(chain, "_UNISWAP_V3_SWAP_ROUTER")));

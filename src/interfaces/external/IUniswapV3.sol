@@ -60,6 +60,10 @@ interface IUniswapV3PositionManager {
 
     function burn(uint256 tokenId) external payable;
 
+    function balanceOf(address owner) external view returns (uint256);
+
+    function tokenOfOwnerByIndex(address owner, uint256 index) external view returns (uint256);
+
     function positions(uint256 tokenId)
         external
         view
