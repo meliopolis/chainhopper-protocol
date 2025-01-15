@@ -12,18 +12,18 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {LPMigratorScript} from "./LPMigratorScript.s.sol";
 
 // run with:
-// forge script LPMigratorSingleTokenScript --rpc-url $BASE_SEPOLIA_VIRTUAL_RPC_URL --private-key $PRIVATE_KEY -vvvvv --slow --via-ir
+// forge script LPMigratorSingleTokenScript --rpc-url $BASE_VIRTUAL_RPC_URL --private-key $PRIVATE_KEY -vvvvv --slow
 
 contract LPMigratorSingleTokenScript is LPMigratorScript {
     using SafeERC20 for IERC20;
 
     LPMigratorSingleToken public migrator;
     address publicKey = vm.envAddress("PUBLIC_KEY");
-    address swapRouter = vm.envAddress("BASE_SEPOLIA_SWAP_ROUTER");
-    address nftPositionManager = vm.envAddress("BASE_SEPOLIA_NFT_POSITION_MANAGER");
-    address baseToken = vm.envAddress("BASE_SEPOLIA_WETH");
-    address otherToken = vm.envAddress("BASE_SEPOLIA_USDC");
-    address spokePool = vm.envAddress("BASE_SEPOLIA_SPOKE_POOL");
+    address swapRouter = vm.envAddress("BASE_SWAP_ROUTER");
+    address nftPositionManager = vm.envAddress("BASE_NFT_POSITION_MANAGER");
+    address baseToken = vm.envAddress("BASE_WETH");
+    address otherToken = vm.envAddress("BASE_USDC");
+    address spokePool = vm.envAddress("BASE_SPOKE_POOL");
 
 
     function run() public {
@@ -48,13 +48,16 @@ contract LPMigratorSingleTokenScript is LPMigratorScript {
         // // move the LP position to the migrator
         // // INonfungiblePositionManager(nftPositionManager).safeTransferFrom(publicKey, address(migrator), tokenId, data);
 
-        LPMigrationSingleTokenHandler migrationHandler =
-            new LPMigrationSingleTokenHandler(nftPositionManager, baseToken, swapRouter, spokePool);
+        LPMigrationSingleTokenHandler migrationHandler = 
+        //LPMigrationSingleTokenHandler(0x0E028A7813DB6AAD0df7A50Fde525EA7B8B2160f);
+           new LPMigrationSingleTokenHandler(nftPositionManager, baseToken, swapRouter, spokePool);
 
         vm.prank(publicKey);
         IWETH(baseToken).deposit{value: 1 ether}();
-        this.sendMessageToHandler(address(migrationHandler), spokePool, publicKey, baseToken, otherToken);
+        bytes memory data = "0x0000000000000000000000004200000000000000000000000000000000000006000000000000000000000000833589fcd6edb6e08f4c7c32d4f71b54bda029130000000000000000000000000000000000000000000000000000000000000bb8fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffcf16cfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffd0774000000000000000000000000000000000000000000000000009f651f7b6133fd00000000000000000000000000000000000000000000000000000000153c1c6f0000000000000000000000004bd047ca72fa05f0b89ad08fe5ba5ccdc07dffbf";
 
+        // this.sendMessageToHandler(address(migrationHandler), spokePool, publicKey, baseToken, otherToken);
+        this.sendPreEncodedMessageToHandler(address(migrationHandler), spokePool, publicKey, baseToken, data);
         // vm.stopBroadcast();
     }
 }

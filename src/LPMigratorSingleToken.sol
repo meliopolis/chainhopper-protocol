@@ -39,35 +39,31 @@ contract LPMigratorSingleToken is ILPMigrator {
             bytes4
         )
     {
-        console.log("starting onERC721Received");
-
         (
             address recipient,
             uint32 quoteTimestamp,
             uint32 fillDeadlineBuffer,
-            uint256 minOutputAmount,
+            uint256 maxFees,
+            address outputToken,
             address exclusiveRelayer,
             uint32 exclusivityDeadline,
             uint256 destinationChainId,
             bytes memory mintParams
-        ) = abi.decode(data, (address, uint32, uint32, uint256, address, uint32, uint256, bytes));
-
-        console.log("decoded migrationParams");
+        ) = abi.decode(data, (address, uint32, uint32, uint256, address, address, uint32, uint256, bytes));
 
         MigrationParams memory migrationParams = MigrationParams({
             recipient: recipient,
             quoteTimestamp: quoteTimestamp,
             fillDeadlineBuffer: fillDeadlineBuffer,
             exclusivityDeadline: exclusivityDeadline,
-            minOutputAmount: minOutputAmount,
+            maxFees: maxFees,
+            outputToken: outputToken,
             exclusiveRelayer: exclusiveRelayer,
             destinationChainId: destinationChainId,
             mintParams: mintParams
         });
 
-        console.log("calling _migratePosition");
         _migratePosition(from, tokenId, migrationParams);
-        console.log("returned from _migratePosition");
         return this.onERC721Received.selector;
     }
 
@@ -154,16 +150,6 @@ contract LPMigratorSingleToken is ILPMigrator {
         uint256 amountBaseToken = IERC20(baseToken).balanceOf(address(this));
         require(amountBaseToken >= amountBaseTokenBeforeTrades + amountOut, "baseToken balance mismatch");
 
-        // uint32 quoteTimestamp = uint32(block.timestamp);
-        // (
-        //     address recipient,
-        //     uint32 fillDeadlineBuffer,
-        //     uint256 feePercentage,
-        //     address exclusiveRelayer,
-        //     uint256 destinationChainId,
-        //     bytes memory mintParams
-        // ) = abi.decode(data, (address, uint32, uint256, address, uint256, bytes));
-
         uint32 fillDeadline = uint32(block.timestamp + migrationParams.fillDeadlineBuffer);
         // uint256 minOutputAmount = amountBaseToken * (10000 - migrationParams.feePercentage) / 10000;
 
@@ -172,13 +158,14 @@ contract LPMigratorSingleToken is ILPMigrator {
         IERC20(baseToken).approve(address(spokePool), amountBaseToken);
         refundAmount[from] = amountBaseToken;
         // send ETH to bridge with message
+        uint256 minOutputAmount = amountBaseToken - migrationParams.maxFees;
         spokePool.depositV3(
             from, // depositor
             migrationParams.recipient, // recipient; todo should this be stored in the contract for security reasons?
             baseToken, // inputToken
-            0x0000000000000000000000000000000000000000, // outputToken; resolved automatically
+            migrationParams.outputToken, // outputToken
             amountBaseToken, // inputAmount
-            migrationParams.minOutputAmount,
+            minOutputAmount,
             migrationParams.destinationChainId,
             migrationParams.exclusiveRelayer,
             migrationParams.quoteTimestamp,

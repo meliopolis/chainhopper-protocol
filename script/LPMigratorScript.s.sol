@@ -95,26 +95,52 @@ abstract contract LPMigratorScript is Script {
         uint24 fee = 500;
         int24 tickLower = -800000;
         int24 tickUpper = 800000;
-        uint256 amount0Desired = 1000000000000000;
-        uint256 amount1Desired = 1000000000000000;
-        uint256 amount0Min = 0;
-        uint256 amount1Min = 0;
+        uint256 amount0Min = 1_000_000_000_000_000;
+        uint256 amount1Min = 1_000_000_000_000_000;
         address recipient = publicKey;
-        uint24 percentToken0 = 1000;
         bytes memory data = abi.encode(
             token0,
             token1,
             fee,
             tickLower,
             tickUpper,
-            amount0Desired,
-            amount1Desired,
             amount0Min,
             amount1Min,
-            recipient,
-            percentToken0
+            recipient
         );
         vm.prank(spokePool);
         ILPMigrationHandler(migrationHandler).handleV3AcrossMessage(baseToken, 1 ether, publicKey, data);
     }
+
+   // sends a message to the migrator handler to trigger receiving the token and creating the LP position
+    function sendPreEncodedMessageToHandler(
+        address migrationHandler,
+        address spokePool,
+        address publicKey,
+        address baseToken,
+        bytes memory data
+    ) public {
+        console.log("sending message to handler");
+        // first send the token to the Handler contract
+        uint256 baseTokenBalancePre = IERC20(baseToken).balanceOf(publicKey);
+        console.log("baseTokenBalancePre", baseTokenBalancePre);
+        vm.prank(publicKey);
+        IERC20(baseToken).safeTransferFrom(publicKey, address(migrationHandler), 1e18);
+        vm.prank(spokePool);
+        ILPMigrationHandler(migrationHandler).handleV3AcrossMessage(baseToken, 1 ether, publicKey, data);
+    }
 }
+
+/*
+
+{
+"tokenIn": "0x4200000000000000000000000000000000000006",
+"tokenOut": "0x4200000000000000000000000000000000000006",
+"fee": 500,
+"recipient": "0x0E028A7813DB6AAD0df7A50Fde525EA7B8B2160f",
+"amountIn": "999000000000000000",
+"amountOutMinimum": 0,
+"sqrtPriceLimitX96": 0
+}
+*/
+

@@ -54,7 +54,7 @@ contract LPMigrationSingleTokenHandler is ILPMigrationHandler {
 
         ISwapRouter.ExactInputSingleParams memory params = ISwapRouter.ExactInputSingleParams({
             tokenIn: baseToken,
-            tokenOut: token0,
+            tokenOut: token0 == baseToken ? token1 : token0,
             fee: fee,
             recipient: address(this),
             amountIn: amountToTrade,
@@ -73,6 +73,7 @@ contract LPMigrationSingleTokenHandler is ILPMigrationHandler {
             amount1Desired = amount1Min;
         }
         // need to approve the nonfungible position manager to use the other token
+        // TODO: only approve if there is a balance of the token
         IERC20(token0).approve(nftPositionManager, amount0Desired);
         IERC20(token1).approve(nftPositionManager, amount1Desired);
         // 3. mint the position
@@ -84,8 +85,8 @@ contract LPMigrationSingleTokenHandler is ILPMigrationHandler {
             tickUpper: tickUpper,
             amount0Desired: amount0Desired,
             amount1Desired: amount1Desired,
-            amount0Min: amount0Min, // are these needed?
-            amount1Min: amount1Min, // are these needed?
+            amount0Min: 0, // are these needed?
+            amount1Min: 0, // are these needed?
             recipient: recipient,
             deadline: block.timestamp
         });

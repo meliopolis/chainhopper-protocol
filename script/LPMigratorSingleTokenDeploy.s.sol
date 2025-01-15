@@ -14,6 +14,16 @@ forge script script/LPMigratorSingleTokenDeploy.s.sol:LPMigratorSingleTokenDeplo
     --verify \
     --sig 'run(address,address,address,address)' \
     $SEPOLIA_NFT_POSITION_MANAGER $SEPOLIA_WETH $SEPOLIA_SWAP_ROUTER $SEPOLIA_SPOKE_POOL
+
+forge script script/LPMigratorSingleTokenDeploy.s.sol:LPMigratorSingleTokenDeployScript \
+    --rpc-url $ARBITRUM_MAINNET_RPC_URL \
+    --private-key $PRIVATE_KEY \
+    --etherscan-api-key $ARBITRUM_ETHERSCAN_API_KEY \
+    -vvvvv \
+    --slow \
+    --verify \
+    --sig 'run(address,address,address,address)' \
+    $ARBITRUM_NFT_POSITION_MANAGER $ARBITRUM_WETH $ARBITRUM_SWAP_ROUTER $ARBITRUM_SPOKE_POOL
 */
 
 contract LPMigratorSingleTokenDeployScript is Script {
