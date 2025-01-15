@@ -35,10 +35,9 @@ contract SingleTokenV3Settler is ISingleTokenV3Settler, AcrossV3Settler {
         uint256 amount0;
         uint256 amount1;
         if (tick < params.tickLower) {
-            // if we need token0 but only have token1, swap all token1 for token0
-            if (token == params.token1) {
-                amount0 = swapRouter.swap(params.token1, params.token0, params.fee, amount1, type(uint160).max);
-            }
+            amount0 = token == params.token0
+                ? amount
+                : swapRouter.swap(params.token1, params.token0, params.fee, amount, type(uint160).max);
         } else if (tick < params.tickUpper) {
             // get tokens's value ratios in the position
             (uint256 valueRatio0Bps, uint256 valueRatio1Bps) = _getValueRatios(
@@ -58,10 +57,8 @@ contract SingleTokenV3Settler is ISingleTokenV3Settler, AcrossV3Settler {
                 amount1 = amount - swapAmount;
             }
         } else {
-            // if we need token1 but only have token0, swap all token0 for token1
-            if (token == params.token0) {
-                amount1 = swapRouter.swap(params.token0, params.token1, params.fee, amount0, 0);
-            }
+            amount1 =
+                token == params.token1 ? amount : swapRouter.swap(params.token0, params.token1, params.fee, amount, 0);
         }
 
         // mint the new position

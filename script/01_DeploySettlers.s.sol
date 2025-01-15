@@ -83,7 +83,7 @@ contract DeploySingleTokenV3Settler is Script {
         console.log("  -- SwapRouter: ", swapRouter);
         vm.startBroadcast(deployer);
 
-        try new SingleTokenV3Settler(positionManager, spokePool, swapRouter) returns (SingleTokenV3Settler settler) {
+        try new SingleTokenV3Settler(positionManager, swapRouter, spokePool) returns (SingleTokenV3Settler settler) {
             console.log("SingleTokenV3Settler deployed at: ", address(settler));
         } catch {
             console.log("Failed to deploy SingleTokenV3Settler");
