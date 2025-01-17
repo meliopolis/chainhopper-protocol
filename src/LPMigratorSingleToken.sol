@@ -69,7 +69,6 @@ contract LPMigratorSingleToken is ILPMigrator {
 
     function _migratePosition(address from, uint256 tokenId, MigrationParams memory migrationParams) internal {
         INonfungiblePositionManager nftManager = INonfungiblePositionManager(nonfungiblePositionManager);
-        console.log("msg.sender", msg.sender);
         require(msg.sender == nonfungiblePositionManager, "Only nonfungiblePositionManager can call this function");
         // confirm that this tokenId is now owned by this contract
         require(nftManager.ownerOf(tokenId) == address(this), "Token not owned by this contract");

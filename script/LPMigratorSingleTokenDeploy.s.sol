@@ -24,6 +24,16 @@ forge script script/LPMigratorSingleTokenDeploy.s.sol:LPMigratorSingleTokenDeplo
     --verify \
     --sig 'run(address,address,address,address)' \
     $ARBITRUM_NFT_POSITION_MANAGER $ARBITRUM_WETH $ARBITRUM_SWAP_ROUTER $ARBITRUM_SPOKE_POOL
+
+forge script script/LPMigratorSingleTokenDeploy.s.sol:LPMigratorSingleTokenDeployScript \
+    --rpc-url $BASE_MAINNET_RPC_URL \
+    --private-key $PRIVATE_KEY \
+    --etherscan-api-key $BASE_ETHERSCAN_API_KEY \
+    -vvvvv \
+    --slow \
+    --verify \
+    --sig 'run(address,address,address,address)' \
+    $BASE_NFT_POSITION_MANAGER $BASE_WETH $BASE_SWAP_ROUTER $BASE_SPOKE_POOL
 */
 
 contract LPMigratorSingleTokenDeployScript is Script {

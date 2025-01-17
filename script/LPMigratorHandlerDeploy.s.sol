@@ -49,6 +49,18 @@ forge script script/LPMigratorHandlerDeploy.s.sol:LPMigratorHandlerDeployScript 
     --verify \
     --sig 'run(address,address,address,address)' \
     $BASE_NFT_POSITION_MANAGER $BASE_WETH $BASE_SWAP_ROUTER $BASE_SPOKE_POOL
+
+// deploy on arbitrum mainnet (note broadcast is missing from the command intentionally)
+forge script script/LPMigratorHandlerDeploy.s.sol:LPMigratorHandlerDeployScript \
+    --rpc-url $ARBITRUM_MAINNET_RPC_URL \
+    --private-key $PRIVATE_KEY \
+    --etherscan-api-key $ARBITRUM_ETHERSCAN_API_KEY \
+    -vvvvv \
+    --slow \
+    --verify \
+    --verifier-url $ARBITRUM_ETHERSCAN_API_URL \
+    --sig 'run(address,address,address,address)' \
+    $ARBITRUM_NFT_POSITION_MANAGER $ARBITRUM_WETH $ARBITRUM_SWAP_ROUTER $ARBITRUM_SPOKE_POOL
 */
 
 contract LPMigratorHandlerDeployScript is Script {
