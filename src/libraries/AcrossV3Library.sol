@@ -15,8 +15,11 @@ library AcrossV3Library {
         address recipient,
         address tokenIn,
         uint256 amountIn,
+        address tokenOut,
         uint256 minAmountOut,
         uint32 deadlineOffset,
+        address exclusiveRelayer,
+        uint32 exclusivityDeadline,
         bytes memory message
     ) internal {
         IERC20(tokenIn).safeIncreaseAllowance(address(self), amountIn);
@@ -25,13 +28,13 @@ library AcrossV3Library {
             sender,
             recipient,
             tokenIn,
-            address(0),
+            tokenOut,
             amountIn,
             minAmountOut,
             destinationChainId,
-            address(0),
+            exclusiveRelayer,
             deadlineOffset,
-            0,
+            exclusivityDeadline,
             message
         );
     }

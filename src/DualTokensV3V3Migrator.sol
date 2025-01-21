@@ -50,10 +50,13 @@ contract DualTokensV3V3Migrator is IDualTokensV3V3Migrator, AcrossV3Migrator {
                 sender,
                 params.destinationChainId,
                 chainSettlers[params.destinationChainId],
-                token0, // trusting filler to specify destination token, which should be params.token0
+                token0,
                 amount0,
+                params.tokensFlipped ? params.token1 : params.token0,
                 params.minOutputAmount0,
                 params.fillDeadlineOffset,
+                address(0),
+                0,
                 message
             );
         }
@@ -62,10 +65,13 @@ contract DualTokensV3V3Migrator is IDualTokensV3V3Migrator, AcrossV3Migrator {
                 sender,
                 params.destinationChainId,
                 chainSettlers[params.destinationChainId],
-                token1, // trusting filler to specify destination token, which should be params.token1
+                token1, 
                 amount1,
+                params.tokensFlipped ? params.token0 : params.token1,
                 params.minOutputAmount1,
                 params.fillDeadlineOffset,
+                address(0),
+                0,
                 message
             );
         }

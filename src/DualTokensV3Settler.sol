@@ -36,7 +36,7 @@ contract DualTokensV3Settler is IDualTokensV3Settler, AcrossV3Settler {
             (uint256 amount0, uint256 amount1) =
                 token == params.token0 ? (amount, counterpart.amount) : (counterpart.amount, amount);
 
-            // TODO: swap if position is balanced differently than on the source chain
+            // todo add a try catch for mintPosition that will give everything back to recipient if mint fails
 
             // mint the new position
             (uint256 amount0Paid, uint256 amount1Paid) = positionManager.mintPosition(
@@ -51,6 +51,7 @@ contract DualTokensV3Settler is IDualTokensV3Settler, AcrossV3Settler {
             );
 
             // refund any leftovers
+            // todo: most likely only one token will be left over, so could check for the one with greater than 0 amount
             if (amount0Paid < amount0) IERC20(params.token0).safeTransfer(params.recipient, amount0 - amount0Paid);
             if (amount1Paid < amount1) IERC20(params.token1).safeTransfer(params.recipient, amount1 - amount1Paid);
 
