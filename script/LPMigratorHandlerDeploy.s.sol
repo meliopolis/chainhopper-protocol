@@ -64,19 +64,10 @@ forge script script/LPMigratorHandlerDeploy.s.sol:LPMigratorHandlerDeployScript 
 */
 
 contract LPMigratorHandlerDeployScript is Script {
-    function run(
-        address nftPositionManager,
-        address weth,
-        address swapRouter,
-        address spokePool
-    ) public {
+    function run(address nftPositionManager, address weth, address swapRouter, address spokePool) public {
         vm.startBroadcast(vm.envAddress("PUBLIC_KEY"));
-        LPMigrationSingleTokenHandler migrator = new LPMigrationSingleTokenHandler(
-            nftPositionManager,
-            weth,
-            swapRouter,
-            spokePool
-        );
+        LPMigrationSingleTokenHandler migrator =
+            new LPMigrationSingleTokenHandler(nftPositionManager, weth, swapRouter, spokePool);
         console.log("LPMigrationSingleTokenHandler deployed at:", address(migrator));
         vm.stopBroadcast();
     }

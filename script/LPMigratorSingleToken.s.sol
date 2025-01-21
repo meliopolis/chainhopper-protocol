@@ -25,7 +25,6 @@ contract LPMigratorSingleTokenScript is LPMigratorScript {
     address otherToken = vm.envAddress("BASE_USDC");
     address spokePool = vm.envAddress("BASE_SPOKE_POOL");
 
-
     function run() public {
         // create the LP position and get the tokenId
         // uint256 tokenId = createLPPosition();
@@ -48,13 +47,14 @@ contract LPMigratorSingleTokenScript is LPMigratorScript {
         // // move the LP position to the migrator
         // // INonfungiblePositionManager(nftPositionManager).safeTransferFrom(publicKey, address(migrator), tokenId, data);
 
-        LPMigrationSingleTokenHandler migrationHandler = 
+        LPMigrationSingleTokenHandler migrationHandler =
         //LPMigrationSingleTokenHandler(0x0E028A7813DB6AAD0df7A50Fde525EA7B8B2160f);
-           new LPMigrationSingleTokenHandler(nftPositionManager, baseToken, swapRouter, spokePool);
+         new LPMigrationSingleTokenHandler(nftPositionManager, baseToken, swapRouter, spokePool);
 
         vm.prank(publicKey);
         IWETH(baseToken).deposit{value: 1 ether}();
-        bytes memory data = "0x0000000000000000000000004200000000000000000000000000000000000006000000000000000000000000833589fcd6edb6e08f4c7c32d4f71b54bda029130000000000000000000000000000000000000000000000000000000000000bb8fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffcf16cfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffd0774000000000000000000000000000000000000000000000000009f651f7b6133fd00000000000000000000000000000000000000000000000000000000153c1c6f0000000000000000000000004bd047ca72fa05f0b89ad08fe5ba5ccdc07dffbf";
+        bytes memory data =
+            "0x0000000000000000000000004200000000000000000000000000000000000006000000000000000000000000833589fcd6edb6e08f4c7c32d4f71b54bda029130000000000000000000000000000000000000000000000000000000000000bb8fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffcf16cfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffd0774000000000000000000000000000000000000000000000000009f651f7b6133fd00000000000000000000000000000000000000000000000000000000153c1c6f0000000000000000000000004bd047ca72fa05f0b89ad08fe5ba5ccdc07dffbf";
 
         // this.sendMessageToHandler(address(migrationHandler), spokePool, publicKey, baseToken, otherToken);
         this.sendPreEncodedMessageToHandler(address(migrationHandler), spokePool, publicKey, baseToken, data);

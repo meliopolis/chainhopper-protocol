@@ -98,21 +98,12 @@ abstract contract LPMigratorScript is Script {
         uint256 amount0Min = 1_000_000_000_000_000;
         uint256 amount1Min = 1_000_000_000_000_000;
         address recipient = publicKey;
-        bytes memory data = abi.encode(
-            token0,
-            token1,
-            fee,
-            tickLower,
-            tickUpper,
-            amount0Min,
-            amount1Min,
-            recipient
-        );
+        bytes memory data = abi.encode(token0, token1, fee, tickLower, tickUpper, amount0Min, amount1Min, recipient);
         vm.prank(spokePool);
         ILPMigrationHandler(migrationHandler).handleV3AcrossMessage(baseToken, 1 ether, publicKey, data);
     }
 
-   // sends a message to the migrator handler to trigger receiving the token and creating the LP position
+    // sends a message to the migrator handler to trigger receiving the token and creating the LP position
     function sendPreEncodedMessageToHandler(
         address migrationHandler,
         address spokePool,
@@ -143,4 +134,3 @@ abstract contract LPMigratorScript is Script {
 "sqrtPriceLimitX96": 0
 }
 */
-

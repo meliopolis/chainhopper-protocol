@@ -43,9 +43,7 @@ contract LPMigrationSingleTokenHandler is ILPMigrationHandler {
             uint256 amount0Min,
             uint256 amount1Min,
             address recipient
-        ) = abi.decode(
-            message, (address, address, uint24, int24, int24, uint256, uint256, address)
-        );
+        ) = abi.decode(message, (address, address, uint24, int24, int24, uint256, uint256, address));
 
         uint256 amountToTrade = token0 == baseToken ? amount - amount0Min : amount - amount1Min;
 
@@ -127,9 +125,8 @@ contract LPMigrationSingleTokenHandler is ILPMigrationHandler {
             console.log("Successfully received baseToken and position created", tokenId);
         } catch {
             // revert
-            (,,,,,,, address recipient) = abi.decode(
-                message, (address, address, uint24, int24, int24, uint256, uint256, address)
-            );
+            (,,,,,,, address recipient) =
+                abi.decode(message, (address, address, uint24, int24, int24, uint256, uint256, address));
             IERC20(baseToken).transfer(recipient, amount);
         }
         // address recipient = abi.decode(message, (address));
@@ -138,6 +135,6 @@ contract LPMigrationSingleTokenHandler is ILPMigrationHandler {
         // } catch {
         //     // revert
         //     console.log("Failed to transfer tokenSent to recipient");
-        // } 
+        // }
     }
 }

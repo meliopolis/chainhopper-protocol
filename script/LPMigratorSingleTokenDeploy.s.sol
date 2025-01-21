@@ -37,19 +37,9 @@ forge script script/LPMigratorSingleTokenDeploy.s.sol:LPMigratorSingleTokenDeplo
 */
 
 contract LPMigratorSingleTokenDeployScript is Script {
-    function run(
-        address nftPositionManager,
-        address weth,
-        address swapRouter,
-        address spokePool
-    ) public {
+    function run(address nftPositionManager, address weth, address swapRouter, address spokePool) public {
         vm.startBroadcast(vm.envAddress("PUBLIC_KEY"));
-        LPMigratorSingleToken migrator = new LPMigratorSingleToken(
-            nftPositionManager,
-            weth,
-            swapRouter,
-            spokePool
-        );
+        LPMigratorSingleToken migrator = new LPMigratorSingleToken(nftPositionManager, weth, swapRouter, spokePool);
         console.log("LPMigrationSingleToken deployed at:", address(migrator));
         vm.stopBroadcast();
     }
