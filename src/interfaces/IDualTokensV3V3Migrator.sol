@@ -2,6 +2,28 @@
 pragma solidity ^0.8.0;
 
 interface IDualTokensV3V3Migrator {
+    event Migrate(
+        bytes32 indexed migrationId,
+        uint256 indexed positionId,
+        uint256 indexed destinationChainId,
+        // source
+        address sender,
+        address sourceToken0,
+        address sourceToken1,
+        uint256 sourceAmount0,
+        uint256 sourceAmount1,
+        // destination
+        address settler,
+        address recipient,
+        address destinationToken0,
+        address destinationToken1,
+        uint256 destinationAmount0,
+        uint256 destinationAmount1,
+        uint24 fee,
+        int24 tickLower,
+        int24 tickUpper
+    );
+
     struct MigrationParams {
         uint256 destinationChainId;
         address recipient;

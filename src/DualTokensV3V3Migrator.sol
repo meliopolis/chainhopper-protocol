@@ -15,6 +15,7 @@ contract DualTokensV3V3Migrator is IDualTokensV3V3Migrator, AcrossV3Migrator {
     using AcrossV3Library for IAcrossV3SpokePool;
     using UniswapV3Library for IUniswapV3PositionManager;
 
+    uint256 migrationCounter;
     IUniswapV3PositionManager internal immutable positionManager;
 
     constructor(address _positionManager, address _spokePool) AcrossV3Migrator(_positionManager, _spokePool) {
@@ -30,11 +31,22 @@ contract DualTokensV3V3Migrator is IDualTokensV3V3Migrator, AcrossV3Migrator {
             positionManager.liquidatePosition(positionId, address(this));
 
         // prepare settlement message
+        bytes32 migrationId = amount0 > 0 && amount1 > 0
+            ? keccak256(
+                abi.encode(
+                    block.chainid,
+                    address(positionManager),
+                    positionId,
+                    address(this),
+                    chainSettlers[params.destinationChainId],
+                    ++migrationCounter
+                )
+            )
+            : bytes32(0);
+
         bytes memory message = abi.encode(
             IDualTokensV3Settler.SettlementParams({
-                counterpartKey: amount0 > 0 && amount1 > 0
-                    ? keccak256(abi.encode(block.chainid, address(positionManager), positionId))
-                    : bytes32(0),
+                migrationId: migrationId,
                 recipient: params.recipient,
                 token0: params.token0,
                 token1: params.token1,
@@ -65,7 +77,7 @@ contract DualTokensV3V3Migrator is IDualTokensV3V3Migrator, AcrossV3Migrator {
                 sender,
                 params.destinationChainId,
                 chainSettlers[params.destinationChainId],
-                token1, 
+                token1,
                 amount1,
                 params.tokensFlipped ? params.token0 : params.token1,
                 params.minOutputAmount1,
@@ -75,5 +87,25 @@ contract DualTokensV3V3Migrator is IDualTokensV3V3Migrator, AcrossV3Migrator {
                 message
             );
         }
+
+        emit Migrate(
+            migrationId,
+            positionId,
+            params.destinationChainId,
+            sender,
+            token0,
+            token1,
+            amount0,
+            amount1,
+            chainSettlers[params.destinationChainId],
+            params.recipient,
+            params.token0,
+            params.token1,
+            params.minOutputAmount0,
+            params.minOutputAmount1,
+            params.fee,
+            params.tickLower,
+            params.tickUpper
+        );
     }
 }
