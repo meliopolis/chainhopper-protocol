@@ -5,10 +5,10 @@ import {Script, console} from "forge-std/Script.sol";
 import {LPMigratorSingleToken} from "../src/LPMigratorSingleToken.sol";
 import {ISwapRouter} from "../src/interfaces/external/ISwapRouter.sol";
 import {IWETH} from "../src/interfaces/external/IWETH.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {INonfungiblePositionManager} from "../src/interfaces/external/INonfungiblePositionManager.sol";
 import {LPMigrationSingleTokenHandler} from "../src/LPMigrationSingleTokenHandler.sol";
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {SafeERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import {LPMigratorScript} from "./LPMigratorScript.s.sol";
 
 // run with:
