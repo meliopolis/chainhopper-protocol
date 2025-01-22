@@ -16,3 +16,6 @@
 [submodule "lib/openzeppelin-contracts-v3.4.2-solc-0.7"]
 	path = lib/openzeppelin-contracts-v3.4.2-solc-0.7
 	url = https://github.com/openzeppelin/openzeppelin-contracts
+[submodule "lib/swap-router-contracts"]
+	path = lib/swap-router-contracts
+	url = https://github.com/uniswap/swap-router-contracts
