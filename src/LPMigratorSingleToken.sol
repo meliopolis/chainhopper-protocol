@@ -8,10 +8,8 @@ import "./interfaces/external/ISwapRouter.sol";
 import "./interfaces/external/INonfungiblePositionManager.sol";
 import "./interfaces/external/ISpokePool.sol";
 import "./interfaces/ILPMigrator.sol";
-import {console} from "forge-std/Script.sol";
 
 contract LPMigratorSingleToken is ILPMigrator {
-    mapping(address => bool) public supportedTokens;
     address public immutable nonfungiblePositionManager;
     address public immutable baseToken; // the token that will be used to send the message to the bridge
     address public immutable swapRouter;
@@ -172,14 +170,5 @@ contract LPMigratorSingleToken is ILPMigrator {
             migrationParams.exclusivityDeadline,
             migrationParams.mintParams // message
         );
-    }
-
-    function claimRefund(address to) external {
-        // todo: implement
-        // necessary when deposit fails on the destination chain
-    }
-
-    function _refund(address to, uint256 amount) internal {
-        // todo: implement private function to refund baseToken to the depositor
     }
 }
