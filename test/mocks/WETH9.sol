@@ -24,4 +24,4 @@ contract WETH9 is ERC20 {
         payable(msg.sender).transfer(wad);
         emit Withdrawal(msg.sender, wad);
     }
-} 
+}

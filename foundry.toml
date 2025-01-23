@@ -4,4 +4,10 @@ out = "out"
 libs = ["lib"]
 via-ir = true
 
+[profile.test]
+src = "test"
+out = "out"
+libs = ["lib"]
+via-ir = false
+
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options

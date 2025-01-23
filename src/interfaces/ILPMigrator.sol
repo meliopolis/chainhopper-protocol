@@ -4,6 +4,10 @@ pragma solidity ^0.8.13;
 import "lib/openzeppelin-contracts/contracts/token/ERC721/IERC721Receiver.sol";
 
 interface ILPMigrator is IERC721Receiver {
+    error LiquidityIsZero();
+    error SenderIsNotNFTPositionManager();
+    error NoBaseTokenFound();
+
     struct MigrationParams {
         address recipient;
         uint32 quoteTimestamp; // from AcrossQuote
@@ -25,6 +29,6 @@ interface ILPMigrator is IERC721Receiver {
         uint256 amount0Min;
         uint256 amount1Min;
         address recipient;
-        uint24 percentToken0;
+        uint24 percentToken0; // todo remove
     }
 }

@@ -14,7 +14,6 @@ contract LPMigratorSingleToken is ILPMigrator {
     address public immutable baseToken; // the token that will be used to send the message to the bridge
     address public immutable swapRouter;
     V3SpokePoolInterface public immutable spokePool;
-    mapping(address => uint256) public refundAmount;
 
     /**
      *
@@ -66,23 +65,24 @@ contract LPMigratorSingleToken is ILPMigrator {
     }
 
     function _migratePosition(address from, uint256 tokenId, MigrationParams memory migrationParams) internal {
+        if (msg.sender != nonfungiblePositionManager) revert SenderIsNotNFTPositionManager();
+
         INonfungiblePositionManager nftManager = INonfungiblePositionManager(nonfungiblePositionManager);
-        require(msg.sender == nonfungiblePositionManager, "Only nonfungiblePositionManager can call this function");
-        // confirm that this tokenId is now owned by this contract
-        require(nftManager.ownerOf(tokenId) == address(this), "Token not owned by this contract");
 
         // 1. get the tokens in the position and verify liquidity > 0
-        (,, address token0, address token1,,,, uint128 liquidity,,,,) = nftManager.positions(tokenId);
-        require(liquidity > 0, "Liquidity is 0");
+        (,, address token0, address token1, uint24 fee,,, uint128 liquidity,,,,) = nftManager.positions(tokenId);
+        if (liquidity == 0) revert LiquidityIsZero();
+
+        if (token0 != baseToken && token1 != baseToken) revert NoBaseTokenFound();
 
         // 2. decrease liquidity
         INonfungiblePositionManager.DecreaseLiquidityParams memory decreaseLiquidityParams = INonfungiblePositionManager
             .DecreaseLiquidityParams({
             tokenId: tokenId,
             liquidity: liquidity,
-            amount0Min: 0, // todo: might need to account for slippage
-            amount1Min: 0, // todo: might need to account for slippage
-            deadline: block.timestamp + 60 // 1 min (might be too long)
+            amount0Min: 0,
+            amount1Min: 0,
+            deadline: block.timestamp // 1 min (might be too long)
         });
         nftManager.decreaseLiquidity(decreaseLiquidityParams);
 
@@ -99,43 +99,42 @@ contract LPMigratorSingleToken is ILPMigrator {
         // 4. burn the position
         nftManager.burn(tokenId); // todo: check if this is needed
 
-        uint256 amountToken0 = IERC20(token0).balanceOf(address(this));
-        uint256 amountToken1 = IERC20(token1).balanceOf(address(this));
+        // uint256 amountToken0 = IERC20(token0).balanceOf(address(this));
+        // uint256 amountToken1 = IERC20(token1).balanceOf(address(this));
 
-        // verify that the tokens collected match the balance in the contract
-        // needs to be >=, otherwise someone could bork the contract by sending it some WETH
-        require(amount0Collected >= amountToken0, "Incorrect amount of token0 collected");
-        require(amount1Collected >= amountToken1, "Incorrect amount of token1 collected");
+        // // verify that the tokens collected match the balance in the contract
+        // // needs to be >=, otherwise someone could bork the contract by sending it some WETH
+        // require(amount0Collected >= amountToken0, "Incorrect amount of token0 collected");
+        // require(amount1Collected >= amountToken1, "Incorrect amount of token1 collected");
 
         uint256 amountOut = 0;
         uint256 amountBaseTokenBeforeTrades = IERC20(baseToken).balanceOf(address(this));
 
         // 5. swap one token for baseToken
         // Note: one of the tokens must be a baseToken; makes things simpler on the destination chain
-        if (token0 != baseToken) {
+        if (token0 != baseToken && amount0Collected > 0) {
             // swap token0 for baseToken
             IERC20(token0).approve(swapRouter, amount0Collected);
             ISwapRouter.ExactInputSingleParams memory params = ISwapRouter.ExactInputSingleParams({
                 tokenIn: token0,
                 tokenOut: baseToken,
-                fee: 3000, // todo: make dynamic
+                fee: fee,
                 recipient: address(this),
-                // deadline: block.timestamp + 60, // 1 min (might be too long)
                 amountIn: amount0Collected,
-                amountOutMinimum: 0, // todo: add slippage
+                amountOutMinimum: 0,
                 sqrtPriceLimitX96: 0
             });
             amountOut = ISwapRouter(swapRouter).exactInputSingle(params);
-        } else if (token1 != baseToken) {
+        } else if (token1 != baseToken && amount1Collected > 0) {
             // swap token1 for baseToken
             IERC20(token1).approve(swapRouter, amount1Collected);
             ISwapRouter.ExactInputSingleParams memory params = ISwapRouter.ExactInputSingleParams({
                 tokenIn: token1,
                 tokenOut: baseToken,
-                fee: 3000, // todo: make dynamic
+                fee: fee,
                 recipient: address(this),
                 amountIn: amount1Collected,
-                amountOutMinimum: 0, // todo: add slippage
+                amountOutMinimum: 0,
                 sqrtPriceLimitX96: 0
             });
             amountOut = ISwapRouter(swapRouter).exactInputSingle(params);
@@ -153,7 +152,6 @@ contract LPMigratorSingleToken is ILPMigrator {
         // approve spokPool to transfer baseToken
         // this is no longer accurate due to refunds that can be accumulated
         IERC20(baseToken).approve(address(spokePool), amountBaseToken);
-        refundAmount[from] = amountBaseToken;
         // send ETH to bridge with message
         uint256 minOutputAmount = amountBaseToken - migrationParams.maxFees;
         spokePool.depositV3(

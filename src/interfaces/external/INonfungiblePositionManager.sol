@@ -40,6 +40,8 @@ interface INonfungiblePositionManager is IERC721Permit {
             uint128 tokensOwed1
         );
 
+    function factory() external view returns (address);
+
     struct CollectParams {
         uint256 tokenId;
         address recipient;
