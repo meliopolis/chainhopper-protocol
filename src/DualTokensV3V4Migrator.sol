@@ -4,12 +4,12 @@ pragma solidity =0.8.28;
 import {AcrossV3Migrator} from "./base/AcrossV3Migrator.sol";
 import {IAcrossV3SpokePool} from "./interfaces/external/IAcrossV3.sol";
 import {IUniswapV3PositionManager} from "./interfaces/external/IUniswapV3.sol";
-import {IDualTokensV3Settler} from "./interfaces/IDualTokensV3Settler.sol";
-import {IDualTokensV3V3Migrator} from "./interfaces/IDualTokensV3V3Migrator.sol";
+import {IDualTokensV3V4Migrator} from "./interfaces/IDualTokensV3V4Migrator.sol";
+import {IDualTokensV4Settler} from "./interfaces/IDualTokensV4Settler.sol";
 import {AcrossV3Library} from "./libraries/AcrossV3Library.sol";
 import {UniswapV3Library} from "./libraries/UniswapV3Library.sol";
 
-contract DualTokensV3V3Migrator is IDualTokensV3V3Migrator, AcrossV3Migrator {
+contract DualTokensV3V4Migrator is IDualTokensV3V4Migrator, AcrossV3Migrator {
     error DestinationChainSettlerNotFound();
 
     using AcrossV3Library for IAcrossV3SpokePool;
@@ -44,12 +44,14 @@ contract DualTokensV3V3Migrator is IDualTokensV3V3Migrator, AcrossV3Migrator {
             )
             : bytes32(0);
         bytes memory message = abi.encode(
-            IDualTokensV3Settler.SettlementParams({
+            IDualTokensV4Settler.SettlementParams({
                 migrationId: migrationId,
                 recipient: params.recipient,
                 token0: params.token0,
                 token1: params.token1,
                 fee: params.fee,
+                tickSpacing: params.tickSpacing,
+                hooks: params.hooks,
                 tickLower: params.tickLower,
                 tickUpper: params.tickUpper
             })
@@ -86,25 +88,5 @@ contract DualTokensV3V3Migrator is IDualTokensV3V3Migrator, AcrossV3Migrator {
                 message
             );
         }
-
-        emit Migrate(
-            migrationId,
-            positionId,
-            params.destinationChainId,
-            sender,
-            token0,
-            token1,
-            amount0,
-            amount1,
-            chainSettlers[params.destinationChainId],
-            params.recipient,
-            params.token0,
-            params.token1,
-            params.minOutputAmount0,
-            params.minOutputAmount1,
-            params.fee,
-            params.tickLower,
-            params.tickUpper
-        );
     }
 }
