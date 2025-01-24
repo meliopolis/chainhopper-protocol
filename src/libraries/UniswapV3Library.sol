@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-pragma solidity =0.8.28;
+pragma solidity ^0.8.13;
 
-import {IERC20} from "openzeppelin/token/ERC20/IERC20.sol";
-import {SafeERC20} from "openzeppelin/token/ERC20/utils/SafeERC20.sol";
+import {IERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IUniswapV3Pool, IUniswapV3PositionManager, ISwapRouter} from "../interfaces/external/IUniswapV3.sol";
 
 library UniswapV3Library {
@@ -120,7 +120,6 @@ library UniswapV3Library {
                 tokenOut: tokenOut,
                 fee: fee,
                 recipient: address(this),
-                deadline: block.timestamp,
                 amountIn: amountIn,
                 amountOutMinimum: 0,
                 sqrtPriceLimitX96: sqrtPriceLimitX96

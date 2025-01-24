@@ -2,7 +2,6 @@
 pragma solidity ^0.8.13;
 
 import "lib/openzeppelin-contracts/contracts/token/ERC721/IERC721Receiver.sol";
-import "lib/openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 import "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import "./interfaces/external/ISwapRouter.sol";
 import "./interfaces/external/INonfungiblePositionManager.sol";
@@ -10,6 +9,7 @@ import "./interfaces/external/ISpokePool.sol";
 import "./interfaces/ILPMigrator.sol";
 
 contract LPMigratorSingleToken is ILPMigrator {
+
     address public immutable nonfungiblePositionManager;
     address public immutable baseToken; // the token that will be used to send the message to the bridge
     address public immutable swapRouter;
@@ -36,29 +36,7 @@ contract LPMigratorSingleToken is ILPMigrator {
             bytes4
         )
     {
-        (
-            address recipient,
-            uint32 quoteTimestamp,
-            uint32 fillDeadlineBuffer,
-            uint256 maxFees,
-            address outputToken,
-            address exclusiveRelayer,
-            uint32 exclusivityDeadline,
-            uint256 destinationChainId,
-            bytes memory mintParams
-        ) = abi.decode(data, (address, uint32, uint32, uint256, address, address, uint32, uint256, bytes));
-
-        MigrationParams memory migrationParams = MigrationParams({
-            recipient: recipient,
-            quoteTimestamp: quoteTimestamp,
-            fillDeadlineBuffer: fillDeadlineBuffer,
-            exclusivityDeadline: exclusivityDeadline,
-            maxFees: maxFees,
-            outputToken: outputToken,
-            exclusiveRelayer: exclusiveRelayer,
-            destinationChainId: destinationChainId,
-            mintParams: mintParams
-        });
+        MigrationParams memory migrationParams = abi.decode(data, (MigrationParams));
 
         _migratePosition(from, tokenId, migrationParams);
         return this.onERC721Received.selector;
@@ -73,6 +51,7 @@ contract LPMigratorSingleToken is ILPMigrator {
         (,, address token0, address token1, uint24 fee,,, uint128 liquidity,,,,) = nftManager.positions(tokenId);
         if (liquidity == 0) revert LiquidityIsZero();
 
+        // For now, we only support positions with baseToken as one of the tokens
         if (token0 != baseToken && token1 != baseToken) revert NoBaseTokenFound();
 
         // 2. decrease liquidity
@@ -82,7 +61,7 @@ contract LPMigratorSingleToken is ILPMigrator {
             liquidity: liquidity,
             amount0Min: 0,
             amount1Min: 0,
-            deadline: block.timestamp // 1 min (might be too long)
+            deadline: block.timestamp
         });
         nftManager.decreaseLiquidity(decreaseLiquidityParams);
 
@@ -99,55 +78,37 @@ contract LPMigratorSingleToken is ILPMigrator {
         // 4. burn the position
         nftManager.burn(tokenId); // todo: check if this is needed
 
-        // uint256 amountToken0 = IERC20(token0).balanceOf(address(this));
-        // uint256 amountToken1 = IERC20(token1).balanceOf(address(this));
-
-        // // verify that the tokens collected match the balance in the contract
-        // // needs to be >=, otherwise someone could bork the contract by sending it some WETH
-        // require(amount0Collected >= amountToken0, "Incorrect amount of token0 collected");
-        // require(amount1Collected >= amountToken1, "Incorrect amount of token1 collected");
-
+        // 5. swap one token for baseToken
         uint256 amountOut = 0;
         uint256 amountBaseTokenBeforeTrades = IERC20(baseToken).balanceOf(address(this));
+        uint256 amountIn = 0;
+        address tokenIn;
+        if (token0 == baseToken && amount1Collected > 0) {
+            tokenIn = token1;
+            amountIn = amount1Collected;
+        } else if (token1 == baseToken && amount0Collected > 0) {
+            tokenIn = token0;
+            amountIn = amount0Collected;
+        }
 
-        // 5. swap one token for baseToken
-        // Note: one of the tokens must be a baseToken; makes things simpler on the destination chain
-        if (token0 != baseToken && amount0Collected > 0) {
-            // swap token0 for baseToken
-            IERC20(token0).approve(swapRouter, amount0Collected);
+        if (amountIn > 0) {
+            IERC20(tokenIn).approve(swapRouter, amountIn);
             ISwapRouter.ExactInputSingleParams memory params = ISwapRouter.ExactInputSingleParams({
-                tokenIn: token0,
+                tokenIn: tokenIn,
                 tokenOut: baseToken,
                 fee: fee,
                 recipient: address(this),
-                amountIn: amount0Collected,
-                amountOutMinimum: 0,
-                sqrtPriceLimitX96: 0
-            });
-            amountOut = ISwapRouter(swapRouter).exactInputSingle(params);
-        } else if (token1 != baseToken && amount1Collected > 0) {
-            // swap token1 for baseToken
-            IERC20(token1).approve(swapRouter, amount1Collected);
-            ISwapRouter.ExactInputSingleParams memory params = ISwapRouter.ExactInputSingleParams({
-                tokenIn: token1,
-                tokenOut: baseToken,
-                fee: fee,
-                recipient: address(this),
-                amountIn: amount1Collected,
+                amountIn: amountIn,
                 amountOutMinimum: 0,
                 sqrtPriceLimitX96: 0
             });
             amountOut = ISwapRouter(swapRouter).exactInputSingle(params);
         }
 
-        // 4. send the baseToken to the bridge with LP position info
-        // this is no longer accurate due to refunds that can be accumulated
-        // instead, need to calculate the exact amount of baseToken from the trade
-        uint256 amountBaseToken = IERC20(baseToken).balanceOf(address(this));
-        require(amountBaseToken >= amountBaseTokenBeforeTrades + amountOut, "baseToken balance mismatch");
+        // 6. send the baseToken to the bridge with LP position info
+        uint256 amountBaseToken = amountBaseTokenBeforeTrades + amountOut;
 
         uint32 fillDeadline = uint32(block.timestamp + migrationParams.fillDeadlineBuffer);
-        // uint256 minOutputAmount = amountBaseToken * (10000 - migrationParams.feePercentage) / 10000;
 
         // approve spokPool to transfer baseToken
         // this is no longer accurate due to refunds that can be accumulated
@@ -166,7 +127,7 @@ contract LPMigratorSingleToken is ILPMigrator {
             migrationParams.quoteTimestamp,
             fillDeadline,
             migrationParams.exclusivityDeadline,
-            migrationParams.mintParams // message
+            migrationParams.settlementParams // message
         );
     }
 }
