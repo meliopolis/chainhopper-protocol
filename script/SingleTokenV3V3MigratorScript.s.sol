@@ -2,16 +2,16 @@
 pragma solidity ^0.8.13;
 
 import {Script, console} from "forge-std/Script.sol";
-import {LPMigratorSingleToken} from "../src/LPMigratorSingleToken.sol";
+import {SingleTokenV3V3Migrator} from "../src/SingleTokenV3V3Migrator.sol";
 import {ISwapRouter} from "../src/interfaces/external/ISwapRouter.sol";
 import {IWETH} from "../src/interfaces/external/IWETH.sol";
 import {IERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {INonfungiblePositionManager} from "../src/interfaces/external/INonfungiblePositionManager.sol";
 import {SafeERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
-import {ILPMigrationHandler} from "../src/interfaces/ILPMigrationHandler.sol";
+import {ISingleTokenV3Settler} from "../src/interfaces/ISingleTokenV3Settler.sol";
 
 // Not meant to run directly. Contains helper functions to be used in other scripts.
-abstract contract LPMigratorScript is Script {
+abstract contract SingleTokenV3V3MigratorScript is Script {
     using SafeERC20 for IERC20;
 
     // creates an LP position and returns the tokenId
@@ -100,7 +100,7 @@ abstract contract LPMigratorScript is Script {
         address recipient = publicKey;
         bytes memory data = abi.encode(token0, token1, fee, tickLower, tickUpper, amount0Min, amount1Min, recipient);
         vm.prank(spokePool);
-        ILPMigrationHandler(migrationHandler).handleV3AcrossMessage(baseToken, 1 ether, publicKey, data);
+        ISingleTokenV3Settler(migrationHandler).handleV3AcrossMessage(baseToken, 1 ether, publicKey, data);
     }
 
     // sends a message to the migrator handler to trigger receiving the token and creating the LP position
@@ -118,7 +118,7 @@ abstract contract LPMigratorScript is Script {
         vm.prank(publicKey);
         IERC20(baseToken).safeTransferFrom(publicKey, address(migrationHandler), 1e18);
         vm.prank(spokePool);
-        ILPMigrationHandler(migrationHandler).handleV3AcrossMessage(baseToken, 1 ether, publicKey, data);
+        ISingleTokenV3Settler(migrationHandler).handleV3AcrossMessage(baseToken, 1 ether, publicKey, data);
     }
 }
 

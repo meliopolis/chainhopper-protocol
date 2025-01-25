@@ -3,7 +3,7 @@ pragma solidity ^0.8.13;
 
 import "lib/openzeppelin-contracts/contracts/token/ERC721/IERC721Receiver.sol";
 
-interface ILPMigrator is IERC721Receiver {
+interface ISingleTokenV3V3Migrator is IERC721Receiver {
     error LiquidityIsZero();
     error SenderIsNotNFTPositionManager();
     error NoBaseTokenFound();
@@ -30,4 +30,6 @@ interface ILPMigrator is IERC721Receiver {
         uint256 amount1Min;
         address recipient;
     }
+    // uint24 senderFeeBps;
+    // address senderFeeRecipient;
 }

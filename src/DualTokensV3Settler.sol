@@ -1,8 +1,8 @@
-// SPDX-License-Identifier: GPL-2.0-or-later
-pragma solidity =0.8.28;
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity ^0.8.13;
 
-import {IERC20} from "openzeppelin/token/ERC20/IERC20.sol";
-import {SafeERC20} from "openzeppelin/token/ERC20/utils/SafeERC20.sol";
+import {IERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import {AcrossV3Settler} from "./base/AcrossV3Settler.sol";
 import {IUniswapV3PositionManager} from "./interfaces/external/IUniswapV3.sol";
 import {IDualTokensV3Settler} from "./interfaces/IDualTokensV3Settler.sol";

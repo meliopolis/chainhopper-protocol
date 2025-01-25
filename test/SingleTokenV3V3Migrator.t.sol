@@ -2,7 +2,7 @@
 pragma solidity ^0.8.13;
 
 import {Test, console} from "lib/forge-std/src/Test.sol";
-import {LPMigratorSingleToken} from "../src/LPMigratorSingleToken.sol";
+import {SingleTokenV3V3Migrator} from "../src/SingleTokenV3V3Migrator.sol";
 import {MockSpokePool} from "./mocks/MockSpokePool.sol";
 import {CustomERC20Mock} from "./mocks/CustomERC20Mock.sol";
 import {BasicNft} from "./mocks/BasicNFT.sol";
@@ -11,17 +11,18 @@ import {IERC721} from "lib/openzeppelin-contracts/contracts/token/ERC721/IERC721
 import {IERC721Errors} from "lib/openzeppelin-contracts/contracts/interfaces/draft-IERC6093.sol";
 import {INonfungiblePositionManager} from "../src/interfaces/external/INonfungiblePositionManager.sol";
 import {IERC20} from "lib/openzeppelin-contracts/contracts/interfaces/IERC20.sol";
-import {ILPMigrator} from "../src/interfaces/ILPMigrator.sol";
-import {LPMigratorSingleTokenHarness} from "./LPMigratorSingleTokenHarness.sol";
+import {ISingleTokenV3Settler} from "../src/interfaces/ISingleTokenV3Settler.sol";
+import {SingleTokenV3V3MigratorHarness} from "./SingleTokenV3V3MigratorHarness.sol";
 import {IUniswapV3Factory} from "lib/v3-core/contracts/interfaces/IUniswapV3Factory.sol";
 import {IUniswapV3Pool} from "lib/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
 import {IUniswapV3PoolEvents} from "lib/v3-core/contracts/interfaces/pool/IUniswapV3PoolEvents.sol";
 import {V3SpokePoolInterface} from "../src/interfaces/external/ISpokePool.sol";
 import {UniswapV3Helpers} from "./utils/UniswapV3Helpers.t.sol";
+import {ISingleTokenV3V3Migrator} from "../src/interfaces/ISingleTokenV3V3Migrator.sol";
 
 contract SingleTokenV3V3MigratorTest is Test, UniswapV3Helpers {
-    LPMigratorSingleTokenHarness public migratorHarness;
-    LPMigratorSingleToken public migrator;
+    SingleTokenV3V3MigratorHarness public migratorHarness;
+    SingleTokenV3V3Migrator public migrator;
     address public user = address(0x1);
     address public nftPositionManager = vm.envAddress("BASE_NFT_POSITION_MANAGER");
     address public baseToken = vm.envAddress("BASE_WETH");
@@ -34,12 +35,12 @@ contract SingleTokenV3V3MigratorTest is Test, UniswapV3Helpers {
         vm.createSelectFork(vm.envString("BASE_MAINNET_RPC_URL"), 25394775);
 
         // Deploy migrator and harness
-        migrator = new LPMigratorSingleToken(nftPositionManager, baseToken, swapRouter, spokePool);
-        migratorHarness = new LPMigratorSingleTokenHarness(nftPositionManager, baseToken, swapRouter, spokePool);
+        migrator = new SingleTokenV3V3Migrator(nftPositionManager, baseToken, swapRouter, spokePool);
+        migratorHarness = new SingleTokenV3V3MigratorHarness(nftPositionManager, baseToken, swapRouter, spokePool);
     }
 
-    function generateMigrationParams() public view returns (ILPMigrator.MigrationParams memory) {
-        ILPMigrator.SettlementParams memory settlementParams = ILPMigrator.SettlementParams({
+    function generateMigrationParams() public view returns (ISingleTokenV3V3Migrator.MigrationParams memory) {
+        ISingleTokenV3V3Migrator.SettlementParams memory settlementParams = ISingleTokenV3V3Migrator.SettlementParams({
             token0: address(baseToken),
             token1: address(usdc),
             feeTier: 500,
@@ -49,7 +50,7 @@ contract SingleTokenV3V3MigratorTest is Test, UniswapV3Helpers {
             amount1Min: 0,
             recipient: user
         });
-        return ILPMigrator.MigrationParams({
+        return ISingleTokenV3V3Migrator.MigrationParams({
             recipient: user,
             quoteTimestamp: uint32(block.timestamp),
             fillDeadlineBuffer: uint32(21600), // pulled from spokePool.fillDeadlineBuffer()
@@ -67,7 +68,7 @@ contract SingleTokenV3V3MigratorTest is Test, UniswapV3Helpers {
         vm.prank(user);
         nft.mintNft();
         vm.prank(user);
-        vm.expectRevert(abi.encodeWithSelector(ILPMigrator.SenderIsNotNFTPositionManager.selector));
+        vm.expectRevert(abi.encodeWithSelector(ISingleTokenV3V3Migrator.SenderIsNotNFTPositionManager.selector));
         migratorHarness.exposed_migratePosition(user, 0, generateMigrationParams());
     }
 
@@ -76,7 +77,7 @@ contract SingleTokenV3V3MigratorTest is Test, UniswapV3Helpers {
         console.log("tokenId", tokenId);
         withdrawLiquidity(nftPositionManager, user, tokenId);
         vm.prank(nftPositionManager);
-        vm.expectRevert(abi.encodeWithSelector(ILPMigrator.LiquidityIsZero.selector));
+        vm.expectRevert(abi.encodeWithSelector(ISingleTokenV3V3Migrator.LiquidityIsZero.selector));
         migratorHarness.exposed_migratePosition(user, tokenId, generateMigrationParams());
     }
 
@@ -89,7 +90,7 @@ contract SingleTokenV3V3MigratorTest is Test, UniswapV3Helpers {
         assertNotEq(token0, baseToken);
         assertNotEq(token1, baseToken);
         vm.prank(nftPositionManager);
-        vm.expectRevert(abi.encodeWithSelector(ILPMigrator.NoBaseTokenFound.selector));
+        vm.expectRevert(abi.encodeWithSelector(ISingleTokenV3V3Migrator.NoBaseTokenFound.selector));
         migratorHarness.exposed_migratePosition(user, tokenId, generateMigrationParams());
     }
 

@@ -1,15 +1,14 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-import "lib/openzeppelin-contracts/contracts/token/ERC721/IERC721Receiver.sol";
-import "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
-import "./interfaces/external/ISwapRouter.sol";
-import "./interfaces/external/INonfungiblePositionManager.sol";
-import "./interfaces/external/ISpokePool.sol";
-import "./interfaces/ILPMigrator.sol";
+import {IERC721Receiver} from "lib/openzeppelin-contracts/contracts/token/ERC721/IERC721Receiver.sol";
+import {IERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
+import {ISwapRouter} from "./interfaces/external/ISwapRouter.sol";
+import {INonfungiblePositionManager} from "./interfaces/external/INonfungiblePositionManager.sol";
+import {V3SpokePoolInterface} from "./interfaces/external/ISpokePool.sol";
+import {ISingleTokenV3V3Migrator} from "./interfaces/ISingleTokenV3V3Migrator.sol";
 
-contract LPMigratorSingleToken is ILPMigrator {
-
+contract SingleTokenV3V3Migrator is ISingleTokenV3V3Migrator {
     address public immutable nonfungiblePositionManager;
     address public immutable baseToken; // the token that will be used to send the message to the bridge
     address public immutable swapRouter;
