@@ -1,14 +1,14 @@
-// SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.13;
+// SPDX-License-Identifier: GPL-2.0-or-later
+pragma solidity =0.8.28;
 
-import {IERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
-import {SafeERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
+import {IERC20} from "openzeppelin/token/ERC20/IERC20.sol";
+import {SafeERC20} from "openzeppelin/token/ERC20/utils/SafeERC20.sol";
 import {AcrossV3Settler} from "./base/AcrossV3Settler.sol";
-import {IUniswapV3PositionManager} from "./interfaces/external/IUniswapV3.sol";
-import {IDualTokensV3Settler} from "./interfaces/IDualTokensV3Settler.sol";
-import {UniswapV3Library} from "./libraries/UniswapV3Library.sol";
+import {IPositionManager} from "./interfaces/external/IUniswapV4.sol";
+import {IDualTokensV4Settler} from "./interfaces/IDualTokensV4Settler.sol";
+import {UniswapV4Library} from "./libraries/UniswapV4Library.sol";
 
-contract DualTokensV3Settler is IDualTokensV3Settler, AcrossV3Settler {
+contract DualTokensV4Settler is IDualTokensV4Settler, AcrossV3Settler {
     struct Fragment {
         address token;
         uint256 amount;
@@ -16,13 +16,13 @@ contract DualTokensV3Settler is IDualTokensV3Settler, AcrossV3Settler {
     }
 
     using SafeERC20 for IERC20;
-    using UniswapV3Library for IUniswapV3PositionManager;
+    using UniswapV4Library for IPositionManager;
 
-    IUniswapV3PositionManager private immutable positionManager;
+    IPositionManager private immutable positionManager;
     mapping(bytes32 => Fragment) private fragments;
 
     constructor(address _positionManager, address _spokePool) AcrossV3Settler(_spokePool) {
-        positionManager = IUniswapV3PositionManager(_positionManager);
+        positionManager = IPositionManager(_positionManager);
     }
 
     function _settle(address token, uint256 amount, bytes memory message) internal override {
@@ -43,8 +43,11 @@ contract DualTokensV3Settler is IDualTokensV3Settler, AcrossV3Settler {
                 params.token0,
                 params.token1,
                 params.fee,
+                params.tickSpacing,
+                params.hooks,
                 params.tickLower,
                 params.tickUpper,
+                params.migrationId,
                 amount0,
                 amount1,
                 params.recipient
