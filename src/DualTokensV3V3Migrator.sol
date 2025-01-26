@@ -38,6 +38,7 @@ contract DualTokensV3V3Migrator is IDualTokensV3V3Migrator, AcrossV3Migrator {
                     address(positionManager),
                     positionId,
                     address(this),
+                    params.destinationChainId,
                     chainSettlers[params.destinationChainId],
                     ++migrationCounter
                 )

@@ -38,6 +38,7 @@ contract DualTokensV3V4Migrator is IDualTokensV3V4Migrator, AcrossV3Migrator {
                     address(positionManager),
                     positionId,
                     address(this),
+                    params.destinationChainId,
                     chainSettlers[params.destinationChainId],
                     ++migrationCounter
                 )
@@ -88,5 +89,27 @@ contract DualTokensV3V4Migrator is IDualTokensV3V4Migrator, AcrossV3Migrator {
                 message
             );
         }
+
+        emit Migrate(
+            migrationId,
+            positionId,
+            params.destinationChainId,
+            sender,
+            token0,
+            token1,
+            amount0,
+            amount1,
+            chainSettlers[params.destinationChainId],
+            params.recipient,
+            params.token0,
+            params.token1,
+            amount0,
+            amount1,
+            params.fee,
+            params.tickSpacing,
+            params.hooks,
+            params.tickLower,
+            params.tickUpper
+        );
     }
 }
