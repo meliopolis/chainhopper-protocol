@@ -45,6 +45,10 @@ contract DualTokensV3SettlerTest is Test {
         IERC20(settlementParams1.token0).transfer(address(settler), 1e18);
 
         vm.startPrank(spokePool);
+        vm.expectEmit(true, true, true, true, address(settler));
+        emit IDualTokensV3Settler.PartialSettle(
+            settlementParams1.migrationId, settlementParams1.recipient, settlementParams1.token0, 1e18
+        );
         settler.handleV3AcrossMessage(settlementParams1.token0, 1e18, address(0), abi.encode(settlementParams1));
     }
 
@@ -53,11 +57,17 @@ contract DualTokensV3SettlerTest is Test {
         IERC20(settlementParams1.token1).transfer(address(settler), 1e6);
 
         vm.startPrank(spokePool);
+
+        vm.expectEmit(true, true, true, true, address(settler));
+        emit IDualTokensV3Settler.PartialSettle(
+            settlementParams1.migrationId, settlementParams1.recipient, settlementParams1.token0, 1e18
+        );
         settler.handleV3AcrossMessage(settlementParams1.token0, 1e18, address(0), abi.encode(settlementParams1));
 
         vm.expectEmit(true, true, false, false, address(settler));
         emit IDualTokensV3Settler.Settle(settlementParams1.migrationId, settlementParams1.recipient, 0, 0, 0, 0, 0, 0);
         settler.handleV3AcrossMessage(settlementParams1.token1, 1e6, address(0), abi.encode(settlementParams1));
+
         vm.stopPrank();
     }
 
@@ -80,12 +90,11 @@ contract DualTokensV3SettlerTest is Test {
         vm.prank(address(spokePool));
         settler.handleV3AcrossMessage(settlementParams1.token0, 1e18, address(0), abi.encode(settlementParams1));
 
+        vm.prank(settlementParams1.recipient);
         vm.expectEmit(true, true, true, true, address(settler));
         emit IDualTokensV3Settler.Escape(
             settlementParams1.migrationId, settlementParams1.recipient, settlementParams1.token0, 1e18
         );
-
-        vm.prank(settlementParams1.recipient);
         settler.escape(settlementParams1.migrationId);
     }
 
@@ -97,11 +106,8 @@ contract DualTokensV3SettlerTest is Test {
         settler.handleV3AcrossMessage(settlementParams1.token1, 1e6, address(0), abi.encode(settlementParams1));
         vm.stopPrank();
 
-        vm.expectRevert(DualTokensV3Settler.NotRecipient.selector);
         vm.prank(settlementParams1.recipient);
+        vm.expectRevert(DualTokensV3Settler.NotRecipient.selector);
         settler.escape(settlementParams1.migrationId);
     }
 }
-
-// vm.expectEmit(true, true, false, false, address(settler));
-// emit IDualTokensV3Settler.Settle(settlementParams1.migrationId, settlementParams1.recipient, 0, 0, 0, 0, 0, 0);

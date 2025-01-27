@@ -2,6 +2,8 @@
 pragma solidity ^0.8.0;
 
 interface IDualTokensV3Settler {
+    event PartialSettle(bytes32 indexed migrationId, address indexed recipient, address token, uint256 amount);
+
     event Settle(
         bytes32 indexed migrationId,
         address indexed recipient,

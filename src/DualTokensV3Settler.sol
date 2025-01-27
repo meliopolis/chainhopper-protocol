@@ -9,7 +9,7 @@ import {IDualTokensV3Settler} from "./interfaces/IDualTokensV3Settler.sol";
 import {UniswapV3Library} from "./libraries/UniswapV3Library.sol";
 
 contract DualTokensV3Settler is IDualTokensV3Settler, AcrossV3Settler {
-    struct Fragment {
+    struct PartialSettlement {
         address token;
         uint256 amount;
         address recipient;
@@ -21,7 +21,7 @@ contract DualTokensV3Settler is IDualTokensV3Settler, AcrossV3Settler {
     using UniswapV3Library for IUniswapV3PositionManager;
 
     IUniswapV3PositionManager private immutable positionManager;
-    mapping(bytes32 => Fragment) private fragments;
+    mapping(bytes32 => PartialSettlement) private partialSettlements;
 
     constructor(address _positionManager, address _spokePool) AcrossV3Settler(_spokePool) {
         positionManager = IUniswapV3PositionManager(_positionManager);
@@ -29,15 +29,17 @@ contract DualTokensV3Settler is IDualTokensV3Settler, AcrossV3Settler {
 
     function _settle(address token, uint256 amount, bytes memory message) internal override {
         SettlementParams memory params = abi.decode(message, (SettlementParams));
-        Fragment memory fragment = fragments[params.migrationId];
+        PartialSettlement memory partialSettlement = partialSettlements[params.migrationId];
 
-        if (params.migrationId != bytes32(0) && fragment.token == address(0)) {
-            // if expecting a fragment, but fragment is not present yet, store as a fragment
-            fragments[params.migrationId] = Fragment(token, amount, params.recipient);
+        if (params.migrationId != bytes32(0) && partialSettlement.token == address(0)) {
+            // if expecting a partial settlement, but is not present yet, store as a partial settlement
+            partialSettlements[params.migrationId] = PartialSettlement(token, amount, params.recipient);
+
+            emit PartialSettle(params.migrationId, params.recipient, token, amount);
         } else {
             // match up amounts to tokens
             (uint256 amount0, uint256 amount1) =
-                token == params.token0 ? (amount, fragment.amount) : (fragment.amount, amount);
+                token == params.token0 ? (amount, partialSettlement.amount) : (partialSettlement.amount, amount);
 
             // mint the new position
             (uint256 positionId, uint128 liquidity, uint256 amount0Paid, uint256 amount1Paid) = positionManager
@@ -56,8 +58,8 @@ contract DualTokensV3Settler is IDualTokensV3Settler, AcrossV3Settler {
             if (amount0Paid < amount0) IERC20(params.token0).safeTransfer(params.recipient, amount0 - amount0Paid);
             if (amount1Paid < amount1) IERC20(params.token1).safeTransfer(params.recipient, amount1 - amount1Paid);
 
-            // clear fragment
-            delete fragments[params.migrationId];
+            // clear partial settlement
+            delete partialSettlements[params.migrationId];
 
             emit Settle(
                 params.migrationId,
@@ -73,12 +75,12 @@ contract DualTokensV3Settler is IDualTokensV3Settler, AcrossV3Settler {
     }
 
     function escape(bytes32 migrationId) external {
-        Fragment memory fragment = fragments[migrationId];
-        require(fragment.recipient == msg.sender, NotRecipient());
+        PartialSettlement memory partialSettlement = partialSettlements[migrationId];
+        require(partialSettlement.recipient == msg.sender, NotRecipient());
 
-        IERC20(fragment.token).safeTransfer(fragment.recipient, fragment.amount);
-        delete fragments[migrationId];
+        IERC20(partialSettlement.token).safeTransfer(partialSettlement.recipient, partialSettlement.amount);
+        delete partialSettlements[migrationId];
 
-        emit Escape(migrationId, fragment.recipient, fragment.token, fragment.amount);
+        emit Escape(migrationId, partialSettlement.recipient, partialSettlement.token, partialSettlement.amount);
     }
 }
