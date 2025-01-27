@@ -15,6 +15,8 @@ contract DualTokensV3Settler is IDualTokensV3Settler, AcrossV3Settler {
         address recipient;
     }
 
+    error NotRecipient();
+
     using SafeERC20 for IERC20;
     using UniswapV3Library for IUniswapV3PositionManager;
 
@@ -72,11 +74,10 @@ contract DualTokensV3Settler is IDualTokensV3Settler, AcrossV3Settler {
 
     function escape(bytes32 migrationId) external {
         Fragment memory fragment = fragments[migrationId];
+        require(fragment.recipient == msg.sender, NotRecipient());
 
-        if (fragment.token != address(0) && fragment.amount > 0) {
-            IERC20(fragment.token).safeTransfer(fragment.recipient, fragment.amount);
-            delete fragments[migrationId];
-        }
+        IERC20(fragment.token).safeTransfer(fragment.recipient, fragment.amount);
+        delete fragments[migrationId];
 
         emit Escape(migrationId, fragment.recipient, fragment.token, fragment.amount);
     }

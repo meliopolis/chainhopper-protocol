@@ -66,14 +66,14 @@ contract DualTokensV3V3MigratorTest is Test {
         });
     }
 
-    function test_fuzz_onERC721Received_msgSenderIsNotPositionManager(address msgSender) public {
+    function test_fuzz_msgSenderIsNotPositionManager(address msgSender) public {
         vm.assume(msgSender != positionManager);
 
         vm.expectRevert(AcrossV3Migrator.NotPositionManager.selector);
         migrator.onERC721Received(address(0), address(0), 0, "");
     }
 
-    function test_fuzz_onERC721Received_chainSetterNotSet(uint256 chainId) public {
+    function test_fuzz_chainSetterNotSet(uint256 chainId) public {
         vm.assume(chainId != DESTINATION_CHAIN_ID);
         migrationParams.destinationChainId = chainId;
 
