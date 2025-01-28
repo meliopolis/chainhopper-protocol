@@ -3,5 +3,4 @@ pragma solidity ^0.8.0;
 
 import {IDualTokenMigrator} from "./IDualTokenMigrator.sol";
 
-interface IDualTokenV4Migrator is IDualTokenMigrator {
-}
+interface IDualTokenV4Migrator is IDualTokenMigrator {}

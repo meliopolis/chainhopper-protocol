@@ -5,16 +5,8 @@ interface ISettler {
     error AtLeastOneAmountMustBeGreaterThanZero();
     error InsufficientBalance();
 
-    struct BaseSettlementParams {
-        address token0;
-        address token1;
-        uint24 feeTier;
-        int24 tickLower;
-        int24 tickUpper;
-        uint256 amount0Min;
-        uint256 amount1Min;
-        address recipient;
-        uint24 senderFeeBps;
-        address senderFeeRecipient;
-    }
+    function setProtocolFeeBps(uint24 _protocolFeeBps) external;
+    function setProtocolFeeRecipient(address _protocolFeeRecipient) external;
+    function setSenderFeeShareInPercent(uint8 _senderFeeShareInPercent) external;
+    function settle(address token, uint256 amount, bytes memory message) external returns (uint256);
 }
