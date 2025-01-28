@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-pragma solidity =0.8.28;
+pragma solidity ^0.8.27;
 
 import {Ownable2Step, Ownable} from "openzeppelin/access/Ownable2Step.sol";
 import {IERC721Receiver} from "openzeppelin/token/ERC721/IERC721Receiver.sol";

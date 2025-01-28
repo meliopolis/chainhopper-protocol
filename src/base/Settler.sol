@@ -6,16 +6,16 @@ import {Ownable2Step, Ownable} from "lib/openzeppelin-contracts/contracts/access
 import {IERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 
 abstract contract Settler is ISettler, Ownable2Step {
-    uint24 public protocolFeeBps; // out of 10000
+    uint24 public protocolFeeBps; // out of 10000; ex: 10bps is 10
     address public protocolFeeRecipient;
-    uint8 public senderFeeShareInPercent; // 1%, 2%, etc.
+    uint8 public protocolShareOfSenderFeeInPercent; // 1%, 2%, etc.; ex: 10% is 10
 
-    constructor(uint24 _protocolFeeBps, address _protocolFeeRecipient, uint8 _senderFeeShareInPercent)
+    constructor(uint24 _protocolFeeBps, address _protocolFeeRecipient, uint8 _protocolShareOfSenderFeeInPercent)
         Ownable(msg.sender)
     {
         protocolFeeBps = _protocolFeeBps;
         protocolFeeRecipient = _protocolFeeRecipient;
-        senderFeeShareInPercent = _senderFeeShareInPercent;
+        protocolShareOfSenderFeeInPercent = _protocolShareOfSenderFeeInPercent;
     }
 
     function setProtocolFeeBps(uint24 _protocolFeeBps) external onlyOwner {
@@ -26,8 +26,8 @@ abstract contract Settler is ISettler, Ownable2Step {
         protocolFeeRecipient = _protocolFeeRecipient;
     }
 
-    function setSenderFeeShareInPercent(uint8 _senderFeeShareInPercent) external onlyOwner {
-        senderFeeShareInPercent = _senderFeeShareInPercent;
+    function setProtocolShareOfSenderFeeInPercent(uint8 _protocolShareOfSenderFeeInPercent) external onlyOwner {
+        protocolShareOfSenderFeeInPercent = _protocolShareOfSenderFeeInPercent;
     }
 
     function settle(address token, uint256 amount, bytes memory message) external override returns (uint256) {
@@ -40,7 +40,7 @@ abstract contract Settler is ISettler, Ownable2Step {
         uint256 tokenId = _settle(token, amountToMigrate, message);
 
         // transfer fees
-        uint256 protocolShareOfSenderFee = (senderFeeAmount * senderFeeShareInPercent) / 100;
+        uint256 protocolShareOfSenderFee = (senderFeeAmount * protocolShareOfSenderFeeInPercent) / 100;
         uint256 totalProtocolFee = protocolFeeAmount + protocolShareOfSenderFee;
         uint256 netSenderFee = senderFeeAmount - protocolShareOfSenderFee;
         IERC20(token).transfer(protocolFeeRecipient, totalProtocolFee);

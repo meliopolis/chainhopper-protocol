@@ -6,6 +6,7 @@ import "./external/AcrossMessageHandler.sol";
 
 interface IV3Settler is ISettler {
     struct V3SettlementParams {
+        bytes32 migrationId;
         address token0;
         address token1;
         uint24 feeTier;

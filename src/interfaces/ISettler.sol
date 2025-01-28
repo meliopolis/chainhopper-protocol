@@ -7,6 +7,6 @@ interface ISettler {
 
     function setProtocolFeeBps(uint24 _protocolFeeBps) external;
     function setProtocolFeeRecipient(address _protocolFeeRecipient) external;
-    function setSenderFeeShareInPercent(uint8 _senderFeeShareInPercent) external;
+    function setProtocolShareOfSenderFeeInPercent(uint8 _protocolShareOfSenderFeeInPercent) external;
     function settle(address token, uint256 amount, bytes memory message) external returns (uint256);
 }

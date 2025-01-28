@@ -4,15 +4,18 @@ pragma solidity ^0.8.27;
 import {Ownable2Step, Ownable} from "lib/openzeppelin-contracts/contracts/access/Ownable2Step.sol";
 import {IERC721Receiver} from "lib/openzeppelin-contracts/contracts/token/ERC721/IERC721Receiver.sol";
 import {IMigrator} from "../interfaces/IMigrator.sol";
+import {IUniswapV3PositionManager} from "../interfaces/external/IUniswapV3.sol";
+import {UniswapV3Library} from "../libraries/UniswapV3Library.sol";
 
 abstract contract Migrator is IMigrator, IERC721Receiver, Ownable2Step {
-    error NotPositionManager();
+    using UniswapV3Library for IUniswapV3PositionManager;
 
-    address private immutable positionManager;
+    IUniswapV3PositionManager public immutable positionManager;
     mapping(uint256 => mapping(address => bool)) internal chainSettlers;
+    uint256 internal _migrationCounter = 0;
 
     constructor(address _positionManager) Ownable(msg.sender) {
-        positionManager = _positionManager;
+        positionManager = IUniswapV3PositionManager(_positionManager);
     }
 
     function addChainSettler(uint256 chainID, address settler) external onlyOwner {
@@ -23,8 +26,13 @@ abstract contract Migrator is IMigrator, IERC721Receiver, Ownable2Step {
         chainSettlers[chainID][settler] = false;
     }
 
-    function onERC721Received(address, address from, uint256 tokenId, bytes memory data) external returns (bytes4) {
-        require(msg.sender == positionManager, NotPositionManager());
+    function onERC721Received(address, address from, uint256 tokenId, bytes memory data)
+        external
+        virtual
+        override
+        returns (bytes4)
+    {
+        require(msg.sender == address(positionManager), NotPositionManager());
 
         _migrate(from, tokenId, data);
 
