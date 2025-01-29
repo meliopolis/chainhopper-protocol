@@ -14,7 +14,6 @@ abstract contract AcrossV3Settler is IAcrossV3SpokePoolMessageHandler {
 
     function handleV3AcrossMessage(address token, uint256 amount, address, bytes memory message) external override {
         if (msg.sender != spokePool) revert NotSpokePool();
-
         _settle(token, amount, message);
     }
 

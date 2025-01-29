@@ -15,8 +15,15 @@ contract AcrossV3Settler is IV3Settler, AcrossSettler {
     using UniswapV3Library for IUniswapV3PositionManager;
     using SafeERC20 for IERC20;
 
+    struct PartialSettlement {
+        address token;
+        uint256 amount;
+        address recipient;
+    }
+
     ISwapRouter public immutable swapRouter;
     IUniswapV3PositionManager private immutable positionManager;
+    mapping(bytes32 => PartialSettlement) private partialSettlements;
 
     constructor(
         address _spokePool,
@@ -29,6 +36,7 @@ contract AcrossV3Settler is IV3Settler, AcrossSettler {
         swapRouter = ISwapRouter(_swapRouter);
         positionManager = IUniswapV3PositionManager(_positionManager);
     }
+    // todo add a public function to check partial settlements
 
     function _getSenderFees(bytes memory message) internal view virtual override returns (uint24, address) {
         (, V3SettlementParams memory settlementParams) = abi.decode(message, (bytes32, V3SettlementParams));
@@ -40,21 +48,52 @@ contract AcrossV3Settler is IV3Settler, AcrossSettler {
         return settlementParams.recipient;
     }
 
+    function _refund(bytes32 migrationId) internal {
+        PartialSettlement memory partialSettlement = partialSettlements[migrationId];
+        if (partialSettlement.token != address(0)) {
+            IERC20(partialSettlement.token).transfer(partialSettlement.recipient, partialSettlement.amount);
+            delete partialSettlements[migrationId];
+        }
+    }
+
+    // this is meant to be called by external contracts like bridges or relayers
+    function settleOuter(address token, uint256 amount, bytes memory message)
+        external
+        virtual
+        override
+        returns (uint256)
+    {
+        try this.settle(token, amount, message) returns (uint256 tokenId) {
+            // do nothing;
+            return tokenId;
+        } catch {
+            // if error, return the amount to the recipient
+            IERC20(token).transfer(_getRecipient(message), amount);
+            // if there is a migrationId, refund any partial settlements as well
+            (bytes32 migrationId) = abi.decode(message, (bytes32));
+            if (migrationId != bytes32(0)) {
+                _refund(migrationId);
+            }
+            return 0;
+        }
+    }
+
     function _settle(address token, uint256 amount, bytes memory message) internal virtual override returns (uint256) {
         (bytes32 migrationId, V3SettlementParams memory settlementParams) =
             abi.decode(message, (bytes32, V3SettlementParams));
 
-
-        if (settlementParams.amount0Min == 0 && settlementParams.amount1Min == 0)
+        if (settlementParams.amount0Min == 0 && settlementParams.amount1Min == 0) {
             revert AtLeastOneAmountMustBeGreaterThanZero();
+        }
 
         // detect if it's a single token or dual token migration
         if (migrationId == bytes32(0)) {
             // single token migration
 
-            if (token != settlementParams.token0 && token != settlementParams.token1)
+            if (token != settlementParams.token0 && token != settlementParams.token1) {
                 revert BridgedTokenMustBeUsedInPosition();
-                
+            }
+
             // determine if a swap is needed
             uint256 totalFeesInBps = protocolFeeBps + settlementParams.senderFeeBps;
             uint256 amountToTrade = token == settlementParams.token0
@@ -99,14 +138,87 @@ contract AcrossV3Settler is IV3Settler, AcrossSettler {
             if (amount1Paid < amount1Desired) {
                 IERC20(settlementParams.token1).safeTransfer(settlementParams.recipient, amount1Desired - amount1Paid);
             }
-            // todo emit event
+            emit FullySettled(
+                migrationId,
+                settlementParams.recipient,
+                tokenId,
+                amount0Paid,
+                amount1Paid,
+                amount0Desired - amount0Paid,
+                amount1Desired - amount1Paid
+            );
             return tokenId;
         } else {
-            // todo dual token migration
-            // case 1: first of the two pieces arrives
+            PartialSettlement memory partialSettlement = partialSettlements[migrationId];
 
-            // case 2: second of the two pieces arrives
-          return 0;
+            // case 1: first of the two pieces arrives
+            if (partialSettlement.token == address(0)) {
+                partialSettlements[migrationId] = PartialSettlement(token, amount, settlementParams.recipient);
+                emit PartiallySettled(migrationId, settlementParams.recipient, token, amount);
+                return 0;
+            } else {
+                // case 2: second of the two pieces arrives
+
+                // match up amounts to tokens
+                (uint256 amount0, uint256 amount1) = token == settlementParams.token0
+                    ? (amount, partialSettlement.amount)
+                    : (partialSettlement.amount, amount);
+
+                (uint256 senderFeeAmount0, uint256 protocolFeeAmount0) = _calculateFees(amount0, message);
+                (uint256 senderFeeAmount1, uint256 protocolFeeAmount1) = _calculateFees(amount1, message);
+                uint256 amount0Desired = amount0 - senderFeeAmount0 - protocolFeeAmount0;
+                uint256 amount1Desired = amount1 - senderFeeAmount1 - protocolFeeAmount1;
+                // mint the new position
+                (uint256 tokenId,, uint256 amount0Paid, uint256 amount1Paid) = positionManager.mintPosition(
+                    settlementParams.token0,
+                    settlementParams.token1,
+                    settlementParams.feeTier,
+                    settlementParams.tickLower,
+                    settlementParams.tickUpper,
+                    amount0Desired,
+                    amount1Desired,
+                    settlementParams.recipient
+                );
+
+                // refund any leftovers
+                if (amount0Paid < amount0Desired) {
+                    IERC20(settlementParams.token0).safeTransfer(
+                        settlementParams.recipient, amount0Desired - amount0Paid
+                    );
+                }
+                if (amount1Paid < amount1Desired) {
+                    IERC20(settlementParams.token1).safeTransfer(
+                        settlementParams.recipient, amount1Desired - amount1Paid
+                    );
+                }
+
+                // clear partial settlement
+                delete partialSettlements[migrationId];
+
+                // transfer fees to the protocol and sender
+                if (protocolFeeAmount0 > 0) {
+                    IERC20(settlementParams.token0).transfer(protocolFeeRecipient, protocolFeeAmount0);
+                }
+                if (protocolFeeAmount1 > 0) {
+                    IERC20(settlementParams.token1).transfer(protocolFeeRecipient, protocolFeeAmount1);
+                }
+                if (senderFeeAmount0 > 0) {
+                    IERC20(settlementParams.token0).transfer(settlementParams.senderFeeRecipient, senderFeeAmount0);
+                }
+                if (senderFeeAmount1 > 0) {
+                    IERC20(settlementParams.token1).transfer(settlementParams.senderFeeRecipient, senderFeeAmount1);
+                }
+                emit FullySettled(
+                    migrationId,
+                    settlementParams.recipient,
+                    tokenId,
+                    amount0Paid,
+                    amount1Paid,
+                    amount0Desired - amount0Paid,
+                    amount1Desired - amount1Paid
+                );
+                return tokenId;
+            }
         }
     }
 }

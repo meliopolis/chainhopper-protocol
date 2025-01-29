@@ -30,8 +30,9 @@ contract AcrossV3Migrator is IAcrossMigrator, AcrossMigrator {
 
     function _migrate(address from, uint256 tokenId, bytes memory data) internal override {
         AcrossMigrationParams memory migrationParams = abi.decode(data, (AcrossMigrationParams));
-        if (!chainSettlers[migrationParams.baseParams.destinationChainId][migrationParams.baseParams.recipient])
+        if (!chainSettlers[migrationParams.baseParams.destinationChainId][migrationParams.baseParams.recipient]) {
             revert DestinationChainSettlerNotFound();
+        }
 
         // determine number of routes to migrate
         uint256 numRoutes = migrationParams.acrossRoutes.length;
@@ -99,7 +100,6 @@ contract AcrossV3Migrator is IAcrossMigrator, AcrossMigrator {
             (address token0, address token1,, uint256 amount0, uint256 amount1) =
                 positionManager.liquidatePosition(tokenId, address(this));
 
-
             if (amount0 == 0 || amount1 == 0) revert UnusedExtraRoute();
 
             // confirm that both tokens are the route input tokens
@@ -107,17 +107,7 @@ contract AcrossV3Migrator is IAcrossMigrator, AcrossMigrator {
             if (token1 != route1.inputToken) revert RouteInputTokenNotFound(1);
 
             // prepare settlement message
-            bytes32 migrationId = keccak256(
-                abi.encode(
-                    block.chainid,
-                    address(positionManager),
-                    tokenId,
-                    address(this),
-                    migrationParams.baseParams.destinationChainId,
-                    migrationParams.baseParams.recipient,
-                    ++_migrationCounter
-                )
-            );
+            bytes32 migrationId = _generateMigrationId(tokenId, migrationParams.baseParams);
 
             // bridge both tokens
             spokePool.bridge(
@@ -157,5 +147,19 @@ contract AcrossV3Migrator is IAcrossMigrator, AcrossMigrator {
         } else {
             revert TooManyAcrossRoutes();
         }
+    }
+
+    function _generateMigrationId(uint256 tokenId, BaseMigrationParams memory baseParams) internal returns (bytes32) {
+        return keccak256(
+            abi.encode(
+                block.chainid,
+                address(positionManager),
+                tokenId,
+                address(this),
+                baseParams.destinationChainId,
+                baseParams.recipient,
+                ++_migrationCounter
+            )
+        );
     }
 }

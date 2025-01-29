@@ -37,7 +37,7 @@ abstract contract Migrator is IMigrator, IERC721Receiver, Ownable2Step {
         returns (bytes4)
     {
         if (msg.sender != address(positionManager)) revert NotPositionManager();
-        
+
         _migrate(from, tokenId, data);
 
         return this.onERC721Received.selector;

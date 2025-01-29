@@ -42,10 +42,13 @@ contract V3SettlerTest is Test {
         int24 tickLower,
         int24 tickUpper,
         uint256 amount0Min,
-        uint256 amount1Min
+        uint256 amount1Min,
+        uint24 senderFeeBps,
+        address senderFeeRecipient,
+        bytes32 migrationId
     ) public view returns (bytes memory) {
         return abi.encode(
-            bytes32(0),
+            migrationId,
             IV3Settler.V3SettlementParams({
                 recipient: user,
                 token0: token0,
@@ -55,8 +58,8 @@ contract V3SettlerTest is Test {
                 tickUpper: tickUpper,
                 amount0Min: amount0Min,
                 amount1Min: amount1Min,
-                senderFeeBps: 15,
-                senderFeeRecipient: senderWallet
+                senderFeeBps: senderFeeBps,
+                senderFeeRecipient: senderFeeRecipient
             })
         );
     }
@@ -66,7 +69,8 @@ contract V3SettlerTest is Test {
         uint256 amount1Min,
         int24 currentTick,
         Range range,
-        bool token0BaseToken
+        bool token0BaseToken,
+        bytes32 migrationId
     ) public view returns (bytes memory) {
         int24 tickLower;
         int24 tickUpper;
@@ -86,13 +90,16 @@ contract V3SettlerTest is Test {
         address token1 = token0BaseToken ? address(usdc) : address(baseToken);
 
         uint24 feeTier = baseToken == token0 ? 500 : 3000;
-        return this.generateSettlementParams(token0, token1, feeTier, tickLower, tickUpper, amount0Min, amount1Min);
+        return this.generateSettlementParams(
+            token0, token1, feeTier, tickLower, tickUpper, amount0Min, amount1Min, 15, senderWallet, migrationId
+        );
     }
 
     function setUp() public {
         vm.createSelectFork(vm.envString("BASE_MAINNET_RPC_URL"), 25394775);
         vm.startPrank(owner);
-        acrossV3SettlerHarness = new AcrossV3SettlerHarness(spokePool, protocolFeeRecipient, 10, 25, swapRouter, nftPositionManager);
+        acrossV3SettlerHarness =
+            new AcrossV3SettlerHarness(spokePool, protocolFeeRecipient, 10, 25, swapRouter, nftPositionManager);
         acrossV3Settler = new AcrossV3Settler(spokePool, protocolFeeRecipient, 10, 25, swapRouter, nftPositionManager);
         vm.stopPrank();
     }
@@ -103,7 +110,7 @@ contract V3SettlerTest is Test {
 
     function test__getSenderFeesReturnsCorrectValues() public view {
         (uint24 senderFeeBps, address senderFeeRecipient) = acrossV3SettlerHarness.exposed_getSenderFees(
-            this.generateSettlementParams(0.5 ether, 1_500_000_000, 0, Range.InRange, true)
+            this.generateSettlementParams(0.5 ether, 1_500_000_000, 0, Range.InRange, true, bytes32(0))
         );
         assertEq(senderFeeBps, 15);
         assertEq(senderFeeRecipient, senderWallet);
@@ -111,7 +118,7 @@ contract V3SettlerTest is Test {
 
     function test__getRecipientReturnsCorrectValue() public view {
         address recipient = acrossV3SettlerHarness.exposed_getRecipient(
-            this.generateSettlementParams(0.5 ether, 1_500_000_000, 0, Range.InRange, true)
+            this.generateSettlementParams(0.5 ether, 1_500_000_000, 0, Range.InRange, true, bytes32(0))
         );
         assertEq(recipient, user);
     }
@@ -168,50 +175,153 @@ contract V3SettlerTest is Test {
         acrossV3Settler.handleV3AcrossMessage(baseToken, 100, address(0), new bytes(0));
     }
 
-    function test_handleV3AcrossMessage_trySettleAndTriggersCatch() public {
+    function test_settleOuter_triggersCatch_withNoMigrationId() public {
         uint256 userBalanceBefore = IERC20(baseToken).balanceOf(user);
         deal(baseToken, address(acrossV3Settler), 1 ether);
         // invalid settlement params for above tick
         bytes memory migrationIdAndSettlementParams =
-            this.generateSettlementParams(0, 1_000_000_000, -200000, Range.AboveTick, true);
+            this.generateSettlementParams(0, 1_000_000_000, -200000, Range.AboveTick, true, bytes32(0));
         vm.prank(spokePool);
         vm.expectEmit(true, true, false, false, address(baseToken));
         emit IERC20.Transfer(address(acrossV3Settler), user, 1 ether);
-        acrossV3Settler.handleV3AcrossMessage(baseToken, 1 ether, address(0), migrationIdAndSettlementParams);
+        acrossV3Settler.settleOuter(baseToken, 1 ether, migrationIdAndSettlementParams);
         assertEq(IERC20(baseToken).balanceOf(user), userBalanceBefore + 1 ether);
     }
 
-    function test_handleV3AcrossMessageWorks() public {
-      // deal baseToken to settler
-        deal(baseToken, address(acrossV3Settler), 1.1 ether); // slightly higher due to fees
+    function test_settleOuter_triggersCatchAndRefundsBothTokens_withMigrationId() public {
+        // todo
+    }
 
-        // get pool
-        IUniswapV3Factory factory = IUniswapV3Factory(INonfungiblePositionManager(nftPositionManager).factory());
-        IUniswapV3Pool pool = IUniswapV3Pool(factory.getPool(baseToken, usdc, 500));
-        (, int24 currentTick,,,,,) = pool.slot0();
+    // function test_handleV3AcrossMessageWorks() public {
+    //     // deal baseToken to settler
+    //     deal(baseToken, address(acrossV3Settler), 1.1 ether); // slightly higher due to fees
 
-        // generate settlement params
-        bytes memory migrationIdAndSettlementParams =
-            this.generateSettlementParams(0.5 ether, 1_500_000_000, currentTick, Range.InRange, true);
+    //     // get pool
+    //     IUniswapV3Factory factory = IUniswapV3Factory(INonfungiblePositionManager(nftPositionManager).factory());
+    //     IUniswapV3Pool pool = IUniswapV3Pool(factory.getPool(baseToken, usdc, 500));
+    //     (, int24 currentTick,,,,,) = pool.slot0();
 
-        vm.prank(spokePool);
-        acrossV3Settler.handleV3AcrossMessage(baseToken, 1 ether, address(0), migrationIdAndSettlementParams);
+    //     // generate settlement params
+    //     bytes memory migrationIdAndSettlementParams =
+    //         this.generateSettlementParams(0.5 ether, 1_500_000_000, currentTick, Range.InRange, true, bytes32(0));
 
+    //     vm.prank(spokePool);
+    //     acrossV3Settler.handleV3AcrossMessage(baseToken, 1 ether, address(0), migrationIdAndSettlementParams);
+    // }
+
+    /*
+     * _calculateFees() tests
+     */
+
+    function test__calculateFees_allThreeZero() public {
+        vm.prank(owner);
+        acrossV3SettlerHarness.setProtocolFeeBps(0);
+        vm.prank(owner);
+        acrossV3SettlerHarness.setProtocolShareOfSenderFeeInPercent(0);
+        bytes memory params =
+            this.generateSettlementParams(address(1), address(2), 500, -200000, -1000, 0, 0, 0, address(0), bytes32(0));
+        (uint256 netSenderFeeAmount, uint256 totalProtocolFeeAmount) =
+            acrossV3SettlerHarness.exposed_calculateFees(1 ether, params);
+        assertEq(netSenderFeeAmount, 0);
+        assertEq(totalProtocolFeeAmount, 0);
+    }
+
+    function test_calculateFees_protocolFeeZero_senderFeeShareZero_senderFeeNonZero() public {
+        vm.prank(owner);
+        acrossV3SettlerHarness.setProtocolFeeBps(0);
+        vm.prank(owner);
+        acrossV3SettlerHarness.setProtocolShareOfSenderFeeInPercent(0);
+        bytes memory params =
+            this.generateSettlementParams(address(1), address(2), 500, -200000, -1000, 0, 0, 15, address(1), bytes32(0));
+        (uint256 netSenderFeeAmount, uint256 totalProtocolFeeAmount) =
+            acrossV3SettlerHarness.exposed_calculateFees(1 ether, params);
+        assertEq(netSenderFeeAmount, 0.0015 ether);
+        assertEq(totalProtocolFeeAmount, 0);
+    }
+
+    function test_calculateFees_protocolFeeZero_senderFeeShareNonZero_senderFeeZero() public {
+        vm.prank(owner);
+        acrossV3SettlerHarness.setProtocolFeeBps(0);
+        vm.prank(owner);
+        acrossV3SettlerHarness.setProtocolShareOfSenderFeeInPercent(20);
+        bytes memory params =
+            this.generateSettlementParams(address(1), address(2), 500, -200000, -1000, 0, 0, 0, address(0), bytes32(0));
+        (uint256 netSenderFeeAmount, uint256 totalProtocolFeeAmount) =
+            acrossV3SettlerHarness.exposed_calculateFees(1 ether, params);
+        assertEq(netSenderFeeAmount, 0);
+        assertEq(totalProtocolFeeAmount, 0);
+    }
+
+    function test_calculateFees_protocolFeeZero_senderFeeShareNonZero_senderFeeNonZero() public {
+        vm.prank(owner);
+        acrossV3SettlerHarness.setProtocolFeeBps(0);
+        vm.prank(owner);
+        acrossV3SettlerHarness.setProtocolShareOfSenderFeeInPercent(20);
+        bytes memory params =
+            this.generateSettlementParams(address(1), address(2), 500, -200000, -1000, 0, 0, 15, address(1), bytes32(0));
+        (uint256 netSenderFeeAmount, uint256 totalProtocolFeeAmount) =
+            acrossV3SettlerHarness.exposed_calculateFees(1 ether, params);
+        assertEq(netSenderFeeAmount, 0.0012 ether);
+        assertEq(totalProtocolFeeAmount, 0.0003 ether);
+    }
+
+    function test_calculateFees_protocolFeeNonZero_senderFeeShareZero_senderFeeZero() public {
+        vm.prank(owner);
+        acrossV3SettlerHarness.setProtocolShareOfSenderFeeInPercent(0);
+        bytes memory params =
+            this.generateSettlementParams(address(1), address(2), 500, -200000, -1000, 0, 0, 0, address(0), bytes32(0));
+        (uint256 netSenderFeeAmount, uint256 totalProtocolFeeAmount) =
+            acrossV3SettlerHarness.exposed_calculateFees(1 ether, params);
+        assertEq(netSenderFeeAmount, 0);
+        assertEq(totalProtocolFeeAmount, 0.001 ether);
+    }
+
+    function test_calculateFees_protocolFeeNonZero_senderFeeShareZero_senderFeeNonZero() public {
+        vm.prank(owner);
+        acrossV3SettlerHarness.setProtocolShareOfSenderFeeInPercent(0);
+        bytes memory params =
+            this.generateSettlementParams(address(1), address(2), 500, -200000, -1000, 0, 0, 15, address(1), bytes32(0));
+        (uint256 netSenderFeeAmount, uint256 totalProtocolFeeAmount) =
+            acrossV3SettlerHarness.exposed_calculateFees(1 ether, params);
+        assertEq(netSenderFeeAmount, 0.0015 ether);
+        assertEq(totalProtocolFeeAmount, 0.001 ether);
+    }
+
+    function test_calculateFees_protocolFeeNonZero_senderFeeShareNonZero_senderFeeZero() public view {
+        bytes memory params =
+            this.generateSettlementParams(address(1), address(2), 500, -200000, -1000, 0, 0, 0, address(0), bytes32(0));
+        (uint256 netSenderFeeAmount, uint256 totalProtocolFeeAmount) =
+            acrossV3SettlerHarness.exposed_calculateFees(1 ether, params);
+        assertEq(netSenderFeeAmount, 0);
+        assertEq(totalProtocolFeeAmount, 0.001 ether);
+    }
+
+    function test_calculateFees_protocolFeeNonZero_senderFeeShareNonZero_senderFeeNonZero() public view {
+        bytes memory params =
+            this.generateSettlementParams(address(1), address(2), 500, -200000, -1000, 0, 0, 15, address(1), bytes32(0));
+        (uint256 netSenderFeeAmount, uint256 totalProtocolFeeAmount) =
+            acrossV3SettlerHarness.exposed_calculateFees(1 ether, params);
+        assertEq(netSenderFeeAmount, 0.001125 ether);
+        assertEq(totalProtocolFeeAmount, 0.001375 ether);
     }
 
     /*
      * Settle() tests
      */
 
-    function test_settleWithdrawsProtocolFeeWhenSenderFeeZero() public {
+    function test_settleTransfersProtocolFeeWhenSenderFeeZero() public {
         // todo
     }
 
-    function test_settleWithdrawsSenderFeeWhenProtocolFeeZero() public {
+    function test_settleTransfersSenderFeeWhenProtocolFeeZero() public {
         // todo
     }
 
-    function test_settleWithdrawsBothFeesWhenBothAreNonZero() public {
+    function test_settleTransfersBothFeesWhenBothAreNonZero() public {
+        // todo
+    }
+
+    function test_settle_MigrationId_NoFeesTransferred() public {
         // todo
     }
 
@@ -221,14 +331,16 @@ contract V3SettlerTest is Test {
 
     function test__settleFailsIfBothAmountsAreZero() public {
         deal(baseToken, address(acrossV3Settler), 1 ether);
-        bytes memory migrationIdAndSettlementParams = this.generateSettlementParams(0, 0, -200000, Range.InRange, true);
+        bytes memory migrationIdAndSettlementParams =
+            this.generateSettlementParams(0, 0, -200000, Range.InRange, true, bytes32(0));
         vm.expectRevert(ISettler.AtLeastOneAmountMustBeGreaterThanZero.selector);
         acrossV3Settler.settle(baseToken, 1 ether, migrationIdAndSettlementParams);
     }
 
     function test__settleFailsIfBridgedTokenIsNotUsedInPosition() public {
         deal(baseToken, address(acrossV3Settler), 1 ether);
-        bytes memory migrationIdAndSettlementParams = this.generateSettlementParams(1 ether, 1 ether, -200000, Range.InRange, true);
+        bytes memory migrationIdAndSettlementParams =
+            this.generateSettlementParams(1 ether, 1 ether, -200000, Range.InRange, true, bytes32(0));
         vm.expectRevert(AcrossSettler.BridgedTokenMustBeUsedInPosition.selector);
         acrossV3Settler.settle(address(0x4), 1 ether, migrationIdAndSettlementParams);
     }
@@ -236,7 +348,7 @@ contract V3SettlerTest is Test {
     * Single token tests
     */
 
-    function test__settle_token0ReceivedAndPositionInRange() public {
+    function test__settle_noMigrationId_token0ReceivedAndPositionInRange() public {
         // deal baseToken to settler
         deal(baseToken, address(acrossV3SettlerHarness), 1.1 ether); // slightly higher due to fees
 
@@ -247,7 +359,7 @@ contract V3SettlerTest is Test {
 
         // generate settlement params
         bytes memory migrationIdAndSettlementParams =
-            this.generateSettlementParams(0.5 ether, 1_500_000_000, currentTick, Range.InRange, true);
+            this.generateSettlementParams(0.5 ether, 1_500_000_000, currentTick, Range.InRange, true, bytes32(0));
 
         // Approve baseToken to swaprouter
         vm.expectEmit(true, true, false, false, baseToken);
@@ -288,7 +400,7 @@ contract V3SettlerTest is Test {
         acrossV3SettlerHarness.exposed_settle(baseToken, 1 ether, migrationIdAndSettlementParams);
     }
 
-    function test__settle_token0ReceivedAndPositionBelowTick() public {
+    function test__settle_noMigrationId_token0ReceivedAndPositionBelowTick() public {
         // deal baseToken to settler
         deal(baseToken, address(acrossV3SettlerHarness), 1.1 ether); // slightly higher due to fees
         // get pool
@@ -298,7 +410,7 @@ contract V3SettlerTest is Test {
 
         // generate settlement params
         bytes memory migrationIdAndSettlementParams =
-            this.generateSettlementParams(0, 3_000_000_000, currentTick, Range.BelowTick, true);
+            this.generateSettlementParams(0, 3_000_000_000, currentTick, Range.BelowTick, true, bytes32(0));
 
         // Approve for basetoken to swaprouter
         vm.expectEmit(true, true, false, false);
@@ -331,7 +443,7 @@ contract V3SettlerTest is Test {
         acrossV3SettlerHarness.exposed_settle(baseToken, 1 ether, migrationIdAndSettlementParams);
     }
 
-    function test__settle_token0ReceivedAndPositionAboveTick() public {
+    function test__settle_noMigrationId_token0ReceivedAndPositionAboveTick() public {
         // deal baseToken to settler
         deal(baseToken, address(acrossV3SettlerHarness), 1.1 ether); // slightly higher due to fees
         // get pool
@@ -341,7 +453,7 @@ contract V3SettlerTest is Test {
 
         // generate settlement params
         bytes memory migrationIdAndSettlementParams =
-            this.generateSettlementParams(1 ether, 0, currentTick, Range.AboveTick, true);
+            this.generateSettlementParams(1 ether, 0, currentTick, Range.AboveTick, true, bytes32(0));
 
         // Swap not needed
 
@@ -364,7 +476,7 @@ contract V3SettlerTest is Test {
         acrossV3SettlerHarness.exposed_settle(baseToken, 1 ether, migrationIdAndSettlementParams);
     }
 
-    function test__settle_token1ReceivedAndPositionInRange() public {
+    function test__settle_noMigrationId_token1ReceivedAndPositionInRange() public {
         // deal baseToken to settler
         deal(baseToken, address(acrossV3SettlerHarness), 1.1 ether); // slightly higher due to fees
         // get pool
@@ -374,7 +486,7 @@ contract V3SettlerTest is Test {
 
         // generate settlement params
         bytes memory migrationIdAndSettlementParams =
-            this.generateSettlementParams(0.5 ether, 0.5 ether, currentTick, Range.InRange, false);
+            this.generateSettlementParams(0.5 ether, 0.5 ether, currentTick, Range.InRange, false, bytes32(0));
 
         // Approve for basetoken to swaprouter
         vm.expectEmit(true, true, false, false);
@@ -413,7 +525,7 @@ contract V3SettlerTest is Test {
         acrossV3SettlerHarness.exposed_settle(baseToken, 1 ether, migrationIdAndSettlementParams);
     }
 
-    function test__settle_token1ReceivedAndPositionBelowTick() public {
+    function test__settle_noMigrationId_token1ReceivedAndPositionBelowTick() public {
         // deal baseToken to settler
         deal(baseToken, address(acrossV3SettlerHarness), 1.1 ether); // slightly higher due to fees
 
@@ -424,7 +536,7 @@ contract V3SettlerTest is Test {
 
         // generate settlement params
         bytes memory migrationIdAndSettlementParams =
-            this.generateSettlementParams(0, 1 ether, currentTick, Range.BelowTick, false);
+            this.generateSettlementParams(0, 1 ether, currentTick, Range.BelowTick, false, bytes32(0));
 
         // Swap not needed
 
@@ -447,7 +559,7 @@ contract V3SettlerTest is Test {
         acrossV3SettlerHarness.exposed_settle(baseToken, 1 ether, migrationIdAndSettlementParams);
     }
 
-    function test__settle_token1ReceivedAndPositionAboveTick() public {
+    function test__settle_noMigrationId_token1ReceivedAndPositionAboveTick() public {
         // deal baseToken to settler
         deal(baseToken, address(acrossV3SettlerHarness), 1.1 ether); // slightly higher due to fees
         // get pool
@@ -457,7 +569,7 @@ contract V3SettlerTest is Test {
 
         // generate settlement params
         bytes memory migrationIdAndSettlementParams =
-            this.generateSettlementParams(500_000_000_000_000_000, 0, currentTick, Range.AboveTick, false);
+            this.generateSettlementParams(500_000_000_000_000_000, 0, currentTick, Range.AboveTick, false, bytes32(0));
 
         // Approve for basetoken to swaprouter
         vm.expectEmit(true, true, false, false, baseToken);
@@ -489,20 +601,24 @@ contract V3SettlerTest is Test {
 
         acrossV3SettlerHarness.exposed_settle(baseToken, 1 ether, migrationIdAndSettlementParams);
     }
-    
+
     /*
     * Dual token tests
     */
 
-    function test__settle_dualTokenPath() public {
-      // todo remove when real dual token path is implemented
+    function test__settle_migrationId_token0ReceivedFirst() public {}
 
-      // generate settlement params
-      bytes memory migrationIdAndSettlementParams =
-          this.generateSettlementParams(0.5 ether, 0.5 ether, 0, Range.InRange, false);
-      (, IV3Settler.V3SettlementParams memory settlementParams) = abi.decode(migrationIdAndSettlementParams, (bytes32, IV3Settler.V3SettlementParams));
-      migrationIdAndSettlementParams = abi.encode(bytes32("migrationId"), settlementParams);
+    function test__settle_migrationId_token1ReceivedFirst() public {}
 
-      acrossV3SettlerHarness.exposed_settle(baseToken, 1 ether, migrationIdAndSettlementParams);
-    }
+    function test_settle_migrationId_mintFailure_token0ReceivedFirst_token1ReceivedSecond() public {}
+
+    function test_settle_migrationId_mintFailure_token1ReceivedFirst_token0ReceivedSecond() public {}
+
+    function test_settle_migrationId_mintSuccess_token0ReceivedFirst_token1ReceivedSecond_bothFeesNonZero() public {}
+
+    function test_settle_migrationId_mintSuccess_token1ReceivedFirst_token0ReceivedSecond_bothFeesZero() public {}
+
+    function test_settle_migrationId_mintSuccess_token0ReceivedFirst_token1ReceivedSecond_OnlyProtocolFee() public {}
+
+    function test_settle_migrationId_mintSuccess_token1ReceivedFirst_token0ReceivedSecond_OnlySenderFee() public {}
 }

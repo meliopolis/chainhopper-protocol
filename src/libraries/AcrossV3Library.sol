@@ -41,34 +41,34 @@ library AcrossV3Library {
         );
     }
 
-    function migrate(
-        IAcrossV3SpokePool self,
-        address sender,
-        uint256 destinationChainId,
-        address recipient,
-        address tokenIn,
-        uint256 amountIn,
-        address tokenOut,
-        uint256 minAmountOut,
-        uint32 deadlineOffset,
-        address exclusiveRelayer,
-        uint32 exclusivityDeadline,
-        bytes memory message
-    ) internal {
-        IERC20(tokenIn).safeIncreaseAllowance(address(self), amountIn);
+    // function migrate(
+    //     IAcrossV3SpokePool self,
+    //     address sender,
+    //     uint256 destinationChainId,
+    //     address recipient,
+    //     address tokenIn,
+    //     uint256 amountIn,
+    //     address tokenOut,
+    //     uint256 minAmountOut,
+    //     uint32 deadlineOffset,
+    //     address exclusiveRelayer,
+    //     uint32 exclusivityDeadline,
+    //     bytes memory message
+    // ) internal {
+    //     IERC20(tokenIn).safeIncreaseAllowance(address(self), amountIn);
 
-        self.depositV3Now(
-            sender,
-            recipient,
-            tokenIn,
-            tokenOut,
-            amountIn,
-            minAmountOut,
-            destinationChainId,
-            exclusiveRelayer,
-            deadlineOffset,
-            exclusivityDeadline,
-            message
-        );
-    }
+    //     self.depositV3Now(
+    //         sender,
+    //         recipient,
+    //         tokenIn,
+    //         tokenOut,
+    //         amountIn,
+    //         minAmountOut,
+    //         destinationChainId,
+    //         exclusiveRelayer,
+    //         deadlineOffset,
+    //         exclusivityDeadline,
+    //         message
+    //     );
+    // }
 }

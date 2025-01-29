@@ -34,6 +34,10 @@ contract AcrossV3SettlerHarness is AcrossV3Settler {
         return _getRecipient(message);
     }
 
+    function exposed_calculateFees(uint256 amount, bytes memory message) public view returns (uint256, uint256) {
+        return _calculateFees(amount, message);
+    }
+
     // add this to be excluded from coverage report
     function test() public {}
 }
