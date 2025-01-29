@@ -21,10 +21,14 @@ library UniswapV3Library {
         uint256 amount1Desired,
         address recipient
     ) internal returns (uint256 positionId, uint128 liquidity, uint256 amount0, uint256 amount1) {
-        IERC20(token0).safeIncreaseAllowance(address(self), amount0Desired);
-        IERC20(token1).safeIncreaseAllowance(address(self), amount1Desired);
+        if (amount0Desired > 0) {
+            IERC20(token0).safeIncreaseAllowance(address(self), amount0Desired);
+        }
+        if (amount1Desired > 0) {
+            IERC20(token1).safeIncreaseAllowance(address(self), amount1Desired);
+        }
 
-        try self.mint(
+        (positionId, liquidity, amount0, amount1) = self.mint(
             IUniswapV3PositionManager.MintParams({
                 token0: token0,
                 token1: token1,
@@ -38,15 +42,7 @@ library UniswapV3Library {
                 recipient: recipient,
                 deadline: block.timestamp
             })
-        ) returns (uint256 _positionId, uint128 _liquidity, uint256 _amount0, uint256 _amount1) {
-            positionId = _positionId;
-            liquidity = _liquidity;
-            amount0 = _amount0;
-            amount1 = _amount1;
-        } catch {
-            // do nothing
-        }
-
+        );
         IERC20(token0).safeDecreaseAllowance(address(self), amount0Desired - amount0);
         IERC20(token1).safeDecreaseAllowance(address(self), amount1Desired - amount1);
     }

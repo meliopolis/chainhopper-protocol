@@ -15,4 +15,7 @@ contract AcrossV3MigratorHarness is AcrossV3Migrator {
     function onERC721Received(address, address, uint256, bytes memory) external virtual override returns (bytes4) {
         return this.onERC721Received.selector;
     }
+
+    // add this to be excluded from coverage report
+    function test() public {}
 }

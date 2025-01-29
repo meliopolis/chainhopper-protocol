@@ -30,8 +30,9 @@ abstract contract Settler is ISettler, Ownable2Step {
         protocolShareOfSenderFeeInPercent = _protocolShareOfSenderFeeInPercent;
     }
 
-    function settle(address token, uint256 amount, bytes memory message) external override returns (uint256) {
+    function settle(address token, uint256 amount, bytes memory message) external returns (uint256) {
         (uint24 senderFeeBps, address senderFeeRecipient) = _getSenderFees(message);
+        // todo check if senderFeeBps and senderFeeRecipient are valid
         uint256 senderFeeAmount = (amount * senderFeeBps) / 10000;
         uint256 protocolFeeAmount = (amount * protocolFeeBps) / 10000;
         uint256 amountToMigrate = amount - senderFeeAmount - protocolFeeAmount;
@@ -50,6 +51,6 @@ abstract contract Settler is ISettler, Ownable2Step {
     }
 
     function _getSenderFees(bytes memory message) internal view virtual returns (uint24, address);
-
+    function _getRecipient(bytes memory message) internal view virtual returns (address);
     function _settle(address token, uint256 amount, bytes memory message) internal virtual returns (uint256);
 }

@@ -14,4 +14,7 @@ contract CustomERC20Mock is ERC20 {
     function mint(address account, uint256 amount) public {
         _mint(account, amount);
     }
+
+    // add this to be excluded from coverage report
+    function test() public {}
 }

@@ -3,7 +3,6 @@ pragma solidity ^0.8.13;
 
 import {Test, console} from "lib/forge-std/src/Test.sol";
 import {SingleTokenV3V3Migrator} from "../src/SingleTokenV3V3Migrator.sol";
-import {MockSpokePool} from "./mocks/MockSpokePool.sol";
 import {CustomERC20Mock} from "./mocks/CustomERC20Mock.sol";
 import {BasicNft} from "./mocks/BasicNFT.sol";
 import {ERC721} from "lib/openzeppelin-contracts/contracts/token/ERC721/ERC721.sol";

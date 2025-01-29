@@ -56,4 +56,7 @@ contract UniswapV3Helpers is Test {
         });
         INonfungiblePositionManager(nftPositionManager).decreaseLiquidity(decreaseLiquidityParams);
     }
+
+    // add this to be excluded from coverage report
+    function test() public {}
 }

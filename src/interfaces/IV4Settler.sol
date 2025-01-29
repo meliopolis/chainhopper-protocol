@@ -6,7 +6,7 @@ import {ISettler} from "./ISettler.sol";
 
 interface IV4Settler is ISettler {
     struct V4SettlementParams {
-        bytes32 migrationId;
+        address recipient; // always goes first
         address token0;
         address token1;
         uint24 feeTier;
@@ -15,7 +15,6 @@ interface IV4Settler is ISettler {
         int24 tickUpper;
         uint256 amount0Min;
         uint256 amount1Min;
-        address recipient;
         uint24 senderFeeBps;
         address senderFeeRecipient;
     }

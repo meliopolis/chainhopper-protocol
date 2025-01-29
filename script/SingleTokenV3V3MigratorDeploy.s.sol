@@ -43,4 +43,7 @@ contract SingleTokenV3V3MigratorDeployScript is Script {
         console.log("SingleTokenV3V3Migrator deployed at:", address(migrator));
         vm.stopBroadcast();
     }
+
+    // add this to be excluded from coverage report
+    function test() public {}
 }

@@ -2,6 +2,7 @@
 pragma solidity ^0.8.13;
 
 import {Test, console} from "lib/forge-std/src/Test.sol";
+import {Ownable} from "lib/openzeppelin-contracts/contracts/access/Ownable.sol";
 import {IERC721} from "lib/openzeppelin-contracts/contracts/token/ERC721/IERC721.sol";
 import {IERC721Errors} from "lib/openzeppelin-contracts/contracts/interfaces/draft-IERC6093.sol";
 import {INonfungiblePositionManager} from "../src/interfaces/external/INonfungiblePositionManager.sol";
@@ -18,7 +19,6 @@ import {IV3Settler} from "../src/interfaces/IV3Settler.sol";
 import {IAcrossMigrator} from "../src/interfaces/IAcrossMigrator.sol";
 import {IMigrator} from "../src/interfaces/IMigrator.sol";
 import {BasicNft} from "./mocks/BasicNft.sol";
-
 contract AcrossV3MigratorTest is Test, UniswapV3Helpers {
     AcrossV3MigratorHarness public migratorHarness;
     AcrossV3Migrator public migrator;
@@ -50,7 +50,7 @@ contract AcrossV3MigratorTest is Test, UniswapV3Helpers {
         returns (IAcrossMigrator.AcrossMigrationParams memory)
     {
         IV3Settler.V3SettlementParams memory settlementParams = IV3Settler.V3SettlementParams({
-            migrationId: bytes32(0),
+            recipient: user,
             token0: address(baseToken),
             token1: address(usdc),
             feeTier: 500,
@@ -58,7 +58,6 @@ contract AcrossV3MigratorTest is Test, UniswapV3Helpers {
             tickUpper: -100000,
             amount0Min: 0,
             amount1Min: 0,
-            recipient: destinationChainSettler,
             senderFeeBps: 0,
             senderFeeRecipient: address(0)
         });
@@ -103,6 +102,38 @@ contract AcrossV3MigratorTest is Test, UniswapV3Helpers {
         }
         return IAcrossMigrator.AcrossMigrationParams({baseParams: baseParams, acrossRoutes: acrossRoutes});
     }
+
+    /*
+     * Owner functions
+     */
+
+    function test_addChainSettlerFailsIfNotOwner() public {
+        vm.prank(user);
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, user));
+        migrator.addChainSettler(42161, address(0x456));
+    }
+
+    function test_addChainSettler() public {
+        vm.prank(owner);
+        migrator.addChainSettler(42161, address(0x456));
+        assertEq(migrator.isChainSettler(42161, address(0x456)), true);
+    }
+
+    function test_removeChainSettlerFailsIfNotOwner() public {
+        vm.prank(user);
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, user));
+        migrator.removeChainSettler(42161, address(0x456));
+    }
+
+    function test_removeChainSettler() public {
+        vm.prank(owner);
+        migrator.removeChainSettler(42161, address(0x456));
+        assertEq(migrator.isChainSettler(42161, address(0x456)), false);
+    }
+
+    /*
+    * Error cases
+    */
 
     function test_msgSenderIsNotNFTPositionManager() public {
         BasicNft nft = new BasicNft();

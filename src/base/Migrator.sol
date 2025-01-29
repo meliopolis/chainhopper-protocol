@@ -26,14 +26,18 @@ abstract contract Migrator is IMigrator, IERC721Receiver, Ownable2Step {
         chainSettlers[chainID][settler] = false;
     }
 
+    function isChainSettler(uint256 chainID, address settler) external view returns (bool) {
+        return chainSettlers[chainID][settler];
+    }
+
     function onERC721Received(address, address from, uint256 tokenId, bytes memory data)
         external
         virtual
         override
         returns (bytes4)
     {
-        require(msg.sender == address(positionManager), NotPositionManager());
-
+        if (msg.sender != address(positionManager)) revert NotPositionManager();
+        
         _migrate(from, tokenId, data);
 
         return this.onERC721Received.selector;

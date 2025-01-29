@@ -22,7 +22,7 @@ abstract contract AcrossV3Migrator is IERC721Receiver, Ownable2Step {
     }
 
     function onERC721Received(address, address from, uint256 tokenId, bytes memory data) external returns (bytes4) {
-        require(msg.sender == positionManager, NotPositionManager());
+        if (msg.sender != positionManager) revert NotPositionManager();
 
         _migrate(from, tokenId, data);
 

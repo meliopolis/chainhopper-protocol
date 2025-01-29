@@ -30,10 +30,8 @@ contract AcrossV3Migrator is IAcrossMigrator, AcrossMigrator {
 
     function _migrate(address from, uint256 tokenId, bytes memory data) internal override {
         AcrossMigrationParams memory migrationParams = abi.decode(data, (AcrossMigrationParams));
-        require(
-            chainSettlers[migrationParams.baseParams.destinationChainId][migrationParams.baseParams.recipient] == true,
-            DestinationChainSettlerNotFound()
-        );
+        if (!chainSettlers[migrationParams.baseParams.destinationChainId][migrationParams.baseParams.recipient])
+            revert DestinationChainSettlerNotFound();
 
         // determine number of routes to migrate
         uint256 numRoutes = migrationParams.acrossRoutes.length;
@@ -54,7 +52,7 @@ contract AcrossV3Migrator is IAcrossMigrator, AcrossMigrator {
             AcrossRoute memory route = migrationParams.acrossRoutes[0];
 
             // confirm that at least one of the tokens is the route input token
-            require(token0 == route.inputToken || token1 == route.inputToken, RouteInputTokenNotFound(0));
+            if (token0 != route.inputToken && token1 != route.inputToken) revert RouteInputTokenNotFound(0);
 
             // determine which token to swap
             if (token0 == route.inputToken && amount1 > 0) {
@@ -101,11 +99,12 @@ contract AcrossV3Migrator is IAcrossMigrator, AcrossMigrator {
             (address token0, address token1,, uint256 amount0, uint256 amount1) =
                 positionManager.liquidatePosition(tokenId, address(this));
 
-            require(amount0 > 0 && amount1 > 0, UnusedExtraRoute());
+
+            if (amount0 == 0 || amount1 == 0) revert UnusedExtraRoute();
 
             // confirm that both tokens are the route input tokens
-            require(token0 == route0.inputToken, RouteInputTokenNotFound(0));
-            require(token1 == route1.inputToken, RouteInputTokenNotFound(1));
+            if (token0 != route0.inputToken) revert RouteInputTokenNotFound(0);
+            if (token1 != route1.inputToken) revert RouteInputTokenNotFound(1);
 
             // prepare settlement message
             bytes32 migrationId = keccak256(
