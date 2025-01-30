@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.27;
+pragma solidity ^0.8.24;
 
 import {AcrossMigrator} from "./base/AcrossMigrator.sol";
 import {IAcrossV3SpokePool} from "./interfaces/external/IAcrossV3.sol";
@@ -34,7 +34,7 @@ contract AcrossV3Migrator is IAcrossMigrator, AcrossMigrator {
             revert DestinationChainSettlerNotFound();
         }
 
-        // determine number of routes to migrate
+        // determine number of routes sent for migration
         uint256 numRoutes = migrationParams.acrossRoutes.length;
 
         if (numRoutes == 0) {
@@ -75,21 +75,16 @@ contract AcrossV3Migrator is IAcrossMigrator, AcrossMigrator {
                 from,
                 migrationParams.baseParams.destinationChainId,
                 migrationParams.baseParams.recipient,
-                route.inputToken,
+                route,
                 amountInForBridge,
-                route.outputToken,
                 amountInForBridge - route.maxFees,
-                route.quoteTimestamp,
-                uint32(block.timestamp) + route.fillDeadlineOffset,
-                route.exclusiveRelayer,
-                route.exclusivityDeadline,
                 abi.encode(bytes32(0), migrationParams.baseParams.settlementParams)
             );
             emit PositionSent(
                 tokenId,
                 migrationParams.baseParams.destinationChainId,
                 migrationParams.baseParams.recipient,
-                migrationParams.baseParams.settlementParams
+                abi.encode(bytes32(0),migrationParams.baseParams.settlementParams)
             );
         } else if (numRoutes == 2) {
             // dualToken path
@@ -108,41 +103,31 @@ contract AcrossV3Migrator is IAcrossMigrator, AcrossMigrator {
 
             // prepare settlement message
             bytes32 migrationId = _generateMigrationId(tokenId, migrationParams.baseParams);
-
+            bytes memory message = abi.encode(migrationId, migrationParams.baseParams.settlementParams);
             // bridge both tokens
             spokePool.bridge(
                 from,
                 migrationParams.baseParams.destinationChainId,
                 migrationParams.baseParams.recipient,
-                route0.inputToken,
+                route0,
                 amount0,
-                route0.outputToken,
                 amount0 - route0.maxFees,
-                route0.quoteTimestamp,
-                uint32(block.timestamp) + route0.fillDeadlineOffset,
-                route0.exclusiveRelayer,
-                route0.exclusivityDeadline,
-                abi.encode(migrationId, migrationParams.baseParams.settlementParams)
+                message
             );
             spokePool.bridge(
                 from,
                 migrationParams.baseParams.destinationChainId,
                 migrationParams.baseParams.recipient,
-                route1.inputToken,
+                route1,
                 amount1,
-                route1.outputToken,
                 amount1 - route1.maxFees,
-                route1.quoteTimestamp,
-                uint32(block.timestamp) + route1.fillDeadlineOffset,
-                route1.exclusiveRelayer,
-                route1.exclusivityDeadline,
-                abi.encode(migrationId, migrationParams.baseParams.settlementParams)
+                message
             );
             emit PositionSent(
                 tokenId,
                 migrationParams.baseParams.destinationChainId,
                 migrationParams.baseParams.recipient,
-                abi.encode(migrationId, migrationParams.baseParams.settlementParams)
+                message
             );
         } else {
             revert TooManyAcrossRoutes();
@@ -159,6 +144,7 @@ contract AcrossV3Migrator is IAcrossMigrator, AcrossMigrator {
                 baseParams.destinationChainId,
                 baseParams.recipient,
                 ++_migrationCounter
+                // should settle params be included here?
             )
         );
     }

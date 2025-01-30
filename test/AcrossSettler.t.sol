@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.27;
+pragma solidity ^0.8.24;
 
-import {Test} from "forge-std/Test.sol";
+import {Test} from "lib/forge-std/src/Test.sol";
 import {AcrossSettlerMock} from "./mocks/AcrossSettlerMock.sol";
 
 contract AcrossSettlerTest is Test {

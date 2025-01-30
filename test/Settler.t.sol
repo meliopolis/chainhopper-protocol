@@ -21,16 +21,12 @@ contract SettlerTest is Test {
         settler = new SettlerMock(protocolFeeBps, protocolFeeRecipient, protocolShareOfSenderFeeInPercent);
     }
 
-     function generateSettlementParams(
-        uint24 senderFeeBps,
-        address senderFeeRecipient,
-        bytes32 migrationId
-    ) public pure returns (bytes memory) {
-        return abi.encode(
-            migrationId,
-            senderFeeBps,
-            senderFeeRecipient
-        );
+    function generateSettlementParams(uint24 senderFeeBps, address senderFeeRecipient, bytes32 migrationId)
+        public
+        pure
+        returns (bytes memory)
+    {
+        return abi.encode(migrationId, senderFeeBps, senderFeeRecipient);
     }
 
     /*
@@ -84,10 +80,8 @@ contract SettlerTest is Test {
         settler.setProtocolFeeBps(0);
         vm.prank(owner);
         settler.setProtocolShareOfSenderFeeInPercent(0);
-        bytes memory params =
-            this.generateSettlementParams(0, address(0), bytes32(0));
-        (uint256 netSenderFeeAmount, uint256 totalProtocolFeeAmount) =
-            settler.exposed_calculateFees(1 ether, params);
+        bytes memory params = this.generateSettlementParams(0, address(0), bytes32(0));
+        (uint256 netSenderFeeAmount, uint256 totalProtocolFeeAmount) = settler.exposed_calculateFees(1 ether, params);
         assertEq(netSenderFeeAmount, 0);
         assertEq(totalProtocolFeeAmount, 0);
     }
@@ -97,10 +91,8 @@ contract SettlerTest is Test {
         settler.setProtocolFeeBps(0);
         vm.prank(owner);
         settler.setProtocolShareOfSenderFeeInPercent(0);
-        bytes memory params =
-            this.generateSettlementParams(15, address(1), bytes32(0));
-        (uint256 netSenderFeeAmount, uint256 totalProtocolFeeAmount) =
-            settler.exposed_calculateFees(1 ether, params);
+        bytes memory params = this.generateSettlementParams(15, address(1), bytes32(0));
+        (uint256 netSenderFeeAmount, uint256 totalProtocolFeeAmount) = settler.exposed_calculateFees(1 ether, params);
         assertEq(netSenderFeeAmount, 0.0015 ether);
         assertEq(totalProtocolFeeAmount, 0);
     }
@@ -110,10 +102,8 @@ contract SettlerTest is Test {
         settler.setProtocolFeeBps(0);
         vm.prank(owner);
         settler.setProtocolShareOfSenderFeeInPercent(20);
-        bytes memory params =
-            this.generateSettlementParams(0, address(0), bytes32(0));
-        (uint256 netSenderFeeAmount, uint256 totalProtocolFeeAmount) =
-            settler.exposed_calculateFees(1 ether, params);
+        bytes memory params = this.generateSettlementParams(0, address(0), bytes32(0));
+        (uint256 netSenderFeeAmount, uint256 totalProtocolFeeAmount) = settler.exposed_calculateFees(1 ether, params);
         assertEq(netSenderFeeAmount, 0);
         assertEq(totalProtocolFeeAmount, 0);
     }
@@ -123,10 +113,8 @@ contract SettlerTest is Test {
         settler.setProtocolFeeBps(0);
         vm.prank(owner);
         settler.setProtocolShareOfSenderFeeInPercent(20);
-        bytes memory params =
-            this.generateSettlementParams(15, address(1), bytes32(0));
-        (uint256 netSenderFeeAmount, uint256 totalProtocolFeeAmount) =
-            settler.exposed_calculateFees(1 ether, params);
+        bytes memory params = this.generateSettlementParams(15, address(1), bytes32(0));
+        (uint256 netSenderFeeAmount, uint256 totalProtocolFeeAmount) = settler.exposed_calculateFees(1 ether, params);
         assertEq(netSenderFeeAmount, 0.0012 ether);
         assertEq(totalProtocolFeeAmount, 0.0003 ether);
     }
@@ -134,10 +122,8 @@ contract SettlerTest is Test {
     function test_calculateFees_protocolFeeNonZero_senderFeeShareZero_senderFeeZero() public {
         vm.prank(owner);
         settler.setProtocolShareOfSenderFeeInPercent(0);
-        bytes memory params =
-            this.generateSettlementParams(0, address(0), bytes32(0));
-        (uint256 netSenderFeeAmount, uint256 totalProtocolFeeAmount) =
-            settler.exposed_calculateFees(1 ether, params);
+        bytes memory params = this.generateSettlementParams(0, address(0), bytes32(0));
+        (uint256 netSenderFeeAmount, uint256 totalProtocolFeeAmount) = settler.exposed_calculateFees(1 ether, params);
         assertEq(netSenderFeeAmount, 0);
         assertEq(totalProtocolFeeAmount, 0.001 ether);
     }
@@ -145,44 +131,37 @@ contract SettlerTest is Test {
     function test_calculateFees_protocolFeeNonZero_senderFeeShareZero_senderFeeNonZero() public {
         vm.prank(owner);
         settler.setProtocolShareOfSenderFeeInPercent(0);
-        bytes memory params =
-            this.generateSettlementParams(15, address(1), bytes32(0));
-        (uint256 netSenderFeeAmount, uint256 totalProtocolFeeAmount) =
-            settler.exposed_calculateFees(1 ether, params);
+        bytes memory params = this.generateSettlementParams(15, address(1), bytes32(0));
+        (uint256 netSenderFeeAmount, uint256 totalProtocolFeeAmount) = settler.exposed_calculateFees(1 ether, params);
         assertEq(netSenderFeeAmount, 0.0015 ether);
         assertEq(totalProtocolFeeAmount, 0.001 ether);
     }
 
     function test_calculateFees_protocolFeeNonZero_senderFeeShareNonZero_senderFeeZero() public view {
-        bytes memory params =
-            this.generateSettlementParams(0, address(0), bytes32(0));
-        (uint256 netSenderFeeAmount, uint256 totalProtocolFeeAmount) =
-            settler.exposed_calculateFees(1 ether, params);
+        bytes memory params = this.generateSettlementParams(0, address(0), bytes32(0));
+        (uint256 netSenderFeeAmount, uint256 totalProtocolFeeAmount) = settler.exposed_calculateFees(1 ether, params);
         assertEq(netSenderFeeAmount, 0);
         assertEq(totalProtocolFeeAmount, 0.001 ether);
     }
 
     function test_calculateFees_protocolFeeNonZero_senderFeeShareNonZero_senderFeeNonZero() public view {
-        bytes memory params =
-            this.generateSettlementParams(15, address(1), bytes32(0));
-        (uint256 netSenderFeeAmount, uint256 totalProtocolFeeAmount) =
-            settler.exposed_calculateFees(1 ether, params);
+        bytes memory params = this.generateSettlementParams(15, address(1), bytes32(0));
+        (uint256 netSenderFeeAmount, uint256 totalProtocolFeeAmount) = settler.exposed_calculateFees(1 ether, params);
         assertEq(netSenderFeeAmount, 0.0012 ether);
         assertEq(totalProtocolFeeAmount, 0.0013 ether);
     }
 
-        /*
+    /*
      * Settle() tests
      */
 
     function test_settleTransfersProtocolFeeWhenSenderFeeZero() public {
         deal(baseToken, address(settler), 1 ether);
-        bytes memory params =
-            this.generateSettlementParams(0, address(0), bytes32(0));
+        bytes memory params = this.generateSettlementParams(0, address(0), bytes32(0));
         vm.expectEmit(true, false, false, false, baseToken);
         emit IERC20.Transfer(address(settler), protocolFeeRecipient, 0.001 ether);
         uint256 tokenId = settler.settle(baseToken, 1 ether, params);
-        assertEq(tokenId, .999 ether);
+        assertEq(tokenId, 0.999 ether);
     }
 
     function test_settleTransfersSenderFeeWhenProtocolFeeZero() public {
@@ -191,29 +170,26 @@ contract SettlerTest is Test {
         vm.prank(owner);
         settler.setProtocolShareOfSenderFeeInPercent(0);
         deal(baseToken, address(settler), 1 ether);
-        bytes memory params =
-            this.generateSettlementParams(15, address(1), bytes32(0));
+        bytes memory params = this.generateSettlementParams(15, address(1), bytes32(0));
         vm.expectEmit(true, false, false, false, baseToken);
         emit IERC20.Transfer(address(settler), address(1), 0.0015 ether);
         uint256 tokenId = settler.settle(baseToken, 1 ether, params);
-        assertEq(tokenId, .9985 ether);
+        assertEq(tokenId, 0.9985 ether);
     }
 
     function test_settleTransfersBothFeesWhenBothAreNonZero() public {
         deal(baseToken, address(settler), 1 ether);
-        bytes memory params =
-            this.generateSettlementParams(15, address(1), bytes32(0));
+        bytes memory params = this.generateSettlementParams(15, address(1), bytes32(0));
         vm.expectEmit(true, false, false, false, baseToken);
         emit IERC20.Transfer(address(settler), protocolFeeRecipient, 0.001 ether);
-        vm.expectEmit(true, false, false, false, baseToken);        
+        vm.expectEmit(true, false, false, false, baseToken);
         emit IERC20.Transfer(address(settler), address(1), 0.0015 ether);
         uint256 tokenId = settler.settle(baseToken, 1 ether, params);
-        assertEq(tokenId, .9975 ether);
+        assertEq(tokenId, 0.9975 ether);
     }
 
     function test_settle_MigrationId_NoFeesTransferred() public {
-        bytes memory params =
-            this.generateSettlementParams(15, address(1), bytes32("1111"));
+        bytes memory params = this.generateSettlementParams(15, address(1), bytes32("1111"));
         uint256 tokenId = settler.settle(baseToken, 1 ether, params);
         assertEq(tokenId, 1 ether);
     }

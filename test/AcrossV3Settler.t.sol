@@ -148,7 +148,29 @@ contract V3SettlerTest is Test {
     }
 
     function test_settleOuter_triggersCatchAndRefundsBothTokens_withMigrationId() public {
-        // todo
+        uint256 userBalanceBefore = IERC20(baseToken).balanceOf(user);
+        uint256 userBalanceBeforeUSDC = IERC20(usdc).balanceOf(user);
+        deal(baseToken, address(acrossV3Settler), 1 ether);
+        deal(usdc, address(acrossV3Settler), 1_500_000_000);
+        // invalid settlement params for above tick
+        bytes memory migrationIdAndSettlementParams =
+            this.generateSettlementParams(0, 1_000_000_000, -200000, Range.AboveTick, true, bytes32("111"));
+        vm.prank(spokePool);
+        acrossV3Settler.settleOuter(baseToken, 1 ether, migrationIdAndSettlementParams);
+        (address token, uint256 amount, IV3Settler.V3SettlementParams memory settlementParams) = acrossV3Settler.partialSettlements(bytes32("111")); 
+        assertEq(token, baseToken);
+        assertEq(amount, 1 ether);
+        assertEq(settlementParams.recipient, user);
+        bytes memory migrationIdAndSettlementParamsChanged =
+            this.generateSettlementParams(0, 1_000_000, -200000, Range.AboveTick, true, bytes32("111"));
+        vm.prank(spokePool);
+        vm.expectEmit(true, true, false, false, address(baseToken));
+        emit IERC20.Transfer(address(acrossV3Settler), user, 1 ether);
+        emit IERC20.Transfer(address(acrossV3Settler), user, 1 ether);
+        acrossV3Settler.settleOuter(usdc, 1_500_000_000, migrationIdAndSettlementParamsChanged);
+        assertEq(IERC20(baseToken).balanceOf(user), userBalanceBefore + 1 ether);
+        assertEq(IERC20(usdc).balanceOf(user), userBalanceBeforeUSDC + 1_500_000_000);
+
     }
 
     // function test_handleV3AcrossMessageWorks() public {
@@ -180,18 +202,30 @@ contract V3SettlerTest is Test {
             this.generateSettlementParams(0.5 ether, 1_500_000_000, 0, Range.InRange, true, migrationId);
         acrossV3SettlerHarness.exposed_settle(baseToken, 0.5 ether, migrationIdAndSettlementParams);
         // verify partial settlement was added
-        (address token, uint256 amount, address recipient) = acrossV3SettlerHarness.partialSettlements(migrationId);
+        (address token, uint256 amount, IV3Settler.V3SettlementParams memory settlementParams) = acrossV3SettlerHarness.partialSettlements(migrationId);
         assertEq(token, baseToken);
         assertEq(amount, 0.5 ether);
-        assertEq(recipient, user);
+        assertEq(settlementParams.recipient, user);
 
         // refund it
         acrossV3SettlerHarness.exposed_refund(migrationId);
         // check that it's removed
-        (address token1, uint256 amount1, address recipient1) = acrossV3SettlerHarness.partialSettlements(migrationId);
+        (address token1, uint256 amount1, IV3Settler.V3SettlementParams memory settlementParams1) = acrossV3SettlerHarness.partialSettlements(migrationId);
         assertEq(token1, address(0));
         assertEq(amount1, 0);
-        assertEq(recipient1, address(0));
+        assertEq(settlementParams1.recipient, address(0));
+    }
+
+    function test_compareSettlementParams_returnsTrueIfSame() view public {
+        (,IV3Settler.V3SettlementParams memory a) = abi.decode(this.generateSettlementParams(0.5 ether, 1_500_000_000, 0, Range.InRange, true, bytes32(0)), (bytes32, IV3Settler.V3SettlementParams));
+        (,IV3Settler.V3SettlementParams memory b) = abi.decode(this.generateSettlementParams(0.5 ether, 1_500_000_000, 0, Range.InRange, true, bytes32(0)), (bytes32, IV3Settler.V3SettlementParams));
+        assertEq(acrossV3Settler.compareSettlementParams(a, b), true);
+    }
+
+    function test_compareSettlementParams_returnsFalseIfDifferent() view public {
+        (,IV3Settler.V3SettlementParams memory a) = abi.decode(this.generateSettlementParams(0.5 ether, 1_400_000_000, 0, Range.InRange, true, bytes32(0)), (bytes32, IV3Settler.V3SettlementParams));
+        (,IV3Settler.V3SettlementParams memory b) = abi.decode(this.generateSettlementParams(0.5 ether, 1_500_000_000, 0, Range.InRange, true, bytes32(0)), (bytes32, IV3Settler.V3SettlementParams));
+        assertEq(acrossV3Settler.compareSettlementParams(a, b), false);
     }
 
     /*
@@ -475,19 +509,27 @@ contract V3SettlerTest is Test {
     * Dual token tests
     */
 
-    function test__settle_migrationId_token0ReceivedFirst() public {}
+    function test__settle_migrationId_token0Received() public {}
 
-    function test__settle_migrationId_token1ReceivedFirst() public {}
+    function test__settle_migrationId_token1Received() public {}
 
-    function test_settle_migrationId_mintFailure_token0ReceivedFirst_token1ReceivedSecond() public {}
+    function test__settle_migrationId_token0Received_token1Received_BridgedTokenNotUsedInPosition() public {}
 
-    function test_settle_migrationId_mintFailure_token1ReceivedFirst_token0ReceivedSecond() public {}
+    function test__settle_migrationId_token1Received_token0Received_BridgedTokenNotUsedInPosition() public {}
 
-    function test_settle_migrationId_mintSuccess_token0ReceivedFirst_token1ReceivedSecond_bothFeesNonZero() public {}
+    function test__settle_migrationId_token0Received_token1Received_SettlementParamsMismatch() public {}
 
-    function test_settle_migrationId_mintSuccess_token1ReceivedFirst_token0ReceivedSecond_bothFeesZero() public {}
+    function test__settle_migrationId_token1Received_token0Received_SettlementParamsMismatch() public {}
 
-    function test_settle_migrationId_mintSuccess_token0ReceivedFirst_token1ReceivedSecond_OnlyProtocolFee() public {}
+    function test_settle_migrationId_mintFailure_token0Received_token1Received() public {}
 
-    function test_settle_migrationId_mintSuccess_token1ReceivedFirst_token0ReceivedSecond_OnlySenderFee() public {}
+    function test_settle_migrationId_mintFailure_token1Received_token0Received() public {}
+
+    function test_settle_migrationId_mintSuccess_token0Received_token1Received_bothFeesNonZero() public {}
+
+    function test_settle_migrationId_mintSuccess_token0Received_token1Received_bothFeesZero() public {}
+
+    function test_settle_migrationId_mintSuccess_token0Received_token1Received_OnlyProtocolFee() public {}
+
+    function test_settle_migrationId_mintSuccess_token1Received_token0Received_OnlySenderFee() public {}
 }

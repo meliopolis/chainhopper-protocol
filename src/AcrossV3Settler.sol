@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.28;
+pragma solidity ^0.8.24;
 
 import {IV3Settler} from "./interfaces/IV3Settler.sol";
 import {AcrossSettler} from "./base/AcrossSettler.sol";
@@ -18,7 +18,7 @@ contract AcrossV3Settler is IV3Settler, AcrossSettler {
     struct PartialSettlement {
         address token;
         uint256 amount;
-        address recipient;
+        V3SettlementParams settlementParams;
     }
 
     ISwapRouter public immutable swapRouter;
@@ -36,7 +36,6 @@ contract AcrossV3Settler is IV3Settler, AcrossSettler {
         swapRouter = ISwapRouter(_swapRouter);
         positionManager = IUniswapV3PositionManager(_positionManager);
     }
-    // todo add a public function to check partial settlements
 
     function _getSenderFees(bytes memory message) internal view virtual override returns (uint24, address) {
         (, V3SettlementParams memory settlementParams) = abi.decode(message, (bytes32, V3SettlementParams));
@@ -51,9 +50,20 @@ contract AcrossV3Settler is IV3Settler, AcrossSettler {
     function _refund(bytes32 migrationId) internal {
         PartialSettlement memory partialSettlement = partialSettlements[migrationId];
         if (partialSettlement.token != address(0)) {
-            IERC20(partialSettlement.token).transfer(partialSettlement.recipient, partialSettlement.amount);
+            IERC20(partialSettlement.token).transfer(partialSettlement.settlementParams.recipient, partialSettlement.amount);
             delete partialSettlements[migrationId];
         }
+    }
+
+    function compareSettlementParams(V3SettlementParams memory a, V3SettlementParams memory b)
+        external
+        pure
+        returns (bool)
+    {
+        return a.recipient == b.recipient && a.token0 == b.token0 && a.token1 == b.token1 && a.feeTier == b.feeTier
+            && a.tickLower == b.tickLower && a.tickUpper == b.tickUpper && a.amount0Min == b.amount0Min
+            && a.amount1Min == b.amount1Min && a.senderFeeBps == b.senderFeeBps
+            && a.senderFeeRecipient == b.senderFeeRecipient;
     }
 
     // this is meant to be called by external contracts like bridges or relayers
@@ -153,11 +163,24 @@ contract AcrossV3Settler is IV3Settler, AcrossSettler {
 
             // case 1: first of the two pieces arrives
             if (partialSettlement.token == address(0)) {
-                partialSettlements[migrationId] = PartialSettlement(token, amount, settlementParams.recipient);
+                partialSettlements[migrationId] = PartialSettlement(token, amount, settlementParams);
                 emit PartiallySettled(migrationId, settlementParams.recipient, token, amount);
                 return 0;
             } else {
                 // case 2: second of the two pieces arrives
+
+                // verify that partialSettlement and current token are both present in the settlementParams
+                if ((partialSettlement.token != settlementParams.token0 && partialSettlement.token != settlementParams.token1) || 
+                    (token != settlementParams.token0 && token != settlementParams.token1)) {
+                    revert BridgedTokenMustBeUsedInPosition();
+                }
+
+                // verify that settlementParams match up with the partial settlement
+                if (!this.compareSettlementParams(settlementParams, partialSettlement.settlementParams)) {
+                    revert SettlementParamsDoNotMatch();
+                }
+
+
 
                 // match up amounts to tokens
                 (uint256 amount0, uint256 amount1) = token == settlementParams.token0

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.27;
+pragma solidity ^0.8.24;
 
 import {AcrossSettler} from "../../src/base/AcrossSettler.sol";
 import {Settler} from "../../src/base/Settler.sol";

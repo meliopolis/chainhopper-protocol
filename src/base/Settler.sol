@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.27;
+pragma solidity ^0.8.24;
 
-import {console} from "forge-std/console.sol";
 import {ISettler} from "../interfaces/ISettler.sol";
 import {Ownable2Step, Ownable} from "lib/openzeppelin-contracts/contracts/access/Ownable2Step.sol";
 import {IERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
@@ -43,14 +42,13 @@ abstract contract Settler is ISettler, Ownable2Step {
                 IERC20(token).transfer(protocolFeeRecipient, protocolFeeAmount);
             }
             if (senderFeeAmount > 0) {
-                (,address senderFeeRecipient) = _getSenderFees(message);
+                (, address senderFeeRecipient) = _getSenderFees(message);
                 IERC20(token).transfer(senderFeeRecipient, senderFeeAmount);
             }
         } else {
             // if migrationId, then leave the fees for the contract that implements _settle()
             tokenId = _settle(token, amount, message);
         }
-        return tokenId;
     }
 
     function _calculateFees(uint256 amount, bytes memory message) internal view returns (uint256, uint256) {

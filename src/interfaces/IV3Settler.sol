@@ -2,9 +2,10 @@
 pragma solidity ^0.8.0;
 
 import {ISettler} from "./ISettler.sol";
-import "./external/AcrossMessageHandler.sol";
 
 interface IV3Settler is ISettler {
+    error SettlementParamsDoNotMatch();
+
     struct V3SettlementParams {
         address recipient; // always goes first
         address token0;
@@ -17,6 +18,11 @@ interface IV3Settler is ISettler {
         uint24 senderFeeBps;
         address senderFeeRecipient;
     }
+
+    function compareSettlementParams(V3SettlementParams memory a, V3SettlementParams memory b)
+        external
+        pure
+        returns (bool);
 
     event SettledOnV3(address indexed recipient, uint256 indexed tokenId, uint256 amount0, uint256 amount1);
 }
