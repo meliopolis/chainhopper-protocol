@@ -23,7 +23,7 @@ contract AcrossV3Settler is IV3Settler, AcrossSettler {
 
     ISwapRouter public immutable swapRouter;
     IUniswapV3PositionManager private immutable positionManager;
-    mapping(bytes32 => PartialSettlement) private partialSettlements;
+    mapping(bytes32 => PartialSettlement) public partialSettlements;
 
     constructor(
         address _spokePool,

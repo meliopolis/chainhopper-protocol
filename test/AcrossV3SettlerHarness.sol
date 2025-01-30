@@ -38,6 +38,10 @@ contract AcrossV3SettlerHarness is AcrossV3Settler {
         return _calculateFees(amount, message);
     }
 
+    function exposed_refund(bytes32 migrationId) public {
+        _refund(migrationId);
+    }
+
     // add this to be excluded from coverage report
     function test() public {}
 }

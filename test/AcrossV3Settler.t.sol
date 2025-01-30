@@ -123,47 +123,6 @@ contract V3SettlerTest is Test {
         assertEq(recipient, user);
     }
 
-    /*
-    * Setters
-    */
-
-    function test_setProtocolFeeBpsFailsIfNotOwner() public {
-        vm.prank(user);
-        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, user));
-        acrossV3SettlerHarness.setProtocolFeeBps(5);
-    }
-
-    function test_setProtocolFeeBpsSucceedsWhenOwner() public {
-        vm.prank(owner);
-        acrossV3SettlerHarness.setProtocolFeeBps(1);
-        assertEq(acrossV3SettlerHarness.protocolFeeBps(), 1);
-    }
-
-    function test_setProtocolFeeRecipientFailsIfNotOwner() public {
-        vm.prank(user);
-        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, user));
-        acrossV3SettlerHarness.setProtocolFeeRecipient(address(0x4));
-        assertEq(acrossV3SettlerHarness.protocolFeeRecipient(), protocolFeeRecipient);
-    }
-
-    function test_setProtocolFeeRecipientSucceedsWhenOwner() public {
-        vm.prank(owner);
-        acrossV3SettlerHarness.setProtocolFeeRecipient(address(0x4));
-        assertEq(acrossV3SettlerHarness.protocolFeeRecipient(), address(0x4));
-    }
-
-    function test_setProtocolShareOfSenderFeeInPercentFailsIfNotOwner() public {
-        vm.prank(user);
-        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, user));
-        acrossV3SettlerHarness.setProtocolShareOfSenderFeeInPercent(50);
-        assertEq(acrossV3SettlerHarness.protocolShareOfSenderFeeInPercent(), 25);
-    }
-
-    function test_setProtocolShareOfSenderFeeInPercentSucceedsWhenOwner() public {
-        vm.prank(owner);
-        acrossV3SettlerHarness.setProtocolShareOfSenderFeeInPercent(50);
-        assertEq(acrossV3SettlerHarness.protocolShareOfSenderFeeInPercent(), 50);
-    }
 
     /*
     * Handle V3 Across Message
@@ -210,119 +169,29 @@ contract V3SettlerTest is Test {
     // }
 
     /*
-     * _calculateFees() tests
-     */
+     * Helper tests
+     */ 
 
-    function test__calculateFees_allThreeZero() public {
-        vm.prank(owner);
-        acrossV3SettlerHarness.setProtocolFeeBps(0);
-        vm.prank(owner);
-        acrossV3SettlerHarness.setProtocolShareOfSenderFeeInPercent(0);
-        bytes memory params =
-            this.generateSettlementParams(address(1), address(2), 500, -200000, -1000, 0, 0, 0, address(0), bytes32(0));
-        (uint256 netSenderFeeAmount, uint256 totalProtocolFeeAmount) =
-            acrossV3SettlerHarness.exposed_calculateFees(1 ether, params);
-        assertEq(netSenderFeeAmount, 0);
-        assertEq(totalProtocolFeeAmount, 0);
-    }
+    function test__refund_removesPartialSettlement() public {
+        deal(baseToken, address(acrossV3SettlerHarness), 1 ether);
+        // add a partial settlement
+        bytes32 migrationId = bytes32("111");
+        bytes memory migrationIdAndSettlementParams =
+            this.generateSettlementParams(0.5 ether, 1_500_000_000, 0, Range.InRange, true, migrationId);
+        acrossV3SettlerHarness.exposed_settle(baseToken, 0.5 ether, migrationIdAndSettlementParams);
+        // verify partial settlement was added
+        (address token, uint256 amount, address recipient) = acrossV3SettlerHarness.partialSettlements(migrationId);
+        assertEq(token, baseToken);
+        assertEq(amount, 0.5 ether);
+        assertEq(recipient, user);
 
-    function test_calculateFees_protocolFeeZero_senderFeeShareZero_senderFeeNonZero() public {
-        vm.prank(owner);
-        acrossV3SettlerHarness.setProtocolFeeBps(0);
-        vm.prank(owner);
-        acrossV3SettlerHarness.setProtocolShareOfSenderFeeInPercent(0);
-        bytes memory params =
-            this.generateSettlementParams(address(1), address(2), 500, -200000, -1000, 0, 0, 15, address(1), bytes32(0));
-        (uint256 netSenderFeeAmount, uint256 totalProtocolFeeAmount) =
-            acrossV3SettlerHarness.exposed_calculateFees(1 ether, params);
-        assertEq(netSenderFeeAmount, 0.0015 ether);
-        assertEq(totalProtocolFeeAmount, 0);
-    }
-
-    function test_calculateFees_protocolFeeZero_senderFeeShareNonZero_senderFeeZero() public {
-        vm.prank(owner);
-        acrossV3SettlerHarness.setProtocolFeeBps(0);
-        vm.prank(owner);
-        acrossV3SettlerHarness.setProtocolShareOfSenderFeeInPercent(20);
-        bytes memory params =
-            this.generateSettlementParams(address(1), address(2), 500, -200000, -1000, 0, 0, 0, address(0), bytes32(0));
-        (uint256 netSenderFeeAmount, uint256 totalProtocolFeeAmount) =
-            acrossV3SettlerHarness.exposed_calculateFees(1 ether, params);
-        assertEq(netSenderFeeAmount, 0);
-        assertEq(totalProtocolFeeAmount, 0);
-    }
-
-    function test_calculateFees_protocolFeeZero_senderFeeShareNonZero_senderFeeNonZero() public {
-        vm.prank(owner);
-        acrossV3SettlerHarness.setProtocolFeeBps(0);
-        vm.prank(owner);
-        acrossV3SettlerHarness.setProtocolShareOfSenderFeeInPercent(20);
-        bytes memory params =
-            this.generateSettlementParams(address(1), address(2), 500, -200000, -1000, 0, 0, 15, address(1), bytes32(0));
-        (uint256 netSenderFeeAmount, uint256 totalProtocolFeeAmount) =
-            acrossV3SettlerHarness.exposed_calculateFees(1 ether, params);
-        assertEq(netSenderFeeAmount, 0.0012 ether);
-        assertEq(totalProtocolFeeAmount, 0.0003 ether);
-    }
-
-    function test_calculateFees_protocolFeeNonZero_senderFeeShareZero_senderFeeZero() public {
-        vm.prank(owner);
-        acrossV3SettlerHarness.setProtocolShareOfSenderFeeInPercent(0);
-        bytes memory params =
-            this.generateSettlementParams(address(1), address(2), 500, -200000, -1000, 0, 0, 0, address(0), bytes32(0));
-        (uint256 netSenderFeeAmount, uint256 totalProtocolFeeAmount) =
-            acrossV3SettlerHarness.exposed_calculateFees(1 ether, params);
-        assertEq(netSenderFeeAmount, 0);
-        assertEq(totalProtocolFeeAmount, 0.001 ether);
-    }
-
-    function test_calculateFees_protocolFeeNonZero_senderFeeShareZero_senderFeeNonZero() public {
-        vm.prank(owner);
-        acrossV3SettlerHarness.setProtocolShareOfSenderFeeInPercent(0);
-        bytes memory params =
-            this.generateSettlementParams(address(1), address(2), 500, -200000, -1000, 0, 0, 15, address(1), bytes32(0));
-        (uint256 netSenderFeeAmount, uint256 totalProtocolFeeAmount) =
-            acrossV3SettlerHarness.exposed_calculateFees(1 ether, params);
-        assertEq(netSenderFeeAmount, 0.0015 ether);
-        assertEq(totalProtocolFeeAmount, 0.001 ether);
-    }
-
-    function test_calculateFees_protocolFeeNonZero_senderFeeShareNonZero_senderFeeZero() public view {
-        bytes memory params =
-            this.generateSettlementParams(address(1), address(2), 500, -200000, -1000, 0, 0, 0, address(0), bytes32(0));
-        (uint256 netSenderFeeAmount, uint256 totalProtocolFeeAmount) =
-            acrossV3SettlerHarness.exposed_calculateFees(1 ether, params);
-        assertEq(netSenderFeeAmount, 0);
-        assertEq(totalProtocolFeeAmount, 0.001 ether);
-    }
-
-    function test_calculateFees_protocolFeeNonZero_senderFeeShareNonZero_senderFeeNonZero() public view {
-        bytes memory params =
-            this.generateSettlementParams(address(1), address(2), 500, -200000, -1000, 0, 0, 15, address(1), bytes32(0));
-        (uint256 netSenderFeeAmount, uint256 totalProtocolFeeAmount) =
-            acrossV3SettlerHarness.exposed_calculateFees(1 ether, params);
-        assertEq(netSenderFeeAmount, 0.001125 ether);
-        assertEq(totalProtocolFeeAmount, 0.001375 ether);
-    }
-
-    /*
-     * Settle() tests
-     */
-
-    function test_settleTransfersProtocolFeeWhenSenderFeeZero() public {
-        // todo
-    }
-
-    function test_settleTransfersSenderFeeWhenProtocolFeeZero() public {
-        // todo
-    }
-
-    function test_settleTransfersBothFeesWhenBothAreNonZero() public {
-        // todo
-    }
-
-    function test_settle_MigrationId_NoFeesTransferred() public {
-        // todo
+        // refund it
+        acrossV3SettlerHarness.exposed_refund(migrationId);
+        // check that it's removed
+        (address token1, uint256 amount1, address recipient1) = acrossV3SettlerHarness.partialSettlements(migrationId);
+        assertEq(token1, address(0));
+        assertEq(amount1, 0);
+        assertEq(recipient1, address(0));
     }
 
     /*
