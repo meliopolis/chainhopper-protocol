@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-pragma solidity =0.8.28;
+pragma solidity ^0.8.27;
 
 import {Ownable2Step, Ownable} from "openzeppelin/access/Ownable2Step.sol";
 import {IERC721Receiver} from "openzeppelin/token/ERC721/IERC721Receiver.sol";
@@ -22,7 +22,7 @@ abstract contract AcrossV3Migrator is IERC721Receiver, Ownable2Step {
     }
 
     function onERC721Received(address, address from, uint256 tokenId, bytes memory data) external returns (bytes4) {
-        require(msg.sender == positionManager, NotPositionManager());
+        if (msg.sender != positionManager) revert NotPositionManager();
 
         _migrate(from, tokenId, data);
 

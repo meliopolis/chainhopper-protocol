@@ -120,6 +120,9 @@ abstract contract SingleTokenV3V3MigratorScript is Script {
         vm.prank(spokePool);
         ISingleTokenV3Settler(migrationHandler).handleV3AcrossMessage(baseToken, 1 ether, publicKey, data);
     }
+
+    // add this to be excluded from coverage report
+    function test() public {}
 }
 
 /*

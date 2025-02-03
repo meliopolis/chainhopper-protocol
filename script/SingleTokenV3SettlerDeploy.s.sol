@@ -79,4 +79,7 @@ contract SingleTokenV3SettlerDeployScript is Script {
         console.log("SingleTokenV3Settler deployed at:", address(migrator));
         vm.stopBroadcast();
     }
+
+    // add this to be excluded from coverage report
+    function test() public {}
 }

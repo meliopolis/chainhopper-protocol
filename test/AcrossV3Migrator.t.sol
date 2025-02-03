@@ -2,44 +2,55 @@
 pragma solidity ^0.8.13;
 
 import {Test, console} from "lib/forge-std/src/Test.sol";
-import {SingleTokenV3V3Migrator} from "../src/SingleTokenV3V3Migrator.sol";
-import {CustomERC20Mock} from "./mocks/CustomERC20Mock.sol";
-import {BasicNft} from "./mocks/BasicNFT.sol";
-import {ERC721} from "lib/openzeppelin-contracts/contracts/token/ERC721/ERC721.sol";
+import {Ownable} from "lib/openzeppelin-contracts/contracts/access/Ownable.sol";
 import {IERC721} from "lib/openzeppelin-contracts/contracts/token/ERC721/IERC721.sol";
 import {IERC721Errors} from "lib/openzeppelin-contracts/contracts/interfaces/draft-IERC6093.sol";
 import {INonfungiblePositionManager} from "../src/interfaces/external/INonfungiblePositionManager.sol";
 import {IERC20} from "lib/openzeppelin-contracts/contracts/interfaces/IERC20.sol";
-import {ISingleTokenV3Settler} from "../src/interfaces/ISingleTokenV3Settler.sol";
-import {SingleTokenV3V3MigratorHarness} from "./SingleTokenV3V3MigratorHarness.sol";
 import {IUniswapV3Factory} from "lib/v3-core/contracts/interfaces/IUniswapV3Factory.sol";
 import {IUniswapV3Pool} from "lib/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
 import {IUniswapV3PoolEvents} from "lib/v3-core/contracts/interfaces/pool/IUniswapV3PoolEvents.sol";
 import {V3SpokePoolInterface} from "../src/interfaces/external/ISpokePool.sol";
 import {UniswapV3Helpers} from "./utils/UniswapV3Helpers.t.sol";
-import {ISingleTokenV3V3Migrator} from "../src/interfaces/ISingleTokenV3V3Migrator.sol";
+import {AcrossV3MigratorHarness} from "./mocks/AcrossV3MigratorHarness.sol";
+import {AcrossV3Migrator} from "../src/AcrossV3Migrator.sol";
+import {IV3Settler} from "../src/interfaces/IV3Settler.sol";
+import {IAcrossMigrator} from "../src/interfaces/IAcrossMigrator.sol";
+import {IMigrator} from "../src/interfaces/IMigrator.sol";
+import {BasicNft} from "./mocks/BasicNft.sol";
 
-contract SingleTokenV3V3MigratorTest is Test, UniswapV3Helpers {
-    SingleTokenV3V3MigratorHarness public migratorHarness;
-    SingleTokenV3V3Migrator public migrator;
+contract AcrossV3MigratorTest is Test, UniswapV3Helpers {
+    AcrossV3MigratorHarness public migratorHarness;
+    AcrossV3Migrator public migrator;
     address public user = address(0x1);
+    address public owner = address(0x2);
     address public nftPositionManager = vm.envAddress("BASE_NFT_POSITION_MANAGER");
-    address public baseToken = vm.envAddress("BASE_WETH");
     address public spokePool = vm.envAddress("BASE_SPOKE_POOL");
     address public swapRouter = vm.envAddress("BASE_SWAP_ROUTER");
+    address public baseToken = vm.envAddress("BASE_WETH");
     address public usdc = vm.envAddress("BASE_USDC");
     address public virtualToken = address(0x0b3e328455c4059EEb9e3f84b5543F74E24e7E1b); // sorts before baseToken
+    address public destinationChainSettler = address(0x123);
 
     function setUp() public {
         vm.createSelectFork(vm.envString("BASE_MAINNET_RPC_URL"), 25394775);
 
         // Deploy migrator and harness
-        migrator = new SingleTokenV3V3Migrator(nftPositionManager, baseToken, swapRouter, spokePool);
-        migratorHarness = new SingleTokenV3V3MigratorHarness(nftPositionManager, baseToken, swapRouter, spokePool);
+        vm.startPrank(owner);
+        migrator = new AcrossV3Migrator(nftPositionManager, spokePool, swapRouter);
+        migrator.addChainSettler(42161, destinationChainSettler);
+        migratorHarness = new AcrossV3MigratorHarness(nftPositionManager, spokePool, swapRouter);
+        migratorHarness.addChainSettler(42161, destinationChainSettler);
+        vm.stopPrank();
     }
 
-    function generateMigrationParams() public view returns (ISingleTokenV3V3Migrator.MigrationParams memory) {
-        ISingleTokenV3V3Migrator.SettlementParams memory settlementParams = ISingleTokenV3V3Migrator.SettlementParams({
+    function generateAcrossMigrationParams(uint8 numRoutes)
+        public
+        view
+        returns (IAcrossMigrator.AcrossMigrationParams memory)
+    {
+        IV3Settler.V3SettlementParams memory settlementParams = IV3Settler.V3SettlementParams({
+            recipient: user,
             token0: address(baseToken),
             token1: address(usdc),
             feeTier: 500,
@@ -47,53 +58,127 @@ contract SingleTokenV3V3MigratorTest is Test, UniswapV3Helpers {
             tickUpper: -100000,
             amount0Min: 0,
             amount1Min: 0,
-            recipient: user
+            senderFeeBps: 0,
+            senderFeeRecipient: address(0)
         });
-        return ISingleTokenV3V3Migrator.MigrationParams({
-            recipient: user,
-            quoteTimestamp: uint32(block.timestamp),
-            fillDeadlineBuffer: uint32(21600), // pulled from spokePool.fillDeadlineBuffer()
-            exclusivityDeadline: uint32(0),
-            maxFees: 0,
-            outputToken: vm.envAddress("ARBITRUM_WETH"),
-            exclusiveRelayer: address(0),
-            destinationChainId: 42161,
-            settlementParams: abi.encode(settlementParams)
+        IMigrator.BaseMigrationParams memory baseParams = IMigrator.BaseMigrationParams({
+            recipient: destinationChainSettler,
+            settlementParams: abi.encode(settlementParams),
+            destinationChainId: 42161
         });
+        IAcrossMigrator.AcrossRoute[] memory acrossRoutes = new IAcrossMigrator.AcrossRoute[](numRoutes);
+        if (numRoutes > 0) {
+            acrossRoutes[0] = IAcrossMigrator.AcrossRoute({
+                inputToken: address(baseToken),
+                outputToken: vm.envAddress("ARBITRUM_WETH"),
+                maxFees: 0,
+                quoteTimestamp: uint32(block.timestamp),
+                fillDeadlineOffset: uint32(21600),
+                exclusiveRelayer: address(0),
+                exclusivityDeadline: uint32(0)
+            });
+        }
+        if (numRoutes > 1) {
+            acrossRoutes[1] = IAcrossMigrator.AcrossRoute({
+                inputToken: address(usdc),
+                outputToken: vm.envAddress("ARBITRUM_USDC"),
+                maxFees: 0,
+                quoteTimestamp: uint32(block.timestamp),
+                fillDeadlineOffset: uint32(21600),
+                exclusiveRelayer: address(0),
+                exclusivityDeadline: uint32(0)
+            });
+        }
+        if (numRoutes > 2) {
+            acrossRoutes[2] = IAcrossMigrator.AcrossRoute({
+                inputToken: address(usdc),
+                outputToken: vm.envAddress("ARBITRUM_USDC"),
+                maxFees: 0,
+                quoteTimestamp: uint32(block.timestamp),
+                fillDeadlineOffset: uint32(21600),
+                exclusiveRelayer: address(0),
+                exclusivityDeadline: uint32(0)
+            });
+        }
+        return IAcrossMigrator.AcrossMigrationParams({baseParams: baseParams, acrossRoutes: acrossRoutes});
     }
+
+    /*
+     * Owner functions
+     */
+
+    function test_addChainSettlerFailsIfNotOwner() public {
+        vm.prank(user);
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, user));
+        migrator.addChainSettler(42161, address(0x456));
+    }
+
+    function test_addChainSettler() public {
+        vm.prank(owner);
+        migrator.addChainSettler(42161, address(0x456));
+        assertEq(migrator.isChainSettler(42161, address(0x456)), true);
+    }
+
+    function test_removeChainSettlerFailsIfNotOwner() public {
+        vm.prank(user);
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, user));
+        migrator.removeChainSettler(42161, address(0x456));
+    }
+
+    function test_removeChainSettler() public {
+        vm.prank(owner);
+        migrator.removeChainSettler(42161, address(0x456));
+        assertEq(migrator.isChainSettler(42161, address(0x456)), false);
+    }
+
+    /*
+    * Error cases
+    */
 
     function test_msgSenderIsNotNFTPositionManager() public {
         BasicNft nft = new BasicNft();
         vm.prank(user);
         nft.mintNft();
         vm.prank(user);
-        vm.expectRevert(abi.encodeWithSelector(ISingleTokenV3V3Migrator.SenderIsNotNFTPositionManager.selector));
-        migratorHarness.exposed_migratePosition(user, 0, generateMigrationParams());
+        vm.expectRevert(abi.encodeWithSelector(IMigrator.NotPositionManager.selector));
+        nft.safeTransferFrom(user, address(migrator), 0, abi.encode(generateAcrossMigrationParams(1)));
     }
 
-    function test_LiquidityIsZero() public {
-        uint256 tokenId = mintV3Position(nftPositionManager, user, baseToken, usdc, -200000, -100000, 500);
-        console.log("tokenId", tokenId);
-        withdrawLiquidity(nftPositionManager, user, tokenId);
-        vm.prank(nftPositionManager);
-        vm.expectRevert(abi.encodeWithSelector(ISingleTokenV3V3Migrator.LiquidityIsZero.selector));
-        migratorHarness.exposed_migratePosition(user, tokenId, generateMigrationParams());
+    function test_failsIfDestinationChainSettlerNotFound() public {
+        vm.prank(owner);
+        migratorHarness.removeChainSettler(42161, destinationChainSettler);
+        vm.expectRevert(abi.encodeWithSelector(IMigrator.DestinationChainSettlerNotFound.selector));
+        migratorHarness.exposed_migrate(user, 0, abi.encode(generateAcrossMigrationParams(1)));
     }
 
-    function test_positionWithoutBaseToken() public {
-        // picking a random token that is not baseToken
+    function test_failsIfNoAcrossRoutesFound() public {
+        vm.expectRevert(abi.encodeWithSelector(IAcrossMigrator.NoAcrossRoutesFound.selector));
+        migratorHarness.exposed_migrate(user, 0, abi.encode(generateAcrossMigrationParams(0)));
+    }
+
+    function test_failsIfTooManyAcrossRoutes() public {
+        vm.expectRevert(abi.encodeWithSelector(IAcrossMigrator.TooManyAcrossRoutes.selector));
+        migratorHarness.exposed_migrate(user, 0, abi.encode(generateAcrossMigrationParams(3)));
+    }
+
+    /*
+    SingleToken tests
+    */
+
+    function test_failsIfRoute0InputTokenNotFound() public {
+        // minting a position without routeInputToken
         uint256 tokenId = mintV3Position(
             nftPositionManager, user, usdc, address(0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2), -100, 100, 100
         );
-        (,, address token0, address token1,,,,,,,,) = INonfungiblePositionManager(nftPositionManager).positions(tokenId);
-        assertNotEq(token0, baseToken);
-        assertNotEq(token1, baseToken);
-        vm.prank(nftPositionManager);
-        vm.expectRevert(abi.encodeWithSelector(ISingleTokenV3V3Migrator.NoBaseTokenFound.selector));
-        migratorHarness.exposed_migratePosition(user, tokenId, generateMigrationParams());
+        vm.prank(user);
+        INonfungiblePositionManager(nftPositionManager).safeTransferFrom(
+            user, address(migratorHarness), tokenId, abi.encode(generateAcrossMigrationParams(1))
+        );
+        vm.expectRevert(abi.encodeWithSelector(IAcrossMigrator.RouteInputTokenNotFound.selector, 0));
+        migratorHarness.exposed_migrate(user, tokenId, abi.encode(generateAcrossMigrationParams(1)));
     }
 
-    function test_MigratorReceivesPositionInRange_withToken0BaseToken() public {
+    function test_singleToken_positionInRange_withToken0AsRouteInputToken() public {
         address token0 = baseToken;
         address token1 = usdc;
         uint256 tokenId = mintV3Position(nftPositionManager, user, baseToken, usdc, -200000, -100000, 500);
@@ -130,14 +215,16 @@ contract SingleTokenV3V3MigratorTest is Test, UniswapV3Helpers {
         emit V3SpokePoolInterface.V3FundsDeposited(
             address(0), address(0), 0, 0, 42161, 1, 1737578897, 1737578997, 0, user, user, address(0), ""
         );
+        vm.expectEmit(true, true, false, false, address(migrator));
+        emit IAcrossMigrator.PositionSent(tokenId, 42161, destinationChainSettler, "");
 
         vm.prank(user);
         INonfungiblePositionManager(nftPositionManager).safeTransferFrom(
-            user, address(migrator), tokenId, abi.encode(generateMigrationParams())
+            user, address(migrator), tokenId, abi.encode(generateAcrossMigrationParams(1))
         );
     }
 
-    function test_MigratorReceivesPositionBelowPoolTick_withToken0BaseToken() public {
+    function test_singleToken_positionBelowPoolTick_withToken0AsRouteInputToken() public {
         address token0 = baseToken;
         address token1 = usdc;
         IUniswapV3Factory factory = IUniswapV3Factory(INonfungiblePositionManager(nftPositionManager).factory());
@@ -179,14 +266,16 @@ contract SingleTokenV3V3MigratorTest is Test, UniswapV3Helpers {
         emit V3SpokePoolInterface.V3FundsDeposited(
             address(0), address(0), 0, 0, 42161, 1, 1737578897, 1737578997, 0, user, user, address(0), ""
         );
+        vm.expectEmit(true, true, false, false, address(migrator));
+        emit IAcrossMigrator.PositionSent(tokenId, 42161, destinationChainSettler, "");
 
         vm.prank(user);
         INonfungiblePositionManager(nftPositionManager).safeTransferFrom(
-            user, address(migrator), tokenId, abi.encode(generateMigrationParams())
+            user, address(migrator), tokenId, abi.encode(generateAcrossMigrationParams(1))
         );
     }
 
-    function test_MigratorReceivesPositionAbovePoolTick_withToken0BaseToken() public {
+    function test_singleToken_positionAbovePoolTick_withToken0AsRouteInputToken() public {
         address token0 = baseToken;
         address token1 = usdc;
         IUniswapV3Factory factory = IUniswapV3Factory(INonfungiblePositionManager(nftPositionManager).factory());
@@ -224,14 +313,16 @@ contract SingleTokenV3V3MigratorTest is Test, UniswapV3Helpers {
         emit V3SpokePoolInterface.V3FundsDeposited(
             address(0), address(0), 0, 0, 42161, 1, 1737578897, 1737578997, 0, user, user, address(0), ""
         );
+        vm.expectEmit(true, true, false, false, address(migrator));
+        emit IAcrossMigrator.PositionSent(tokenId, 42161, destinationChainSettler, "");
 
         vm.prank(user);
         INonfungiblePositionManager(nftPositionManager).safeTransferFrom(
-            user, address(migrator), tokenId, abi.encode(generateMigrationParams())
+            user, address(migrator), tokenId, abi.encode(generateAcrossMigrationParams(1))
         );
     }
 
-    function test_MigratorReceivesPositionInRange_withToken1BaseToken() public {
+    function test_singleToken_positionInRange_withToken1AsRouteInputToken() public {
         address token0 = virtualToken;
         address token1 = baseToken;
         uint256 tokenId = mintV3Position(nftPositionManager, user, token0, token1, -200040, -60000, 3000);
@@ -268,14 +359,16 @@ contract SingleTokenV3V3MigratorTest is Test, UniswapV3Helpers {
         emit V3SpokePoolInterface.V3FundsDeposited(
             address(0), address(0), 0, 0, 42161, 1, 1737578897, 1737578997, 0, user, user, address(0), ""
         );
+        vm.expectEmit(true, true, false, false, address(migrator));
+        emit IAcrossMigrator.PositionSent(tokenId, 42161, destinationChainSettler, "");
 
         vm.prank(user);
         INonfungiblePositionManager(nftPositionManager).safeTransferFrom(
-            user, address(migrator), tokenId, abi.encode(generateMigrationParams())
+            user, address(migrator), tokenId, abi.encode(generateAcrossMigrationParams(1))
         );
     }
 
-    function test_MigratorReceivesPositionBelowPoolTick_withToken1BaseToken() public {
+    function test_singleToken_positionBelowPoolTick_withToken1AsRouteInputToken() public {
         address token0 = virtualToken;
         address token1 = baseToken;
         IUniswapV3Factory factory = IUniswapV3Factory(INonfungiblePositionManager(nftPositionManager).factory());
@@ -313,14 +406,16 @@ contract SingleTokenV3V3MigratorTest is Test, UniswapV3Helpers {
         emit V3SpokePoolInterface.V3FundsDeposited(
             address(0), address(0), 0, 0, 42161, 1, 1737578897, 1737578997, 0, user, user, address(0), ""
         );
+        vm.expectEmit(true, true, false, false, address(migrator));
+        emit IAcrossMigrator.PositionSent(tokenId, 42161, destinationChainSettler, "");
 
         vm.prank(user);
         INonfungiblePositionManager(nftPositionManager).safeTransferFrom(
-            user, address(migrator), tokenId, abi.encode(generateMigrationParams())
+            user, address(migrator), tokenId, abi.encode(generateAcrossMigrationParams(1))
         );
     }
 
-    function test_MigratorReceivesPositionAbovePoolTick_withToken1BaseToken() public {
+    function test_singleToken_positionAbovePoolTick_withToken1AsRouteInputToken() public {
         address token0 = virtualToken;
         address token1 = baseToken;
         IUniswapV3Factory factory = IUniswapV3Factory(INonfungiblePositionManager(nftPositionManager).factory());
@@ -362,10 +457,99 @@ contract SingleTokenV3V3MigratorTest is Test, UniswapV3Helpers {
         emit V3SpokePoolInterface.V3FundsDeposited(
             address(0), address(0), 0, 0, 42161, 1, 1737578897, 1737578997, 0, user, user, address(0), ""
         );
+        vm.expectEmit(true, true, false, false, address(migrator));
+        emit IAcrossMigrator.PositionSent(tokenId, 42161, destinationChainSettler, "");
 
         vm.prank(user);
         INonfungiblePositionManager(nftPositionManager).safeTransferFrom(
-            user, address(migrator), tokenId, abi.encode(generateMigrationParams())
+            user, address(migrator), tokenId, abi.encode(generateAcrossMigrationParams(1))
+        );
+    }
+
+    /*
+    DualToken tests
+    */
+
+    function test_dualToken_failsIfUnusedExtraRoute() public {
+        // mint a one-sided position
+        address token0 = baseToken;
+        address token1 = usdc;
+        uint256 tokenId = mintV3Position(nftPositionManager, user, token0, token1, -180000, -179900, 500);
+        vm.prank(user);
+        INonfungiblePositionManager(nftPositionManager).safeTransferFrom(
+            user, address(migratorHarness), tokenId, abi.encode(generateAcrossMigrationParams(1))
+        );
+        vm.expectRevert(abi.encodeWithSelector(IAcrossMigrator.UnusedExtraRoute.selector));
+        migratorHarness.exposed_migrate(user, tokenId, abi.encode(generateAcrossMigrationParams(2)));
+    }
+
+    function test_dualToken_failsIfToken0IsNotRouteInputToken() public {
+        address token0 = virtualToken;
+        address token1 = baseToken;
+        uint256 tokenId = mintV3Position(nftPositionManager, user, token0, token1, -200040, -60000, 3000);
+        vm.prank(user);
+        INonfungiblePositionManager(nftPositionManager).safeTransferFrom(
+            user, address(migratorHarness), tokenId, abi.encode(generateAcrossMigrationParams(2))
+        );
+        vm.expectRevert(abi.encodeWithSelector(IAcrossMigrator.RouteInputTokenNotFound.selector, 0));
+        migratorHarness.exposed_migrate(user, tokenId, abi.encode(generateAcrossMigrationParams(2)));
+    }
+
+    function test_dualToken_failsIfToken1IsNotRouteInputToken() public {
+        address token0 = baseToken;
+        address token1 = 0x940181a94A35A4569E4529A3CDfB74e38FD98631; // aerodome token
+        uint256 tokenId = mintV3Position(nftPositionManager, user, token0, token1, 60000, 90000, 3000);
+        vm.prank(user);
+        INonfungiblePositionManager(nftPositionManager).safeTransferFrom(
+            user, address(migratorHarness), tokenId, abi.encode(generateAcrossMigrationParams(2))
+        );
+        vm.expectRevert(abi.encodeWithSelector(IAcrossMigrator.RouteInputTokenNotFound.selector, 1));
+        migratorHarness.exposed_migrate(user, tokenId, abi.encode(generateAcrossMigrationParams(2)));
+    }
+
+    function test_dualToken_positionInRange() public {
+        address token0 = baseToken;
+        address token1 = usdc;
+        uint256 tokenId = mintV3Position(nftPositionManager, user, token0, token1, -200000, -100000, 500);
+        // verify posToken0 is baseToken
+        (,, address posToken0,,,,,,,,,) = INonfungiblePositionManager(nftPositionManager).positions(tokenId);
+        assertEq(posToken0, token0);
+
+        // Transfer Position from user to migrator
+        vm.expectEmit(false, false, false, false);
+        emit IERC721.Transfer(user, address(migrator), tokenId);
+
+        // Burn
+        vm.expectEmit(true, false, false, false);
+        emit IUniswapV3PoolEvents.Burn(address(nftPositionManager), 0, 0, 0, 0, 0);
+        vm.expectEmit(true, false, false, false);
+        emit INonfungiblePositionManager.DecreaseLiquidity(tokenId, 0, 0, 0);
+
+        // collect
+        vm.expectEmit(true, false, false, false);
+        emit IUniswapV3PoolEvents.Collect(nftPositionManager, address(migrator), 0, 0, 0, 0);
+        vm.expectEmit(true, false, false, false);
+        emit INonfungiblePositionManager.Collect(tokenId, address(0), 0, 0);
+
+        // bridge
+        vm.expectEmit(true, true, false, false, address(token0));
+        emit IERC20.Approval(address(migrator), spokePool, 0);
+        vm.expectEmit(true, false, false, false);
+        emit V3SpokePoolInterface.V3FundsDeposited(
+            address(0), address(0), 0, 0, 42161, 1, 1737578897, 1737578997, 0, user, user, address(0), ""
+        );
+        vm.expectEmit(true, true, false, false, address(token1));
+        emit IERC20.Approval(address(migrator), spokePool, 0);
+        vm.expectEmit(true, false, false, false);
+        emit V3SpokePoolInterface.V3FundsDeposited(
+            address(0), address(0), 0, 0, 42161, 1, 1737578897, 1737578997, 0, user, user, address(0), ""
+        );
+        vm.expectEmit(true, true, false, false, address(migrator));
+        emit IAcrossMigrator.PositionSent(tokenId, 42161, destinationChainSettler, "");
+
+        vm.prank(user);
+        INonfungiblePositionManager(nftPositionManager).safeTransferFrom(
+            user, address(migrator), tokenId, abi.encode(generateAcrossMigrationParams(2))
         );
     }
 }
