@@ -21,7 +21,7 @@ contract AcrossSettlerTest is Test {
         acrossSettler.handleV3AcrossMessage(address(0), 100, address(0), "");
     }
 
-      function test_handleV3AcrossMessageCallsSettleAndSucceeds() public {
+    function test_handleV3AcrossMessageCallsSettleAndSucceeds() public {
         bytes memory message = abi.encode(bytes32(0), bytes(""));
         vm.prank(spokePool);
         vm.expectCall(

@@ -49,7 +49,7 @@ contract AcrossV3Settler is IV3Settler, AcrossSettler {
         return settlementParams.recipient;
     }
 
-    function _refund(bytes32 migrationId) override internal {
+    function _refund(bytes32 migrationId) internal override {
         PartialSettlement memory partialSettlement = partialSettlements[migrationId];
         if (partialSettlement.token != address(0)) {
             IERC20(partialSettlement.token).transfer(

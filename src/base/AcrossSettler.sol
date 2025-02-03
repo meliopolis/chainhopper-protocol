@@ -18,7 +18,7 @@ abstract contract AcrossSettler is Settler, IAcrossV3SpokePoolMessageHandler {
 
     function handleV3AcrossMessage(address token, uint256 amount, address, bytes memory message) external override {
         if (msg.sender != spokePool) revert NotSpokePool();
-        try this.settle(token, amount, message) {} 
+        try this.settle(token, amount, message) {}
         catch {
             // if error, pass the amount directly to the recipient
             IERC20(token).transfer(_getRecipient(message), amount);
@@ -29,5 +29,4 @@ abstract contract AcrossSettler is Settler, IAcrossV3SpokePoolMessageHandler {
             }
         }
     }
-
 }
