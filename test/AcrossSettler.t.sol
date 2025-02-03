@@ -12,11 +12,21 @@ contract AcrossSettlerTest is Test {
         acrossSettler = new AcrossSettlerMock(spokePool);
     }
 
-    function test_handleV3AcrossMessageCallsSettleOuter() public {
+    function test_handleV3AcrossMessageCallsSettleAndReverts() public {
         vm.prank(spokePool);
         vm.expectCall(
-            address(acrossSettler), abi.encodeWithSelector(acrossSettler.settleOuter.selector, address(0), 100, "")
+            address(acrossSettler), abi.encodeWithSelector(acrossSettler.settle.selector, address(0), 100, "")
         );
+        vm.expectRevert(); // reverts because message is empty
         acrossSettler.handleV3AcrossMessage(address(0), 100, address(0), "");
+    }
+
+      function test_handleV3AcrossMessageCallsSettleAndSucceeds() public {
+        bytes memory message = abi.encode(bytes32(0), bytes(""));
+        vm.prank(spokePool);
+        vm.expectCall(
+            address(acrossSettler), abi.encodeWithSelector(acrossSettler.settle.selector, address(0), 100, message)
+        );
+        acrossSettler.handleV3AcrossMessage(address(0), 100, address(0), message);
     }
 }

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.0;
 
-import {AcrossV3Migrator} from "../src/AcrossV3Migrator.sol";
+import {AcrossV3Migrator} from "../../src/AcrossV3Migrator.sol";
 
 contract AcrossV3MigratorHarness is AcrossV3Migrator {
     constructor(address _nonfungiblePositionManager, address _spokePool, address _swapRouter)

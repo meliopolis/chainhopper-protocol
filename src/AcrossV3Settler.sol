@@ -38,19 +38,23 @@ contract AcrossV3Settler is IV3Settler, AcrossSettler {
     }
 
     function _getSenderFees(bytes memory message) internal view virtual override returns (uint24, address) {
-        (, V3SettlementParams memory settlementParams) = abi.decode(message, (bytes32, V3SettlementParams));
+        (, bytes memory settlementMessage) = abi.decode(message, (bytes32, bytes));
+        (V3SettlementParams memory settlementParams) = abi.decode(settlementMessage, (V3SettlementParams));
         return (settlementParams.senderFeeBps, settlementParams.senderFeeRecipient);
     }
 
     function _getRecipient(bytes memory message) internal view virtual override returns (address) {
-        (, V3SettlementParams memory settlementParams) = abi.decode(message, (bytes32, V3SettlementParams));
+        (, bytes memory settlementMessage) = abi.decode(message, (bytes32, bytes));
+        (V3SettlementParams memory settlementParams) = abi.decode(settlementMessage, (V3SettlementParams));
         return settlementParams.recipient;
     }
 
-    function _refund(bytes32 migrationId) internal {
+    function _refund(bytes32 migrationId) override internal {
         PartialSettlement memory partialSettlement = partialSettlements[migrationId];
         if (partialSettlement.token != address(0)) {
-            IERC20(partialSettlement.token).transfer(partialSettlement.settlementParams.recipient, partialSettlement.amount);
+            IERC20(partialSettlement.token).transfer(
+                partialSettlement.settlementParams.recipient, partialSettlement.amount
+            );
             delete partialSettlements[migrationId];
         }
     }
@@ -66,31 +70,9 @@ contract AcrossV3Settler is IV3Settler, AcrossSettler {
             && a.senderFeeRecipient == b.senderFeeRecipient;
     }
 
-    // this is meant to be called by external contracts like bridges or relayers
-    function settleOuter(address token, uint256 amount, bytes memory message)
-        external
-        virtual
-        override
-        returns (uint256)
-    {
-        try this.settle(token, amount, message) returns (uint256 tokenId) {
-            // do nothing;
-            return tokenId;
-        } catch {
-            // if error, return the amount to the recipient
-            IERC20(token).transfer(_getRecipient(message), amount);
-            // if there is a migrationId, refund any partial settlements as well
-            (bytes32 migrationId) = abi.decode(message, (bytes32));
-            if (migrationId != bytes32(0)) {
-                _refund(migrationId);
-            }
-            return 0;
-        }
-    }
-
     function _settle(address token, uint256 amount, bytes memory message) internal virtual override returns (uint256) {
-        (bytes32 migrationId, V3SettlementParams memory settlementParams) =
-            abi.decode(message, (bytes32, V3SettlementParams));
+        (bytes32 migrationId, bytes memory settlementMessage) = abi.decode(message, (bytes32, bytes));
+        (V3SettlementParams memory settlementParams) = abi.decode(settlementMessage, (V3SettlementParams));
 
         if (settlementParams.amount0Min == 0 && settlementParams.amount1Min == 0) {
             revert AtLeastOneAmountMustBeGreaterThanZero();
@@ -170,17 +152,21 @@ contract AcrossV3Settler is IV3Settler, AcrossSettler {
                 // case 2: second of the two pieces arrives
 
                 // verify that partialSettlement and current token are both present in the settlementParams
-                if ((partialSettlement.token != settlementParams.token0 && partialSettlement.token != settlementParams.token1) || 
-                    (token != settlementParams.token0 && token != settlementParams.token1)) {
+                if (
+                    (
+                        partialSettlement.token != settlementParams.token0
+                            && partialSettlement.token != settlementParams.token1
+                    ) || (token != settlementParams.token0 && token != settlementParams.token1)
+                ) {
                     revert BridgedTokenMustBeUsedInPosition();
                 }
+
+                if (partialSettlement.token == token) revert BridgedTokensMustBeDifferent();
 
                 // verify that settlementParams match up with the partial settlement
                 if (!this.compareSettlementParams(settlementParams, partialSettlement.settlementParams)) {
                     revert SettlementParamsDoNotMatch();
                 }
-
-
 
                 // match up amounts to tokens
                 (uint256 amount0, uint256 amount1) = token == settlementParams.token0
@@ -243,5 +229,9 @@ contract AcrossV3Settler is IV3Settler, AcrossSettler {
                 return tokenId;
             }
         }
+    }
+
+    function withdraw(bytes32 migrationId) external {
+        _refund(migrationId);
     }
 }

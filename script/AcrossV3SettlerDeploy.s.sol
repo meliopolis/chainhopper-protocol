@@ -64,7 +64,12 @@ contract AcrossV3SettlerDeployScript is Script {
     ) public {
         vm.startBroadcast(vm.envAddress("PUBLIC_KEY"));
         AcrossV3Settler migrator = new AcrossV3Settler(
-            spokePool, protocolFeeRecipient, protocolFeeBps, protocolShareOfSenderFeeInPercent, swapRouter, positionManager
+            spokePool,
+            protocolFeeRecipient,
+            protocolFeeBps,
+            protocolShareOfSenderFeeInPercent,
+            swapRouter,
+            positionManager
         );
         console.log("AcrossV3Settler deployed at:", address(migrator));
         vm.stopBroadcast();

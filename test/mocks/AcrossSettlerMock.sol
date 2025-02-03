@@ -19,8 +19,8 @@ contract AcrossSettlerMock is AcrossSettler {
         return (0, address(0));
     }
 
-    function settleOuter(address, uint256, bytes memory) external pure override returns (uint256) {
-        return 123;
+    function _refund(bytes32) internal pure override {
+        return;
     }
 
     function test() public {}

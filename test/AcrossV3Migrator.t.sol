@@ -12,7 +12,7 @@ import {IUniswapV3Pool} from "lib/v3-core/contracts/interfaces/IUniswapV3Pool.so
 import {IUniswapV3PoolEvents} from "lib/v3-core/contracts/interfaces/pool/IUniswapV3PoolEvents.sol";
 import {V3SpokePoolInterface} from "../src/interfaces/external/ISpokePool.sol";
 import {UniswapV3Helpers} from "./utils/UniswapV3Helpers.t.sol";
-import {AcrossV3MigratorHarness} from "./AcrossV3MigratorHarness.sol";
+import {AcrossV3MigratorHarness} from "./mocks/AcrossV3MigratorHarness.sol";
 import {AcrossV3Migrator} from "../src/AcrossV3Migrator.sol";
 import {IV3Settler} from "../src/interfaces/IV3Settler.sol";
 import {IAcrossMigrator} from "../src/interfaces/IAcrossMigrator.sol";

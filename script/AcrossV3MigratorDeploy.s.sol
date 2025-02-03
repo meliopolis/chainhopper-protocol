@@ -13,7 +13,7 @@ forge script script/AcrossV3MigratorDeploy.s.sol:AcrossV3MigratorDeployScript \
     --slow \
     --verify \
     --sig 'run(address,address,address)' \
-    $SEPOLIA_NFT_POSITION_MANAGER $SEPOLIA_SWAP_ROUTER $SEPOLIA_SPOKE_POOL
+    $SEPOLIA_NFT_POSITION_MANAGER $SEPOLIA_SPOKE_POOL $SEPOLIA_SWAP_ROUTER 
 
 forge script script/AcrossV3MigratorDeploy.s.sol:AcrossV3MigratorDeployScript \
     --rpc-url $ARBITRUM_MAINNET_RPC_URL \
@@ -23,7 +23,7 @@ forge script script/AcrossV3MigratorDeploy.s.sol:AcrossV3MigratorDeployScript \
     --slow \
     --verify \
     --sig 'run(address,address,address)' \
-    $ARBITRUM_NFT_POSITION_MANAGER $ARBITRUM_SWAP_ROUTER $ARBITRUM_SPOKE_POOL
+    $ARBITRUM_NFT_POSITION_MANAGER $ARBITRUM_SPOKE_POOL $ARBITRUM_SWAP_ROUTER 
 
 forge script script/AcrossV3MigratorDeploy.s.sol:AcrossV3MigratorDeployScript \
     --rpc-url $BASE_MAINNET_RPC_URL \
@@ -33,7 +33,7 @@ forge script script/AcrossV3MigratorDeploy.s.sol:AcrossV3MigratorDeployScript \
     --slow \
     --verify \
     --sig 'run(address,address,address)' \
-    $BASE_NFT_POSITION_MANAGER $BASE_SWAP_ROUTER $BASE_SPOKE_POOL
+    $BASE_NFT_POSITION_MANAGER $BASE_SPOKE_POOL $BASE_SWAP_ROUTER
 */
 
 contract AcrossV3MigratorDeployScript is Script {

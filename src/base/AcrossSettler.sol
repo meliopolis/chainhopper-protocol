@@ -8,6 +8,7 @@ import {Settler} from "./Settler.sol";
 abstract contract AcrossSettler is Settler, IAcrossV3SpokePoolMessageHandler {
     error NotSpokePool();
     error BridgedTokenMustBeUsedInPosition();
+    error BridgedTokensMustBeDifferent();
 
     address private immutable spokePool;
 
@@ -17,9 +18,16 @@ abstract contract AcrossSettler is Settler, IAcrossV3SpokePoolMessageHandler {
 
     function handleV3AcrossMessage(address token, uint256 amount, address, bytes memory message) external override {
         if (msg.sender != spokePool) revert NotSpokePool();
-        this.settleOuter(token, amount, message);
+        try this.settle(token, amount, message) {} 
+        catch {
+            // if error, pass the amount directly to the recipient
+            IERC20(token).transfer(_getRecipient(message), amount);
+            // if there is a migrationId, refund any partial settlements as well
+            (bytes32 migrationId) = abi.decode(message, (bytes32));
+            if (migrationId != bytes32(0)) {
+                _refund(migrationId);
+            }
+        }
     }
 
-    // requires implementing this function in child contract
-    function settleOuter(address token, uint256 amount, bytes memory message) external virtual returns (uint256);
 }

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-import {AcrossV3Settler} from "../src/AcrossV3Settler.sol";
+import {AcrossV3Settler} from "../../src/AcrossV3Settler.sol";
 
 contract AcrossV3SettlerHarness is AcrossV3Settler {
     constructor(

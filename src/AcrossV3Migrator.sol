@@ -84,7 +84,7 @@ contract AcrossV3Migrator is IAcrossMigrator, AcrossMigrator {
                 tokenId,
                 migrationParams.baseParams.destinationChainId,
                 migrationParams.baseParams.recipient,
-                abi.encode(bytes32(0),migrationParams.baseParams.settlementParams)
+                abi.encode(bytes32(0), migrationParams.baseParams.settlementParams)
             );
         } else if (numRoutes == 2) {
             // dualToken path
@@ -124,10 +124,7 @@ contract AcrossV3Migrator is IAcrossMigrator, AcrossMigrator {
                 message
             );
             emit PositionSent(
-                tokenId,
-                migrationParams.baseParams.destinationChainId,
-                migrationParams.baseParams.recipient,
-                message
+                tokenId, migrationParams.baseParams.destinationChainId, migrationParams.baseParams.recipient, message
             );
         } else {
             revert TooManyAcrossRoutes();
@@ -144,8 +141,8 @@ contract AcrossV3Migrator is IAcrossMigrator, AcrossMigrator {
                 baseParams.destinationChainId,
                 baseParams.recipient,
                 ++_migrationCounter
-                // should settle params be included here?
             )
         );
+        // should settle params be included here?
     }
 }

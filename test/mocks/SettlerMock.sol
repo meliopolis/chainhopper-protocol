@@ -8,7 +8,7 @@ contract SettlerMock is Settler {
         Settler(_protocolFeeBps, _protocolFeeRecipient, _protocolShareOfSenderFeeInPercent)
     {}
 
-    function _settle(address, uint256 amount, bytes memory) internal pure override returns (uint256 tokenId) {
+    function _settle(address, uint256 amount, bytes memory) internal pure override returns (uint256) {
         return amount;
     }
 
@@ -23,6 +23,10 @@ contract SettlerMock is Settler {
 
     function exposed_calculateFees(uint256 amount, bytes memory message) public view returns (uint256, uint256) {
         return _calculateFees(amount, message);
+    }
+
+    function _refund(bytes32) internal pure override {
+        return;
     }
 
     function test() public {}

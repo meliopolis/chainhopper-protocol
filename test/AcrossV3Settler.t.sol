@@ -6,7 +6,7 @@ import {AcrossV3Settler} from "../src/AcrossV3Settler.sol";
 import {AcrossSettler} from "../src/base/AcrossSettler.sol";
 import {IV3Settler} from "../src/interfaces/IV3Settler.sol";
 import {ISettler} from "../src/interfaces/ISettler.sol";
-import {AcrossV3SettlerHarness} from "./AcrossV3SettlerHarness.sol";
+import {AcrossV3SettlerHarness} from "./mocks/AcrossV3SettlerHarness.sol";
 import {IUniswapV3Factory} from "lib/v3-core/contracts/interfaces/IUniswapV3Factory.sol";
 import {IUniswapV3Pool} from "lib/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
 import {IUniswapV3PoolEvents} from "lib/v3-core/contracts/interfaces/pool/IUniswapV3PoolEvents.sol";
@@ -15,7 +15,7 @@ import {IERC721} from "lib/openzeppelin-contracts/contracts/token/ERC721/IERC721
 import {INonfungiblePositionManager} from "src/interfaces/external/INonfungiblePositionManager.sol";
 import {Ownable} from "lib/openzeppelin-contracts/contracts/access/Ownable.sol";
 
-contract V3SettlerTest is Test {
+contract AcrossV3SettlerTest is Test {
     AcrossV3SettlerHarness public acrossV3SettlerHarness;
     AcrossV3Settler public acrossV3Settler;
     address public nftPositionManager = vm.envAddress("BASE_NFT_POSITION_MANAGER");
@@ -49,18 +49,20 @@ contract V3SettlerTest is Test {
     ) public view returns (bytes memory) {
         return abi.encode(
             migrationId,
-            IV3Settler.V3SettlementParams({
-                recipient: user,
-                token0: token0,
-                token1: token1,
-                feeTier: feeTier,
-                tickLower: tickLower,
-                tickUpper: tickUpper,
-                amount0Min: amount0Min,
-                amount1Min: amount1Min,
-                senderFeeBps: senderFeeBps,
-                senderFeeRecipient: senderFeeRecipient
-            })
+            abi.encode(
+                IV3Settler.V3SettlementParams({
+                    recipient: user,
+                    token0: token0,
+                    token1: token1,
+                    feeTier: feeTier,
+                    tickLower: tickLower,
+                    tickUpper: tickUpper,
+                    amount0Min: amount0Min,
+                    amount1Min: amount1Min,
+                    senderFeeBps: senderFeeBps,
+                    senderFeeRecipient: senderFeeRecipient
+                })
+            )
         );
     }
 
@@ -123,7 +125,6 @@ contract V3SettlerTest is Test {
         assertEq(recipient, user);
     }
 
-
     /*
     * Handle V3 Across Message
     */
@@ -134,7 +135,7 @@ contract V3SettlerTest is Test {
         acrossV3Settler.handleV3AcrossMessage(baseToken, 100, address(0), new bytes(0));
     }
 
-    function test_settleOuter_triggersCatch_withNoMigrationId() public {
+    function test_handleV3AcrossMessage_triggersCatch_withNoMigrationId() public {
         uint256 userBalanceBefore = IERC20(baseToken).balanceOf(user);
         deal(baseToken, address(acrossV3Settler), 1 ether);
         // invalid settlement params for above tick
@@ -143,11 +144,11 @@ contract V3SettlerTest is Test {
         vm.prank(spokePool);
         vm.expectEmit(true, true, false, false, address(baseToken));
         emit IERC20.Transfer(address(acrossV3Settler), user, 1 ether);
-        acrossV3Settler.settleOuter(baseToken, 1 ether, migrationIdAndSettlementParams);
+        acrossV3Settler.handleV3AcrossMessage(baseToken, 1 ether, address(0), migrationIdAndSettlementParams);
         assertEq(IERC20(baseToken).balanceOf(user), userBalanceBefore + 1 ether);
     }
 
-    function test_settleOuter_triggersCatchAndRefundsBothTokens_withMigrationId() public {
+    function test_handleV3AcrossMessage_triggersCatchAndRefundsBothTokens_withMigrationId() public {
         uint256 userBalanceBefore = IERC20(baseToken).balanceOf(user);
         uint256 userBalanceBeforeUSDC = IERC20(usdc).balanceOf(user);
         deal(baseToken, address(acrossV3Settler), 1 ether);
@@ -156,8 +157,9 @@ contract V3SettlerTest is Test {
         bytes memory migrationIdAndSettlementParams =
             this.generateSettlementParams(0, 1_000_000_000, -200000, Range.AboveTick, true, bytes32("111"));
         vm.prank(spokePool);
-        acrossV3Settler.settleOuter(baseToken, 1 ether, migrationIdAndSettlementParams);
-        (address token, uint256 amount, IV3Settler.V3SettlementParams memory settlementParams) = acrossV3Settler.partialSettlements(bytes32("111")); 
+        acrossV3Settler.handleV3AcrossMessage(baseToken, 1 ether, address(0), migrationIdAndSettlementParams);
+        (address token, uint256 amount, IV3Settler.V3SettlementParams memory settlementParams) =
+            acrossV3Settler.partialSettlements(bytes32("111"));
         assertEq(token, baseToken);
         assertEq(amount, 1 ether);
         assertEq(settlementParams.recipient, user);
@@ -167,10 +169,9 @@ contract V3SettlerTest is Test {
         vm.expectEmit(true, true, false, false, address(baseToken));
         emit IERC20.Transfer(address(acrossV3Settler), user, 1 ether);
         emit IERC20.Transfer(address(acrossV3Settler), user, 1 ether);
-        acrossV3Settler.settleOuter(usdc, 1_500_000_000, migrationIdAndSettlementParamsChanged);
+        acrossV3Settler.handleV3AcrossMessage(usdc, 1_500_000_000, address(0), migrationIdAndSettlementParamsChanged);
         assertEq(IERC20(baseToken).balanceOf(user), userBalanceBefore + 1 ether);
         assertEq(IERC20(usdc).balanceOf(user), userBalanceBeforeUSDC + 1_500_000_000);
-
     }
 
     // function test_handleV3AcrossMessageWorks() public {
@@ -192,7 +193,7 @@ contract V3SettlerTest is Test {
 
     /*
      * Helper tests
-     */ 
+     */
 
     function test__refund_removesPartialSettlement() public {
         deal(baseToken, address(acrossV3SettlerHarness), 1 ether);
@@ -202,7 +203,8 @@ contract V3SettlerTest is Test {
             this.generateSettlementParams(0.5 ether, 1_500_000_000, 0, Range.InRange, true, migrationId);
         acrossV3SettlerHarness.exposed_settle(baseToken, 0.5 ether, migrationIdAndSettlementParams);
         // verify partial settlement was added
-        (address token, uint256 amount, IV3Settler.V3SettlementParams memory settlementParams) = acrossV3SettlerHarness.partialSettlements(migrationId);
+        (address token, uint256 amount, IV3Settler.V3SettlementParams memory settlementParams) =
+            acrossV3SettlerHarness.partialSettlements(migrationId);
         assertEq(token, baseToken);
         assertEq(amount, 0.5 ether);
         assertEq(settlementParams.recipient, user);
@@ -210,21 +212,38 @@ contract V3SettlerTest is Test {
         // refund it
         acrossV3SettlerHarness.exposed_refund(migrationId);
         // check that it's removed
-        (address token1, uint256 amount1, IV3Settler.V3SettlementParams memory settlementParams1) = acrossV3SettlerHarness.partialSettlements(migrationId);
+        (address token1, uint256 amount1, IV3Settler.V3SettlementParams memory settlementParams1) =
+            acrossV3SettlerHarness.partialSettlements(migrationId);
         assertEq(token1, address(0));
         assertEq(amount1, 0);
         assertEq(settlementParams1.recipient, address(0));
     }
 
-    function test_compareSettlementParams_returnsTrueIfSame() view public {
-        (,IV3Settler.V3SettlementParams memory a) = abi.decode(this.generateSettlementParams(0.5 ether, 1_500_000_000, 0, Range.InRange, true, bytes32(0)), (bytes32, IV3Settler.V3SettlementParams));
-        (,IV3Settler.V3SettlementParams memory b) = abi.decode(this.generateSettlementParams(0.5 ether, 1_500_000_000, 0, Range.InRange, true, bytes32(0)), (bytes32, IV3Settler.V3SettlementParams));
+    function test_compareSettlementParams_returnsTrueIfSame() public view {
+        (, bytes memory message) = abi.decode(
+            this.generateSettlementParams(0.5 ether, 1_500_000_000, 0, Range.InRange, true, bytes32(0)),
+            (bytes32, bytes)
+        );
+        (IV3Settler.V3SettlementParams memory a) = abi.decode(message, (IV3Settler.V3SettlementParams));
+        (, bytes memory message2) = abi.decode(
+            this.generateSettlementParams(0.5 ether, 1_500_000_000, 0, Range.InRange, true, bytes32(0)),
+            (bytes32, bytes)
+        );
+        (IV3Settler.V3SettlementParams memory b) = abi.decode(message2, (IV3Settler.V3SettlementParams));
         assertEq(acrossV3Settler.compareSettlementParams(a, b), true);
     }
 
-    function test_compareSettlementParams_returnsFalseIfDifferent() view public {
-        (,IV3Settler.V3SettlementParams memory a) = abi.decode(this.generateSettlementParams(0.5 ether, 1_400_000_000, 0, Range.InRange, true, bytes32(0)), (bytes32, IV3Settler.V3SettlementParams));
-        (,IV3Settler.V3SettlementParams memory b) = abi.decode(this.generateSettlementParams(0.5 ether, 1_500_000_000, 0, Range.InRange, true, bytes32(0)), (bytes32, IV3Settler.V3SettlementParams));
+    function test_compareSettlementParams_returnsFalseIfDifferent() public view {
+        (, bytes memory message) = abi.decode(
+            this.generateSettlementParams(0.5 ether, 1_500_000_000, 0, Range.InRange, true, bytes32(0)),
+            (bytes32, bytes)
+        );
+        (IV3Settler.V3SettlementParams memory a) = abi.decode(message, (IV3Settler.V3SettlementParams));
+        (, bytes memory message2) = abi.decode(
+            this.generateSettlementParams(0.5 ether, 1_400_000_000, 0, Range.InRange, true, bytes32(0)),
+            (bytes32, bytes)
+        );
+        (IV3Settler.V3SettlementParams memory b) = abi.decode(message2, (IV3Settler.V3SettlementParams));
         assertEq(acrossV3Settler.compareSettlementParams(a, b), false);
     }
 
@@ -517,6 +536,10 @@ contract V3SettlerTest is Test {
 
     function test__settle_migrationId_token1Received_token0Received_BridgedTokenNotUsedInPosition() public {}
 
+    function test_settle_migrationId_token0ReceivedTwice_BridgedTokensMustBeDifferent() public {}
+
+    function test_settle_migrationId_token1ReceivedTwice_BridgedTokensMustBeDifferent() public {}
+
     function test__settle_migrationId_token0Received_token1Received_SettlementParamsMismatch() public {}
 
     function test__settle_migrationId_token1Received_token0Received_SettlementParamsMismatch() public {}
@@ -532,4 +555,6 @@ contract V3SettlerTest is Test {
     function test_settle_migrationId_mintSuccess_token0Received_token1Received_OnlyProtocolFee() public {}
 
     function test_settle_migrationId_mintSuccess_token1Received_token0Received_OnlySenderFee() public {}
+
+    function test_withdraw() public {}
 }

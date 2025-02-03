@@ -31,7 +31,8 @@ abstract contract Settler is ISettler, Ownable2Step {
     }
 
     // settle handles fees before handing off to _settle()
-    function settle(address token, uint256 amount, bytes memory message) external returns (uint256 tokenId) {
+    function settle(address token, uint256 amount, bytes memory message) external returns (uint256) {
+        uint256 tokenId;
         (bytes32 migrationId) = abi.decode(message, (bytes32));
         if (migrationId == bytes32(0)) {
             (uint256 senderFeeAmount, uint256 protocolFeeAmount) = _calculateFees(amount, message);
@@ -49,6 +50,7 @@ abstract contract Settler is ISettler, Ownable2Step {
             // if migrationId, then leave the fees for the contract that implements _settle()
             tokenId = _settle(token, amount, message);
         }
+        return tokenId;
     }
 
     function _calculateFees(uint256 amount, bytes memory message) internal view returns (uint256, uint256) {
@@ -64,6 +66,7 @@ abstract contract Settler is ISettler, Ownable2Step {
 
     function _getSenderFees(bytes memory message) internal view virtual returns (uint24, address);
     function _getRecipient(bytes memory message) internal view virtual returns (address);
+    function _refund(bytes32 migrationId) internal virtual;
 
     // this function contains the logic for the settlement
     function _settle(address token, uint256 amount, bytes memory message) internal virtual returns (uint256);
