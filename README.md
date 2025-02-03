@@ -1,21 +1,20 @@
 This repo contains contracts for migrating a Uniswap v3 LP position across chains.
 
+## `AcrossV3Migrator`
 
-## `SingleTokenV3V3Migrator`
+This contract receives an V3 LP position on the source chain, burns it, and sends one (or two) tokens to the destination chain with parameters to mint a new LP position. 
 
-On Source chain: This contract receives an LP position, unwraps it, converts it to ETH, and sends it to the bridge.
+## `AcrossV3Settler`
 
-## `SingleTokenV3Settler`
+This contract receives one (or two tokens) on the destination chain. If it received only one token and it needs the other token (because position requires both tokens), swaps some of the first token to the second token. Then it creates an LP position and gives it to the recipient.
 
-On Destination chain: This contract receives ETH, converts it to the necessary tokens for specified LP position, and wraps it into an LP position.
+## `AcrossV4Migrator`
 
-## `DualTokenV3V3Migrator`
+TODO - implement receiving a Uniswap v4 position
 
-(Not ready yet) This contract receives an LP position, unwraps it and sends both tokens to the bridge.
+## `AcrossV4Settler`
 
-## `DualTokenV3Settler`
-
-(Not ready yet) This contract receives ETH and another token from the bridge, and attempts to create an LP position.
+TODO - implement creating a Uniswap v4 position
 
 ## Tests
 
@@ -24,3 +23,15 @@ To run tests, you can use the following command:
 ```bash
 forge test
 ```
+
+## Coverage 
+
+Currently, the contracts have 100% coverage for the single-token path - meaning only one token is sent across chains. Dual-token path is implemented but not fully tested on the `AcrossV3Settler` contract.
+
+```bash
+forge coverage --ir-minimum
+```
+
+## Comments/Questions
+
+Feel free to open issues or DM me on [X](https://x.com/aseemsood_).
