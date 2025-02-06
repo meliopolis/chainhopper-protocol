@@ -21,6 +21,12 @@ contract AcrossV3Settler is IV3Settler, AcrossSettler {
         V3SettlementParams settlementParams;
     }
 
+    struct AmountBreakdown {
+        uint256 senderFee;
+        uint256 protocolFee;
+        uint256 netAmount;
+    }
+
     ISwapRouter public immutable swapRouter;
     IUniswapV3PositionManager private immutable positionManager;
     mapping(bytes32 => PartialSettlement) public partialSettlements;
@@ -87,20 +93,22 @@ contract AcrossV3Settler is IV3Settler, AcrossSettler {
             }
 
             // determine if a swap is needed
-            uint256 totalFeesInBps = protocolFeeBps + settlementParams.senderFeeBps;
-            uint256 amountToTrade = token == settlementParams.token0
-                ? amount - (settlementParams.amount0Min * (10000 - totalFeesInBps)) / 10000
-                : amount - (settlementParams.amount1Min * (10000 - totalFeesInBps)) / 10000;
-            uint256 amountOut = 0;
-            if (amountToTrade > 0) {
-                // swap the base token for the other token
-                amountOut = swapRouter.swap(
-                    token,
-                    settlementParams.token0 == token ? settlementParams.token1 : settlementParams.token0,
-                    settlementParams.feeTier,
-                    amountToTrade,
-                    0
-                );
+            uint256 amountOut;
+            {
+                uint256 totalFeesInBps = protocolFeeBps + settlementParams.senderFeeBps;
+                uint256 amountToTrade = token == settlementParams.token0
+                    ? amount - (settlementParams.amount0Min * (10000 - totalFeesInBps)) / 10000
+                    : amount - (settlementParams.amount1Min * (10000 - totalFeesInBps)) / 10000;
+                if (amountToTrade > 0) {
+                    // swap the base token for the other token
+                    amountOut = swapRouter.swap(
+                        token,
+                        settlementParams.token0 == token ? settlementParams.token1 : settlementParams.token0,
+                        settlementParams.feeTier,
+                        amountToTrade,
+                        0
+                    );
+                }
             }
 
             uint256 amount0Desired = 0;
@@ -169,14 +177,11 @@ contract AcrossV3Settler is IV3Settler, AcrossSettler {
                 }
 
                 // match up amounts to tokens
-                (uint256 amount0, uint256 amount1) = token == settlementParams.token0
-                    ? (amount, partialSettlement.amount)
-                    : (partialSettlement.amount, amount);
+                AmountBreakdown memory amount0 =
+                    _breakdownAmount(token == settlementParams.token0 ? amount : partialSettlement.amount, message);
+                AmountBreakdown memory amount1 =
+                    _breakdownAmount(token == settlementParams.token0 ? partialSettlement.amount : amount, message);
 
-                (uint256 senderFeeAmount0, uint256 protocolFeeAmount0) = _calculateFees(amount0, message);
-                (uint256 senderFeeAmount1, uint256 protocolFeeAmount1) = _calculateFees(amount1, message);
-                uint256 amount0Desired = amount0 - senderFeeAmount0 - protocolFeeAmount0;
-                uint256 amount1Desired = amount1 - senderFeeAmount1 - protocolFeeAmount1;
                 // mint the new position
                 (uint256 tokenId,, uint256 amount0Paid, uint256 amount1Paid) = positionManager.mintPosition(
                     settlementParams.token0,
@@ -184,20 +189,20 @@ contract AcrossV3Settler is IV3Settler, AcrossSettler {
                     settlementParams.feeTier,
                     settlementParams.tickLower,
                     settlementParams.tickUpper,
-                    amount0Desired,
-                    amount1Desired,
+                    amount0.netAmount,
+                    amount1.netAmount,
                     settlementParams.recipient
                 );
 
                 // refund any leftovers
-                if (amount0Paid < amount0Desired) {
+                if (amount0Paid < amount0.netAmount) {
                     IERC20(settlementParams.token0).safeTransfer(
-                        settlementParams.recipient, amount0Desired - amount0Paid
+                        settlementParams.recipient, amount0.netAmount - amount0Paid
                     );
                 }
-                if (amount1Paid < amount1Desired) {
+                if (amount1Paid < amount1.netAmount) {
                     IERC20(settlementParams.token1).safeTransfer(
-                        settlementParams.recipient, amount1Desired - amount1Paid
+                        settlementParams.recipient, amount1.netAmount - amount1Paid
                     );
                 }
 
@@ -205,17 +210,17 @@ contract AcrossV3Settler is IV3Settler, AcrossSettler {
                 delete partialSettlements[migrationId];
 
                 // transfer fees to the protocol and sender
-                if (protocolFeeAmount0 > 0) {
-                    IERC20(settlementParams.token0).transfer(protocolFeeRecipient, protocolFeeAmount0);
+                if (amount0.protocolFee > 0) {
+                    IERC20(settlementParams.token0).transfer(protocolFeeRecipient, amount0.protocolFee);
                 }
-                if (protocolFeeAmount1 > 0) {
-                    IERC20(settlementParams.token1).transfer(protocolFeeRecipient, protocolFeeAmount1);
+                if (amount1.protocolFee > 0) {
+                    IERC20(settlementParams.token1).transfer(protocolFeeRecipient, amount0.protocolFee);
                 }
-                if (senderFeeAmount0 > 0) {
-                    IERC20(settlementParams.token0).transfer(settlementParams.senderFeeRecipient, senderFeeAmount0);
+                if (amount0.senderFee > 0) {
+                    IERC20(settlementParams.token0).transfer(settlementParams.senderFeeRecipient, amount0.senderFee);
                 }
-                if (senderFeeAmount1 > 0) {
-                    IERC20(settlementParams.token1).transfer(settlementParams.senderFeeRecipient, senderFeeAmount1);
+                if (amount1.senderFee > 0) {
+                    IERC20(settlementParams.token1).transfer(settlementParams.senderFeeRecipient, amount1.senderFee);
                 }
                 emit FullySettled(
                     migrationId,
@@ -223,8 +228,8 @@ contract AcrossV3Settler is IV3Settler, AcrossSettler {
                     tokenId,
                     amount0Paid,
                     amount1Paid,
-                    amount0Desired - amount0Paid,
-                    amount1Desired - amount1Paid
+                    amount0.netAmount - amount0Paid,
+                    amount1.netAmount - amount1Paid
                 );
                 return tokenId;
             }
@@ -233,5 +238,15 @@ contract AcrossV3Settler is IV3Settler, AcrossSettler {
 
     function withdraw(bytes32 migrationId) external {
         _refund(migrationId);
+    }
+
+    function _breakdownAmount(uint256 amount, bytes memory message) private view returns (AmountBreakdown memory) {
+        (uint256 senderFeeAmount, uint256 protocolFeeAmount) = _calculateFees(amount, message);
+
+        return AmountBreakdown({
+            senderFee: senderFeeAmount,
+            protocolFee: protocolFeeAmount,
+            netAmount: amount - senderFeeAmount - protocolFeeAmount
+        });
     }
 }

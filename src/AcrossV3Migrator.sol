@@ -41,36 +41,40 @@ contract AcrossV3Migrator is IAcrossMigrator, AcrossMigrator {
             revert NoAcrossRoutesFound();
         } else if (numRoutes == 1) {
             // singleToken path
-            // liquidate position
-            (address token0, address token1, uint24 feeTier, uint256 amount0, uint256 amount1) =
-                positionManager.liquidatePosition(tokenId, address(this));
-
-            // get the amount of input token to swap
-            address tokenInForSwap = address(0);
-            uint256 amountInForSwap = 0;
-            uint256 amountOutputAlreadyAvailable = 0;
-
             AcrossRoute memory route = migrationParams.acrossRoutes[0];
 
-            // confirm that at least one of the tokens is the route input token
-            if (token0 != route.inputToken && token1 != route.inputToken) revert RouteInputTokenNotFound(0);
+            uint256 amountInForBridge;
+            {
+                // liquidate position
+                (address token0, address token1, uint24 feeTier, uint256 amount0, uint256 amount1) =
+                    positionManager.liquidatePosition(tokenId, address(this));
 
-            // determine which token to swap
-            if (token0 == route.inputToken && amount1 > 0) {
-                tokenInForSwap = token1;
-                amountInForSwap = amount1;
-                amountOutputAlreadyAvailable = amount0;
-            } else if (token1 == route.inputToken && amount0 > 0) {
-                tokenInForSwap = token0;
-                amountInForSwap = amount0;
-                amountOutputAlreadyAvailable = amount1;
+                // get the amount of input token to swap
+                address tokenInForSwap = address(0);
+                uint256 amountInForSwap = 0;
+                uint256 amountOutputAlreadyAvailable = 0;
+
+                // confirm that at least one of the tokens is the route input token
+                if (token0 != route.inputToken && token1 != route.inputToken) revert RouteInputTokenNotFound(0);
+
+                // determine which token to swap
+                if (token0 == route.inputToken && amount1 > 0) {
+                    tokenInForSwap = token1;
+                    amountInForSwap = amount1;
+                    amountOutputAlreadyAvailable = amount0;
+                } else if (token1 == route.inputToken && amount0 > 0) {
+                    tokenInForSwap = token0;
+                    amountInForSwap = amount0;
+                    amountOutputAlreadyAvailable = amount1;
+                }
+
+                uint256 amountOut = 0;
+                if (amountInForSwap > 0) {
+                    amountOut = swapRouter.swap(tokenInForSwap, route.inputToken, feeTier, amountInForSwap, 0);
+                }
+                amountInForBridge = amountOut + amountOutputAlreadyAvailable;
             }
 
-            uint256 amountOut = 0;
-            if (amountInForSwap > 0) {
-                amountOut = swapRouter.swap(tokenInForSwap, route.inputToken, feeTier, amountInForSwap, 0);
-            }
-            uint256 amountInForBridge = amountOut + amountOutputAlreadyAvailable;
             spokePool.bridge(
                 from,
                 migrationParams.baseParams.destinationChainId,
