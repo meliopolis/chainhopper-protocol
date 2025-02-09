@@ -214,7 +214,7 @@ contract AcrossV3Settler is IV3Settler, AcrossSettler {
                     IERC20(settlementParams.token0).transfer(protocolFeeRecipient, amount0.protocolFee);
                 }
                 if (amount1.protocolFee > 0) {
-                    IERC20(settlementParams.token1).transfer(protocolFeeRecipient, amount0.protocolFee);
+                    IERC20(settlementParams.token1).transfer(protocolFeeRecipient, amount1.protocolFee);
                 }
                 if (amount0.senderFee > 0) {
                     IERC20(settlementParams.token0).transfer(settlementParams.senderFeeRecipient, amount0.senderFee);

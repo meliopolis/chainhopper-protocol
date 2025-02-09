@@ -528,33 +528,442 @@ contract AcrossV3SettlerTest is Test {
     * Dual token tests
     */
 
-    function test__settle_migrationId_token0Received() public {}
+    function test__settle_migrationId_token0Received() public {
+        bytes32 migrationId = keccak256("migrationId");
 
-    function test__settle_migrationId_token1Received() public {}
+        // deal baseToken to settler
+        deal(baseToken, address(acrossV3SettlerHarness), 1 ether);
 
-    function test__settle_migrationId_token0Received_token1Received_BridgedTokenNotUsedInPosition() public {}
+        // generate settlement params
+        bytes memory migrationIdAndSettlementParams =
+            this.generateSettlementParams(1 ether, 1_000_000_000, 0, Range.AboveTick, true, migrationId);
 
-    function test__settle_migrationId_token1Received_token0Received_BridgedTokenNotUsedInPosition() public {}
+        // Partially Settled
+        vm.expectEmit(true, true, true, true);
+        emit ISettler.PartiallySettled(migrationId, user, baseToken, 1 ether);
 
-    function test_settle_migrationId_token0ReceivedTwice_BridgedTokensMustBeDifferent() public {}
+        acrossV3SettlerHarness.exposed_settle(baseToken, 1 ether, migrationIdAndSettlementParams);
+    }
 
-    function test_settle_migrationId_token1ReceivedTwice_BridgedTokensMustBeDifferent() public {}
+    function test__settle_migrationId_token1Received() public {
+        bytes32 migrationId = keccak256("migrationId");
 
-    function test__settle_migrationId_token0Received_token1Received_SettlementParamsMismatch() public {}
+        // deal usdc to settler
+        deal(usdc, address(acrossV3SettlerHarness), 1_000_000_000);
 
-    function test__settle_migrationId_token1Received_token0Received_SettlementParamsMismatch() public {}
+        // generate settlement params
+        bytes memory migrationIdAndSettlementParams =
+            this.generateSettlementParams(1 ether, 1_000_000_000, 0, Range.AboveTick, true, migrationId);
 
-    function test_settle_migrationId_mintFailure_token0Received_token1Received() public {}
+        // Partially Settled
+        vm.expectEmit(true, true, true, true);
+        emit ISettler.PartiallySettled(migrationId, user, usdc, 1_000_000_000);
 
-    function test_settle_migrationId_mintFailure_token1Received_token0Received() public {}
+        acrossV3SettlerHarness.exposed_settle(usdc, 1_000_000_000, migrationIdAndSettlementParams);
+    }
 
-    function test_settle_migrationId_mintSuccess_token0Received_token1Received_bothFeesNonZero() public {}
+    function test__settle_migrationId_token0Received_token1Received_BridgedTokenNotUsedInPosition() public {
+        bytes32 migrationId = keccak256("migrationId");
 
-    function test_settle_migrationId_mintSuccess_token0Received_token1Received_bothFeesZero() public {}
+        // deal tokens to settler
+        deal(baseToken, address(acrossV3SettlerHarness), 1 ether);
+        deal(virtualToken, address(acrossV3SettlerHarness), 1_000_000_000);
 
-    function test_settle_migrationId_mintSuccess_token0Received_token1Received_OnlyProtocolFee() public {}
+        // generate settlement params
+        bytes memory migrationIdAndSettlementParams =
+            this.generateSettlementParams(1 ether, 1_000_000_000, 0, Range.AboveTick, true, migrationId);
 
-    function test_settle_migrationId_mintSuccess_token1Received_token0Received_OnlySenderFee() public {}
+        // Partially Settled
+        vm.expectEmit(true, true, true, true);
+        emit ISettler.PartiallySettled(migrationId, user, baseToken, 1 ether);
 
-    function test_withdraw() public {}
+        acrossV3SettlerHarness.exposed_settle(baseToken, 1 ether, migrationIdAndSettlementParams);
+
+        // Bridged token ont used in position
+        vm.expectRevert(AcrossSettler.BridgedTokenMustBeUsedInPosition.selector);
+
+        acrossV3SettlerHarness.exposed_settle(virtualToken, 1_000_000_000, migrationIdAndSettlementParams);
+    }
+
+    function test__settle_migrationId_token1Received_token0Received_BridgedTokenNotUsedInPosition() public {
+        bytes32 migrationId = keccak256("migrationId");
+
+        // deal tokens to settler
+        deal(virtualToken, address(acrossV3SettlerHarness), 1_000_000_000);
+        deal(usdc, address(acrossV3SettlerHarness), 1_000_000_000);
+
+        // generate settlement params
+        bytes memory migrationIdAndSettlementParams =
+            this.generateSettlementParams(1 ether, 1_000_000_000, 0, Range.AboveTick, true, migrationId);
+
+        // Partially Settled
+        vm.expectEmit(true, true, true, true);
+        emit ISettler.PartiallySettled(migrationId, user, usdc, 1_000_000_000);
+
+        acrossV3SettlerHarness.exposed_settle(usdc, 1_000_000_000, migrationIdAndSettlementParams);
+
+        // Bridged token ont used in position
+        vm.expectRevert(AcrossSettler.BridgedTokenMustBeUsedInPosition.selector);
+
+        acrossV3SettlerHarness.exposed_settle(virtualToken, 1_000_000_000, migrationIdAndSettlementParams);
+    }
+
+    function test_settle_migrationId_token0ReceivedTwice_BridgedTokensMustBeDifferent() public {
+        bytes32 migrationId = keccak256("migrationId");
+
+        // deal base token to settler
+        deal(baseToken, address(acrossV3SettlerHarness), 2 ether);
+
+        // generate settlement params
+        bytes memory migrationIdAndSettlementParams =
+            this.generateSettlementParams(1 ether, 1_000_000_000, 0, Range.AboveTick, true, migrationId);
+
+        // Partially Settled
+        vm.expectEmit(true, true, true, true);
+        emit ISettler.PartiallySettled(migrationId, user, baseToken, 1 ether);
+
+        acrossV3SettlerHarness.exposed_settle(baseToken, 1 ether, migrationIdAndSettlementParams);
+
+        // Bridged token must be different
+        vm.expectRevert(AcrossSettler.BridgedTokensMustBeDifferent.selector);
+
+        acrossV3SettlerHarness.exposed_settle(baseToken, 1 ether, migrationIdAndSettlementParams);
+    }
+
+    function test_settle_migrationId_token1ReceivedTwice_BridgedTokensMustBeDifferent() public {
+        bytes32 migrationId = keccak256("migrationId");
+
+        // deal usdc to settler
+        deal(usdc, address(acrossV3SettlerHarness), 2_000_000_000);
+
+        // generate settlement params
+        bytes memory migrationIdAndSettlementParams =
+            this.generateSettlementParams(1 ether, 1_000_000_000, 0, Range.AboveTick, true, migrationId);
+
+        // Partially Settled
+        vm.expectEmit(true, true, true, true);
+        emit ISettler.PartiallySettled(migrationId, user, usdc, 1_000_000_000);
+
+        acrossV3SettlerHarness.exposed_settle(usdc, 1_000_000_000, migrationIdAndSettlementParams);
+
+        // Bridged token must be different
+        vm.expectRevert(AcrossSettler.BridgedTokensMustBeDifferent.selector);
+
+        acrossV3SettlerHarness.exposed_settle(usdc, 1_000_000_000, migrationIdAndSettlementParams);
+    }
+
+    function test__settle_migrationId_token0Received_token1Received_SettlementParamsMismatch() public {
+        bytes32 migrationId = keccak256("migrationId");
+
+        // deal tokens to settler
+        deal(baseToken, address(acrossV3SettlerHarness), 1 ether);
+        deal(usdc, address(acrossV3SettlerHarness), 1_000_000_000);
+
+        // generate settlement params
+        bytes memory migrationIdAndSettlementParams1 =
+            this.generateSettlementParams(1 ether, 1_000_000_000, 0, Range.AboveTick, true, migrationId);
+        bytes memory migrationIdAndSettlementParams2 =
+            this.generateSettlementParams(1 ether, 1_000_000_000, 0, Range.BelowTick, true, migrationId);
+
+        // Partially Settled
+        vm.expectEmit(true, true, true, true);
+        emit ISettler.PartiallySettled(migrationId, user, baseToken, 1 ether);
+
+        acrossV3SettlerHarness.exposed_settle(baseToken, 1 ether, migrationIdAndSettlementParams1);
+
+        // Settlement params do not match
+        vm.expectRevert(IV3Settler.SettlementParamsDoNotMatch.selector);
+
+        acrossV3SettlerHarness.exposed_settle(usdc, 1_000_000_000, migrationIdAndSettlementParams2);
+    }
+
+    function test__settle_migrationId_token1Received_token0Received_SettlementParamsMismatch() public {
+        bytes32 migrationId = keccak256("migrationId");
+
+        // deal tokens to settler
+        deal(baseToken, address(acrossV3SettlerHarness), 1 ether);
+        deal(usdc, address(acrossV3SettlerHarness), 1_000_000_000);
+
+        // generate settlement params
+        bytes memory migrationIdAndSettlementParams1 =
+            this.generateSettlementParams(1 ether, 1_000_000_000, 0, Range.AboveTick, true, migrationId);
+        bytes memory migrationIdAndSettlementParams2 =
+            this.generateSettlementParams(1 ether, 1_000_000_000, 0, Range.BelowTick, true, migrationId);
+
+        // Partially Settled
+        vm.expectEmit(true, true, true, true);
+        emit ISettler.PartiallySettled(migrationId, user, usdc, 1_000_000_000);
+
+        acrossV3SettlerHarness.exposed_settle(usdc, 1_000_000_000, migrationIdAndSettlementParams1);
+
+        // Settlement params do not match
+        vm.expectRevert(IV3Settler.SettlementParamsDoNotMatch.selector);
+
+        acrossV3SettlerHarness.exposed_settle(baseToken, 1 ether, migrationIdAndSettlementParams2);
+    }
+
+    function test_settle_migrationId_mintFailure_token0Received_token1Received() public {
+        bytes32 migrationId = keccak256("migrationId");
+
+        // deal tokens to settler
+        deal(baseToken, address(acrossV3SettlerHarness), 1 ether);
+        deal(usdc, address(acrossV3SettlerHarness), 1_000_000_000);
+
+        // generate settlement params
+        bytes memory migrationIdAndSettlementParams =
+            this.generateSettlementParams(baseToken, usdc, 0, 0, 0, 1 ether, 1_000_000_000, 0, address(0), migrationId);
+
+        // Partially Settled
+        vm.expectEmit(true, true, true, true);
+        emit ISettler.PartiallySettled(migrationId, user, baseToken, 1 ether);
+
+        acrossV3SettlerHarness.exposed_settle(baseToken, 1 ether, migrationIdAndSettlementParams);
+
+        // Refund bridged token to recipient
+        vm.expectEmit(true, true, false, true, address(usdc));
+        emit IERC20.Transfer(address(acrossV3SettlerHarness), user, 1_000_000_000);
+
+        // Refund partial settlement token to recipient
+        vm.expectEmit(true, true, false, true, address(baseToken));
+        emit IERC20.Transfer(address(acrossV3SettlerHarness), user, 1 ether);
+
+        vm.prank(spokePool);
+        acrossV3SettlerHarness.handleV3AcrossMessage(usdc, 1_000_000_000, address(0), migrationIdAndSettlementParams);
+    }
+
+    function test_settle_migrationId_mintFailure_token1Received_token0Received() public {
+        bytes32 migrationId = keccak256("migrationId");
+
+        // deal tokens to settler
+        deal(baseToken, address(acrossV3SettlerHarness), 1 ether);
+        deal(usdc, address(acrossV3SettlerHarness), 1_000_000_000);
+
+        // generate settlement params
+        bytes memory migrationIdAndSettlementParams =
+            this.generateSettlementParams(baseToken, usdc, 0, 0, 0, 1 ether, 1_000_000_000, 0, address(0), migrationId);
+
+        // Partially Settled
+        vm.expectEmit(true, true, true, true);
+        emit ISettler.PartiallySettled(migrationId, user, usdc, 1_000_000_000);
+
+        acrossV3SettlerHarness.exposed_settle(usdc, 1_000_000_000, migrationIdAndSettlementParams);
+
+        // Refund bridged token to recipient
+        vm.expectEmit(true, true, false, true, address(baseToken));
+        emit IERC20.Transfer(address(acrossV3SettlerHarness), user, 1 ether);
+
+        // Refund partial settlement token to recipient
+        vm.expectEmit(true, true, false, true, address(usdc));
+        emit IERC20.Transfer(address(acrossV3SettlerHarness), user, 1_000_000_000);
+
+        vm.prank(spokePool);
+        acrossV3SettlerHarness.handleV3AcrossMessage(baseToken, 1 ether, address(0), migrationIdAndSettlementParams);
+    }
+
+    function test_settle_migrationId_mintSuccess_token0Received_token1Received_bothFeesNonZero() public {
+        bytes32 migrationId = keccak256("migrationId");
+        IUniswapV3Factory factory = IUniswapV3Factory(INonfungiblePositionManager(nftPositionManager).factory());
+        IUniswapV3Pool pool = IUniswapV3Pool(factory.getPool(baseToken, usdc, 500));
+
+        // deal tokens to settler
+        deal(baseToken, address(acrossV3SettlerHarness), 1 ether);
+        deal(usdc, address(acrossV3SettlerHarness), 1_000_000_000);
+
+        // generate settlement params
+        bytes memory migrationIdAndSettlementParams =
+            this.generateSettlementParams(1 ether, 1_000_000_000, 0, Range.AboveTick, true, migrationId);
+
+        // Partially Settled
+        vm.expectEmit(true, true, true, true);
+        emit ISettler.PartiallySettled(migrationId, user, baseToken, 1 ether);
+
+        acrossV3SettlerHarness.exposed_settle(baseToken, 1 ether, migrationIdAndSettlementParams);
+
+        // Settled
+        vm.expectEmit(true, true, false, false, baseToken);
+        emit IERC20.Transfer(address(acrossV3SettlerHarness), address(pool), 9.975e17);
+
+        vm.expectEmit(true, true, false, false, nftPositionManager);
+        emit IERC721.Transfer(address(0), user, 0);
+
+        vm.expectEmit(true, true, false, true, usdc);
+        emit IERC20.Transfer(address(acrossV3SettlerHarness), user, 9.975e8);
+
+        vm.expectEmit(true, true, false, true, baseToken);
+        emit IERC20.Transfer(address(acrossV3SettlerHarness), protocolFeeRecipient, 1.375e15);
+
+        vm.expectEmit(true, true, false, true, usdc);
+        emit IERC20.Transfer(address(acrossV3SettlerHarness), protocolFeeRecipient, 1.375e6);
+
+        vm.expectEmit(true, true, false, true, baseToken);
+        emit IERC20.Transfer(address(acrossV3SettlerHarness), senderWallet, 1.125e15);
+
+        vm.expectEmit(true, true, false, true, usdc);
+        emit IERC20.Transfer(address(acrossV3SettlerHarness), senderWallet, 1.125e6);
+
+        acrossV3SettlerHarness.exposed_settle(usdc, 1_000_000_000, migrationIdAndSettlementParams);
+    }
+
+    function test_settle_migrationId_mintSuccess_token0Received_token1Received_bothFeesZero() public {
+        bytes32 migrationId = keccak256("migrationId");
+        IUniswapV3Factory factory = IUniswapV3Factory(INonfungiblePositionManager(nftPositionManager).factory());
+        IUniswapV3Pool pool = IUniswapV3Pool(factory.getPool(baseToken, usdc, 500));
+        (, int24 currentTick,,,,,) = pool.slot0();
+
+        vm.startPrank(owner);
+        acrossV3SettlerHarness.setProtocolFeeBps(0);
+        acrossV3SettlerHarness.setProtocolShareOfSenderFeeInPercent(0);
+        vm.stopPrank();
+
+        // deal tokens to settler
+        deal(baseToken, address(acrossV3SettlerHarness), 1 ether);
+        deal(usdc, address(acrossV3SettlerHarness), 1_000_000_000);
+
+        // generate settlement params
+        bytes memory migrationIdAndSettlementParams = this.generateSettlementParams(
+            baseToken,
+            usdc,
+            500,
+            (currentTick + 30000) / 30000 * 30000,
+            (currentTick + 60000) / 30000 * 30000,
+            1 ether,
+            1_000_000,
+            0,
+            address(0),
+            migrationId
+        );
+
+        // Partially Settled
+        vm.expectEmit(true, true, true, true);
+        emit ISettler.PartiallySettled(migrationId, user, baseToken, 1 ether);
+
+        acrossV3SettlerHarness.exposed_settle(baseToken, 1 ether, migrationIdAndSettlementParams);
+
+        // Settled
+        vm.expectEmit(true, true, false, false, baseToken);
+        emit IERC20.Transfer(address(acrossV3SettlerHarness), address(pool), 1 ether);
+
+        vm.expectEmit(true, true, false, false, nftPositionManager);
+        emit IERC721.Transfer(address(0), user, 0);
+
+        vm.expectEmit(true, true, false, true, usdc);
+        emit IERC20.Transfer(address(acrossV3SettlerHarness), user, 1_000_000_000);
+
+        acrossV3SettlerHarness.exposed_settle(usdc, 1_000_000_000, migrationIdAndSettlementParams);
+    }
+
+    function test_settle_migrationId_mintSuccess_token0Received_token1Received_OnlyProtocolFee() public {
+        bytes32 migrationId = keccak256("migrationId");
+        IUniswapV3Factory factory = IUniswapV3Factory(INonfungiblePositionManager(nftPositionManager).factory());
+        IUniswapV3Pool pool = IUniswapV3Pool(factory.getPool(baseToken, usdc, 500));
+        (, int24 currentTick,,,,,) = pool.slot0();
+
+        // deal tokens to settler
+        deal(baseToken, address(acrossV3SettlerHarness), 1 ether);
+        deal(usdc, address(acrossV3SettlerHarness), 1_000_000_000);
+
+        // generate settlement params
+        bytes memory migrationIdAndSettlementParams = this.generateSettlementParams(
+            baseToken,
+            usdc,
+            500,
+            (currentTick + 30000) / 30000 * 30000,
+            (currentTick + 60000) / 30000 * 30000,
+            1 ether,
+            1_000_000,
+            0,
+            address(0),
+            migrationId
+        );
+
+        // Partially Settled
+        vm.expectEmit(true, true, true, true);
+        emit ISettler.PartiallySettled(migrationId, user, baseToken, 1 ether);
+
+        acrossV3SettlerHarness.exposed_settle(baseToken, 1 ether, migrationIdAndSettlementParams);
+
+        // Settled
+        vm.expectEmit(true, true, false, false, baseToken);
+        emit IERC20.Transfer(address(acrossV3SettlerHarness), address(pool), 9.99e17);
+
+        vm.expectEmit(true, true, false, false, nftPositionManager);
+        emit IERC721.Transfer(address(0), user, 0);
+
+        vm.expectEmit(true, true, false, true, usdc);
+        emit IERC20.Transfer(address(acrossV3SettlerHarness), user, 9.99e8);
+
+        vm.expectEmit(true, true, false, true, baseToken);
+        emit IERC20.Transfer(address(acrossV3SettlerHarness), protocolFeeRecipient, 1e15);
+
+        vm.expectEmit(true, true, false, true, usdc);
+        emit IERC20.Transfer(address(acrossV3SettlerHarness), protocolFeeRecipient, 1e6);
+
+        acrossV3SettlerHarness.exposed_settle(usdc, 1_000_000_000, migrationIdAndSettlementParams);
+    }
+
+    function test_settle_migrationId_mintSuccess_token0Received_token1Received_OnlySenderFee() public {
+        bytes32 migrationId = keccak256("migrationId");
+        IUniswapV3Factory factory = IUniswapV3Factory(INonfungiblePositionManager(nftPositionManager).factory());
+        IUniswapV3Pool pool = IUniswapV3Pool(factory.getPool(baseToken, usdc, 500));
+
+        vm.startPrank(owner);
+        acrossV3SettlerHarness.setProtocolFeeBps(0);
+        acrossV3SettlerHarness.setProtocolShareOfSenderFeeInPercent(0);
+        vm.stopPrank();
+
+        // deal tokens to settler
+        deal(baseToken, address(acrossV3SettlerHarness), 1 ether);
+        deal(usdc, address(acrossV3SettlerHarness), 1_000_000_000);
+
+        // generate settlement params
+        bytes memory migrationIdAndSettlementParams =
+            this.generateSettlementParams(1 ether, 1_000_000_000, 0, Range.AboveTick, true, migrationId);
+
+        // Partially Settled
+        vm.expectEmit(true, true, true, true);
+        emit ISettler.PartiallySettled(migrationId, user, baseToken, 1 ether);
+
+        acrossV3SettlerHarness.exposed_settle(baseToken, 1 ether, migrationIdAndSettlementParams);
+
+        // Settled
+        vm.expectEmit(true, true, false, false, baseToken);
+        emit IERC20.Transfer(address(acrossV3SettlerHarness), address(pool), 9.985e17);
+
+        vm.expectEmit(true, true, false, false, nftPositionManager);
+        emit IERC721.Transfer(address(0), user, 0);
+
+        vm.expectEmit(true, true, false, true, usdc);
+        emit IERC20.Transfer(address(acrossV3SettlerHarness), user, 9.985e8);
+
+        vm.expectEmit(true, true, false, false, baseToken);
+        emit IERC20.Transfer(address(acrossV3SettlerHarness), senderWallet, 1.5e15);
+
+        vm.expectEmit(true, true, false, true, usdc);
+        emit IERC20.Transfer(address(acrossV3SettlerHarness), senderWallet, 1.5e6);
+
+        acrossV3SettlerHarness.exposed_settle(usdc, 1_000_000_000, migrationIdAndSettlementParams);
+    }
+
+    function test_withdraw() public {
+        bytes32 migrationId = keccak256("migrationId");
+
+        // deal baseToken to settler
+        deal(baseToken, address(acrossV3SettlerHarness), 1 ether);
+
+        // generate settlement params
+        bytes memory migrationIdAndSettlementParams =
+            this.generateSettlementParams(1 ether, 0, 0, Range.AboveTick, true, migrationId);
+
+        // Partially Settled
+        vm.expectEmit(true, true, true, true);
+        emit ISettler.PartiallySettled(migrationId, user, baseToken, 1 ether);
+
+        acrossV3SettlerHarness.exposed_settle(baseToken, 1 ether, migrationIdAndSettlementParams);
+
+        // Refund to recipient
+        vm.expectEmit(true, true, false, true, address(baseToken));
+        emit IERC20.Transfer(address(acrossV3SettlerHarness), user, 1 ether);
+
+        acrossV3SettlerHarness.withdraw(migrationId);
+    }
 }
