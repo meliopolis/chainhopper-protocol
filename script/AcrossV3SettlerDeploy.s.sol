@@ -51,6 +51,18 @@ forge script script/AcrossV3SettlerDeploy.s.sol:AcrossV3SettlerDeployScript \
     --verifier-url $ARBITRUM_ETHERSCAN_API_URL \
     --sig 'run(address,address,uint24,uint8,address,address)' \
     $ARBITRUM_SPOKE_POOL $PUBLIC_KEY 10 20 $ARBITRUM_SWAP_ROUTER $ARBITRUM_NFT_POSITION_MANAGER
+
+// deploy on unichain (note broadcast is missing from the command intentionally)
+forge script script/AcrossV3SettlerDeploy.s.sol:AcrossV3SettlerDeployScript \
+    --rpc-url $UNICHAIN_MAINNET_RPC_URL \
+    --private-key $PRIVATE_KEY \
+    --verifier-url $UNICHAIN_ETHERSCAN_API_URL \
+    --verifier-api-key $UNICHAIN_ETHERSCAN_API_KEY \
+    -vvvvv \
+    --slow \
+    --verify \
+    --sig 'run(address,address,uint24,uint8,address,address)' \
+    $UNICHAIN_SPOKE_POOL $PUBLIC_KEY 10 20 $UNICHAIN_SWAP_ROUTER $UNICHAIN_NFT_POSITION_MANAGER
 */
 
 contract AcrossV3SettlerDeployScript is Script {
@@ -63,7 +75,7 @@ contract AcrossV3SettlerDeployScript is Script {
         address positionManager
     ) public {
         vm.startBroadcast(vm.envAddress("PUBLIC_KEY"));
-        AcrossV3Settler migrator = new AcrossV3Settler(
+        AcrossV3Settler settler = new AcrossV3Settler(
             spokePool,
             protocolFeeRecipient,
             protocolFeeBps,
@@ -71,7 +83,7 @@ contract AcrossV3SettlerDeployScript is Script {
             swapRouter,
             positionManager
         );
-        console.log("AcrossV3Settler deployed at:", address(migrator));
+        console.log("AcrossV3Settler deployed at:", address(settler));
         vm.stopBroadcast();
     }
 

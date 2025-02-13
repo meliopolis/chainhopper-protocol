@@ -34,6 +34,16 @@ forge script script/AcrossV3MigratorDeploy.s.sol:AcrossV3MigratorDeployScript \
     --verify \
     --sig 'run(address,address,address)' \
     $BASE_NFT_POSITION_MANAGER $BASE_SPOKE_POOL $BASE_SWAP_ROUTER
+
+forge script script/AcrossV3MigratorDeploy.s.sol:AcrossV3MigratorDeployScript \
+    --rpc-url $UNICHAIN_MAINNET_RPC_URL \
+    --private-key $PRIVATE_KEY \
+    --etherscan-api-key $UNICHAIN_ETHERSCAN_API_KEY \
+    -vvvvv \
+    --slow \
+    --verify \
+    --sig 'run(address,address,address)' \
+    $UNICHAIN_NFT_POSITION_MANAGER $UNICHAIN_SPOKE_POOL $UNICHAIN_SWAP_ROUTER
 */
 
 contract AcrossV3MigratorDeployScript is Script {
