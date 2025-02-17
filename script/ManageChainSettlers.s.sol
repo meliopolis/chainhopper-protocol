@@ -12,7 +12,7 @@ forge script script/ManageChainSettlers.s.sol:ManageChainSettlerScript \
     --slow \
     --sig 'run(address)' $UNICHAIN_MIGRATOR
 */
-contract ManageChainSettlerScript is Script { 
+contract ManageChainSettlerScript is Script {
     function run(address migrator) public {
         vm.startBroadcast(vm.envAddress("PUBLIC_KEY"));
         AcrossV3Migrator(migrator).addChainSettler(8453, 0x691F0E6833362c9B96c0292bcd5Ce74f46300786);
