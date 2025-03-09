@@ -13,3 +13,6 @@
 [submodule "lib/uniswapUniversalRouter"]
 	path = lib/uniswapUniversalRouter
 	url = https://github.com/Uniswap/universal-router
+[submodule "lib/across"]
+	path = lib/across
+	url = https://github.com/across-protocol/contracts
