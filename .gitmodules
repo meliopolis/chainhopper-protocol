@@ -10,3 +10,6 @@
 [submodule "lib/uniswapV4Periphery"]
 	path = lib/uniswapV4Periphery
 	url = https://github.com/Uniswap/v4-periphery
+[submodule "lib/uniswapUniversalRouter"]
+	path = lib/uniswapUniversalRouter
+	url = https://github.com/Uniswap/universal-router
