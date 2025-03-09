@@ -1,7 +1,7 @@
 // // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-import {Script, console} from "lib/forge-std/src/Script.sol";
+import {Script, console} from "@forge-std/Script.sol";
 import {AcrossV3Migrator} from "../src/AcrossV3Migrator.sol";
 
 /*
@@ -12,7 +12,7 @@ forge script script/ManageChainSettlers.s.sol:ManageChainSettlerScript \
     --slow \
     --sig 'run(address)' $UNICHAIN_MIGRATOR
 */
-contract ManageChainSettlerScript is Script { 
+contract ManageChainSettlerScript is Script {
     function run(address migrator) public {
         vm.startBroadcast(vm.envAddress("PUBLIC_KEY"));
         AcrossV3Migrator(migrator).addChainSettler(8453, 0x691F0E6833362c9B96c0292bcd5Ce74f46300786);

@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-import {Test, console} from "lib/forge-std/src/Test.sol";
+import {Test, console} from "@forge-std/Test.sol";
 import {INonfungiblePositionManager} from "../../src/interfaces/external/INonfungiblePositionManager.sol";
-import {IERC20} from "lib/openzeppelin-contracts/contracts/interfaces/IERC20.sol";
+import {IERC20} from "@openzeppelin/interfaces/IERC20.sol";
 
 contract UniswapV3Helpers is Test {
     function mintV3Position(

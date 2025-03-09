@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.24;
 
-import {IERC721Receiver} from "lib/openzeppelin-contracts/contracts/token/ERC721/IERC721Receiver.sol";
+import {IERC721Receiver} from "@openzeppelin/token/ERC721/IERC721Receiver.sol";
 import {IAcrossV3SpokePool} from "../interfaces/external/IAcrossV3.sol";
 import {Migrator} from "./Migrator.sol";
 import {AcrossV3Library} from "../libraries/AcrossV3Library.sol";

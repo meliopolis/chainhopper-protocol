@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.24;
 
-import {Ownable2Step, Ownable} from "lib/openzeppelin-contracts/contracts/access/Ownable2Step.sol";
-import {IERC721Receiver} from "lib/openzeppelin-contracts/contracts/token/ERC721/IERC721Receiver.sol";
+import {Ownable2Step, Ownable} from "@openzeppelin/access/Ownable2Step.sol";
+import {IERC721Receiver} from "@openzeppelin/token/ERC721/IERC721Receiver.sol";
 import {IMigrator} from "../interfaces/IMigrator.sol";
 import {IUniswapV3PositionManager} from "../interfaces/external/IUniswapV3.sol";
 import {UniswapV3Library} from "../libraries/UniswapV3Library.sol";

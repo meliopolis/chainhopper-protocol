@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.24;
 
+import {Ownable2Step, Ownable} from "@openzeppelin/access/Ownable2Step.sol";
+import {IERC20} from "@openzeppelin/token/ERC20/IERC20.sol";
 import {ISettler} from "../interfaces/ISettler.sol";
-import {Ownable2Step, Ownable} from "lib/openzeppelin-contracts/contracts/access/Ownable2Step.sol";
-import {IERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 
 abstract contract Settler is ISettler, Ownable2Step {
     uint24 public protocolFeeBps; // out of 10000; ex: 10bps is 10

@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-import {Test, console} from "lib/forge-std/src/Test.sol";
-import {Ownable} from "lib/openzeppelin-contracts/contracts/access/Ownable.sol";
-import {IERC721} from "lib/openzeppelin-contracts/contracts/token/ERC721/IERC721.sol";
-import {IERC721Errors} from "lib/openzeppelin-contracts/contracts/interfaces/draft-IERC6093.sol";
+import {Test, console} from "@forge-std/Test.sol";
+import {Ownable} from "@openzeppelin/access/Ownable.sol";
+import {IERC721} from "@openzeppelin/token/ERC721/IERC721.sol";
+import {IERC721Errors} from "@openzeppelin/interfaces/draft-IERC6093.sol";
 import {UniswapV3Helpers} from "./utils/UniswapV3Helpers.t.sol";
 import {BaseMigrator} from "./mocks/Migrator.sol";
 import {BasicNft} from "./mocks/BasicNft.sol";

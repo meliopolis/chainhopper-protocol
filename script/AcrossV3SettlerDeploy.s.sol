@@ -1,7 +1,7 @@
 // // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-import {Script, console} from "lib/forge-std/src/Script.sol";
+import {Script, console} from "@forge-std/Script.sol";
 import {AcrossV3Settler} from "../src/AcrossV3Settler.sol";
 
 /* Example command to run the script:

@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.24;
 
+import {SafeERC20} from "@openzeppelin/token/ERC20/utils/SafeERC20.sol";
+import {IERC20} from "@openzeppelin/token/ERC20/IERC20.sol";
 import {IV3Settler} from "./interfaces/IV3Settler.sol";
 import {AcrossSettler} from "./base/AcrossSettler.sol";
 import {Settler} from "./base/Settler.sol";
 import {ISwapRouter} from "./interfaces/external/IUniswapV3.sol";
 import {IUniswapV3PositionManager} from "./interfaces/external/IUniswapV3.sol";
 import {UniswapV3Library} from "./libraries/UniswapV3Library.sol";
-import {SafeERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
-import {IERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 
 contract AcrossV3Settler is IV3Settler, AcrossSettler {
     using UniswapV3Library for ISwapRouter;

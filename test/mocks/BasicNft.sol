@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.7;
 
-import "lib/openzeppelin-contracts/contracts/token/ERC721/ERC721.sol";
+import "@openzeppelin/token/ERC721/ERC721.sol";
 
 contract BasicNft is ERC721 {
     string public constant TOKEN_URI =
