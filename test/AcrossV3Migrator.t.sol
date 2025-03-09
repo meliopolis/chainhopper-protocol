@@ -10,7 +10,7 @@ import {IUniswapV3Factory} from "@uniswap-v3-core/interfaces/IUniswapV3Factory.s
 import {IUniswapV3Pool} from "@uniswap-v3-core/interfaces/IUniswapV3Pool.sol";
 import {IUniswapV3PoolEvents} from "@uniswap-v3-core/interfaces/pool/IUniswapV3PoolEvents.sol";
 import {INonfungiblePositionManager} from "@uniswap-v3-periphery/interfaces/INonfungiblePositionManager.sol";
-import {V3SpokePoolInterface} from "../src/interfaces/external/ISpokePool.sol";
+import {V3SpokePoolInterface} from "@across/interfaces/V3SpokePoolInterface.sol";
 import {UniswapV3Helpers} from "./utils/UniswapV3Helpers.t.sol";
 import {AcrossV3MigratorHarness} from "./mocks/AcrossV3MigratorHarness.sol";
 import {AcrossV3Migrator} from "../src/AcrossV3Migrator.sol";

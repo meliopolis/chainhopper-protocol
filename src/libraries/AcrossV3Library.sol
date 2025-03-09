@@ -3,14 +3,14 @@ pragma solidity ^0.8.13;
 
 import {IERC20} from "@openzeppelin/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/token/ERC20/utils/SafeERC20.sol";
-import {IAcrossV3SpokePool} from "../interfaces/external/IAcrossV3.sol";
+import {V3SpokePoolInterface} from "@across/interfaces/V3SpokePoolInterface.sol";
 import {IAcrossMigrator} from "../interfaces/IAcrossMigrator.sol";
 
 library AcrossV3Library {
     using SafeERC20 for IERC20;
 
     function bridge(
-        IAcrossV3SpokePool self,
+        V3SpokePoolInterface self,
         address sender,
         uint256 destinationChainId,
         address recipient,
@@ -43,7 +43,7 @@ library AcrossV3Library {
     }
 
     function bridge(
-        IAcrossV3SpokePool self,
+        V3SpokePoolInterface self,
         address sender,
         uint256 destinationChainId,
         address recipient,

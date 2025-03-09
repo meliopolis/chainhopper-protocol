@@ -2,10 +2,10 @@
 pragma solidity ^0.8.24;
 
 import {IERC20} from "@openzeppelin/token/ERC20/IERC20.sol";
-import {IAcrossV3SpokePoolMessageHandler} from "../interfaces/external/IAcrossV3.sol";
+import {AcrossMessageHandler} from "@across/interfaces/SpokePoolMessageHandler.sol";
 import {Settler} from "./Settler.sol";
 
-abstract contract AcrossSettler is Settler, IAcrossV3SpokePoolMessageHandler {
+abstract contract AcrossSettler is Settler, AcrossMessageHandler {
     error NotSpokePool();
     error BridgedTokenMustBeUsedInPosition();
     error BridgedTokensMustBeDifferent();
