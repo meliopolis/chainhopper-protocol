@@ -3,16 +3,16 @@ pragma solidity ^0.8.24;
 
 import {SafeERC20} from "@openzeppelin/token/ERC20/utils/SafeERC20.sol";
 import {IERC20} from "@openzeppelin/token/ERC20/IERC20.sol";
+import {INonfungiblePositionManager} from "@uniswap-v3-periphery/interfaces/INonfungiblePositionManager.sol";
+import {ISwapRouter} from "@uniswap-v3-periphery/interfaces/ISwapRouter.sol";
 import {IV3Settler} from "./interfaces/IV3Settler.sol";
 import {AcrossSettler} from "./base/AcrossSettler.sol";
 import {Settler} from "./base/Settler.sol";
-import {ISwapRouter} from "./interfaces/external/IUniswapV3.sol";
-import {IUniswapV3PositionManager} from "./interfaces/external/IUniswapV3.sol";
 import {UniswapV3Library} from "./libraries/UniswapV3Library.sol";
 
 contract AcrossV3Settler is IV3Settler, AcrossSettler {
     using UniswapV3Library for ISwapRouter;
-    using UniswapV3Library for IUniswapV3PositionManager;
+    using UniswapV3Library for INonfungiblePositionManager;
     using SafeERC20 for IERC20;
 
     struct PartialSettlement {
@@ -28,7 +28,7 @@ contract AcrossV3Settler is IV3Settler, AcrossSettler {
     }
 
     ISwapRouter public immutable swapRouter;
-    IUniswapV3PositionManager private immutable positionManager;
+    INonfungiblePositionManager private immutable positionManager;
     mapping(bytes32 => PartialSettlement) public partialSettlements;
 
     constructor(
@@ -40,7 +40,7 @@ contract AcrossV3Settler is IV3Settler, AcrossSettler {
         address _positionManager
     ) AcrossSettler(_spokePool) Settler(_protocolFeeBps, _protocolFeeRecipient, _protocolShareOfSenderFeeInPercent) {
         swapRouter = ISwapRouter(_swapRouter);
-        positionManager = IUniswapV3PositionManager(_positionManager);
+        positionManager = INonfungiblePositionManager(_positionManager);
     }
 
     function _getSenderFees(bytes memory message) internal view virtual override returns (uint24, address) {

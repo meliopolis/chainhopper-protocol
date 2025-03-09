@@ -5,15 +5,15 @@ import {Test, console} from "@forge-std/Test.sol";
 import {Ownable} from "@openzeppelin/access/Ownable.sol";
 import {IERC20} from "@openzeppelin/token/ERC20/IERC20.sol";
 import {IERC721} from "@openzeppelin/token/ERC721/IERC721.sol";
+import {IUniswapV3Factory} from "@uniswap-v3-core/interfaces/IUniswapV3Factory.sol";
+import {IUniswapV3Pool} from "@uniswap-v3-core/interfaces/IUniswapV3Pool.sol";
+import {IUniswapV3PoolEvents} from "@uniswap-v3-core/interfaces/pool/IUniswapV3PoolEvents.sol";
+import {INonfungiblePositionManager} from "@uniswap-v3-periphery/interfaces/INonfungiblePositionManager.sol";
 import {AcrossV3Settler} from "../src/AcrossV3Settler.sol";
 import {AcrossSettler} from "../src/base/AcrossSettler.sol";
 import {IV3Settler} from "../src/interfaces/IV3Settler.sol";
 import {ISettler} from "../src/interfaces/ISettler.sol";
 import {AcrossV3SettlerHarness} from "./mocks/AcrossV3SettlerHarness.sol";
-import {IUniswapV3Factory} from "lib/v3-core/contracts/interfaces/IUniswapV3Factory.sol";
-import {IUniswapV3Pool} from "lib/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
-import {IUniswapV3PoolEvents} from "lib/v3-core/contracts/interfaces/pool/IUniswapV3PoolEvents.sol";
-import {INonfungiblePositionManager} from "src/interfaces/external/INonfungiblePositionManager.sol";
 
 contract AcrossV3SettlerTest is Test {
     AcrossV3SettlerHarness public acrossV3SettlerHarness;

@@ -5,8 +5,14 @@ libs = ["lib"]
 via-ir = true
 solc_version = "0.8.24"
 remappings = [
+    "lib/uniswap-v3-periphery/:@openzeppelin/contracts/token/ERC721/=lib/openzeppelin/contracts/interfaces/",
+    "lib/uniswap-v3-periphery/:@uniswap/v3-core/=lib/uniswap-v3-core/",
     "@forge-std/=lib/forge-std/src/",
-    "@openzeppelin/=lib/openzeppelin/contracts/"
+    "@openzeppelin/=lib/openzeppelin/contracts/",
+    "@uniswap-v3-core/=lib/uniswap-v3-core/contracts/",
+    "@uniswap-v3-periphery/=lib/uniswap-v3-periphery/contracts/",
+    "@uniswap-v4-core/=lib/uniswap-v4-periphery/lib/v4-core/src/",
+    "@uniswap-v4-periphery/=lib/uniswap-v4-periphery/src/"
 ]
 
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options

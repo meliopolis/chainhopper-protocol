@@ -3,19 +3,19 @@ pragma solidity ^0.8.24;
 
 import {Ownable2Step, Ownable} from "@openzeppelin/access/Ownable2Step.sol";
 import {IERC721Receiver} from "@openzeppelin/token/ERC721/IERC721Receiver.sol";
+import {INonfungiblePositionManager} from "@uniswap-v3-periphery/interfaces/INonfungiblePositionManager.sol";
 import {IMigrator} from "../interfaces/IMigrator.sol";
-import {IUniswapV3PositionManager} from "../interfaces/external/IUniswapV3.sol";
 import {UniswapV3Library} from "../libraries/UniswapV3Library.sol";
 
 abstract contract Migrator is IMigrator, IERC721Receiver, Ownable2Step {
-    using UniswapV3Library for IUniswapV3PositionManager;
+    using UniswapV3Library for INonfungiblePositionManager;
 
-    IUniswapV3PositionManager public immutable positionManager;
+    INonfungiblePositionManager public immutable positionManager;
     mapping(uint256 => mapping(address => bool)) internal chainSettlers;
     uint256 internal _migrationCounter = 0;
 
     constructor(address _positionManager) Ownable(msg.sender) {
-        positionManager = IUniswapV3PositionManager(_positionManager);
+        positionManager = INonfungiblePositionManager(_positionManager);
     }
 
     function addChainSettler(uint256 chainID, address settler) external onlyOwner {

@@ -5,10 +5,10 @@ import {Test, console} from "@forge-std/Test.sol";
 import {Ownable} from "@openzeppelin/access/Ownable.sol";
 import {IERC721} from "@openzeppelin/token/ERC721/IERC721.sol";
 import {IERC721Errors} from "@openzeppelin/interfaces/draft-IERC6093.sol";
+import {INonfungiblePositionManager} from "@uniswap-v3-periphery/interfaces/INonfungiblePositionManager.sol";
 import {UniswapV3Helpers} from "./utils/UniswapV3Helpers.t.sol";
 import {BaseMigrator} from "./mocks/Migrator.sol";
 import {BasicNft} from "./mocks/BasicNft.sol";
-import {INonfungiblePositionManager} from "../src/interfaces/external/INonfungiblePositionManager.sol";
 import {IMigrator} from "../src/interfaces/IMigrator.sol";
 
 contract MigratorTest is Test, UniswapV3Helpers {

@@ -1,17 +1,17 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.24;
 
+import {INonfungiblePositionManager} from "@uniswap-v3-periphery/interfaces/INonfungiblePositionManager.sol";
+import {ISwapRouter} from "@uniswap-v3-periphery/interfaces/ISwapRouter.sol";
 import {AcrossMigrator} from "./base/AcrossMigrator.sol";
 import {IAcrossV3SpokePool} from "./interfaces/external/IAcrossV3.sol";
-import {IUniswapV3PositionManager} from "./interfaces/external/IUniswapV3.sol";
 import {UniswapV3Library} from "./libraries/UniswapV3Library.sol";
 import {AcrossV3Library} from "./libraries/AcrossV3Library.sol";
-import {ISwapRouter} from "./interfaces/external/IUniswapV3.sol";
 import {IAcrossMigrator} from "./interfaces/IAcrossMigrator.sol";
 import {IV3Settler} from "./interfaces/IV3Settler.sol";
 
 contract AcrossV3Migrator is IAcrossMigrator, AcrossMigrator {
-    using UniswapV3Library for IUniswapV3PositionManager;
+    using UniswapV3Library for INonfungiblePositionManager;
     using AcrossV3Library for IAcrossV3SpokePool;
     using UniswapV3Library for ISwapRouter;
 

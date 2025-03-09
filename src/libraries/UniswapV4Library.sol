@@ -2,7 +2,8 @@
 pragma solidity ^0.8.24;
 
 import {IERC20} from "@openzeppelin/token/ERC20/IERC20.sol";
-import {IHooks, IPositionManager} from "../interfaces/external/IUniswapV4.sol";
+import {IHooks} from "@uniswap-v4-core/interfaces/IHooks.sol";
+import {IPositionManager} from "@uniswap-v4-periphery/interfaces/IPositionManager.sol";
 
 library UniswapV4Library {
     type Currency is address;

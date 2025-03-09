@@ -3,7 +3,9 @@ pragma solidity ^0.8.13;
 
 import {IERC20} from "@openzeppelin/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/token/ERC20/utils/SafeERC20.sol";
-import {IUniswapV3Pool, IUniswapV3PositionManager, ISwapRouter} from "../interfaces/external/IUniswapV3.sol";
+import {IUniswapV3Pool} from "@uniswap-v3-core/interfaces/IUniswapV3Pool.sol";
+import {INonfungiblePositionManager} from "@uniswap-v3-periphery/interfaces/INonfungiblePositionManager.sol";
+import {ISwapRouter} from "@uniswap-v3-periphery/interfaces/ISwapRouter.sol";
 
 library UniswapV3Library {
     using SafeERC20 for IERC20;
@@ -11,7 +13,7 @@ library UniswapV3Library {
     bytes32 private constant POOL_INIT_CODE_HASH = 0xe34f199b19b2b4f47f68442619d555527d244f78a3297ea89325f843f87b8b54;
 
     function mintPosition(
-        IUniswapV3PositionManager self,
+        INonfungiblePositionManager self,
         address token0,
         address token1,
         uint24 fee,
@@ -29,7 +31,7 @@ library UniswapV3Library {
         }
 
         (positionId, liquidity, amount0, amount1) = self.mint(
-            IUniswapV3PositionManager.MintParams({
+            INonfungiblePositionManager.MintParams({
                 token0: token0,
                 token1: token1,
                 fee: fee,
@@ -47,7 +49,7 @@ library UniswapV3Library {
         IERC20(token1).safeDecreaseAllowance(address(self), amount1Desired - amount1);
     }
 
-    function liquidatePosition(IUniswapV3PositionManager self, uint256 positionId, address recipient)
+    function liquidatePosition(INonfungiblePositionManager self, uint256 positionId, address recipient)
         internal
         returns (address token0, address token1, uint24 fee, uint256 amount0, uint256 amount1)
     {
@@ -57,7 +59,7 @@ library UniswapV3Library {
 
         // burn all liquidity
         self.decreaseLiquidity(
-            IUniswapV3PositionManager.DecreaseLiquidityParams({
+            INonfungiblePositionManager.DecreaseLiquidityParams({
                 tokenId: positionId,
                 liquidity: liquidity,
                 amount0Min: 0,
@@ -68,7 +70,7 @@ library UniswapV3Library {
 
         // collect all tokens
         (amount0, amount1) = self.collect(
-            IUniswapV3PositionManager.CollectParams({
+            INonfungiblePositionManager.CollectParams({
                 tokenId: positionId,
                 recipient: recipient,
                 amount0Max: type(uint128).max,
@@ -80,7 +82,7 @@ library UniswapV3Library {
         self.burn(positionId);
     }
 
-    function getCurrentSqrtPriceAndTick(IUniswapV3PositionManager self, address token0, address token1, uint24 fee)
+    function getCurrentSqrtPriceAndTick(INonfungiblePositionManager self, address token0, address token1, uint24 fee)
         internal
         view
         returns (uint160 sqrtPriceX96, int24 tick)

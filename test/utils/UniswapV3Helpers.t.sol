@@ -2,7 +2,7 @@
 pragma solidity ^0.8.13;
 
 import {Test, console} from "@forge-std/Test.sol";
-import {INonfungiblePositionManager} from "../../src/interfaces/external/INonfungiblePositionManager.sol";
+import {INonfungiblePositionManager} from "@uniswap-v3-periphery/interfaces/INonfungiblePositionManager.sol";
 import {IERC20} from "@openzeppelin/interfaces/IERC20.sol";
 
 contract UniswapV3Helpers is Test {
