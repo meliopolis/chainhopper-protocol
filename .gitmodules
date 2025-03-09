@@ -7,3 +7,6 @@
 [submodule "lib/uniswapV3Periphery"]
 	path = lib/uniswapV3Periphery
 	url = https://github.com/Uniswap/v3-periphery
+[submodule "lib/uniswapV4Periphery"]
+	path = lib/uniswapV4Periphery
+	url = https://github.com/Uniswap/v4-periphery
