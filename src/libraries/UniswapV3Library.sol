@@ -118,7 +118,6 @@ library UniswapV3Library {
                 tokenOut: tokenOut,
                 fee: fee,
                 recipient: address(this),
-                deadline: block.timestamp,
                 amountIn: amountIn,
                 amountOutMinimum: 0,
                 sqrtPriceLimitX96: sqrtPriceLimitX96
