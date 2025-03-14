@@ -19,3 +19,6 @@
 [submodule "lib/uniswap-universal-router"]
 	path = lib/uniswap-universal-router
 	url = https://github.com/Uniswap/universal-router
+[submodule "lib/uniswap-permit2"]
+	path = lib/uniswap-permit2
+	url = https://github.com/Uniswap/permit2
