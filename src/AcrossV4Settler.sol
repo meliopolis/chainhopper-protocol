@@ -3,9 +3,9 @@ pragma solidity ^0.8.24;
 
 import {AcrossSettler} from "./base/AcrossSettler.sol";
 import {Settler} from "./base/Settler.sol";
-import {V3Settler} from "./base/V3Settler.sol";
+import {V4Settler} from "./base/V4Settler.sol";
 
-contract AcrossV3Settler is AcrossSettler, V3Settler {
+contract AcrossV4Settler is AcrossSettler, V4Settler {
     constructor(
         address _spoke,
         uint24 _protocolFeeBps,
@@ -16,6 +16,6 @@ contract AcrossV3Settler is AcrossSettler, V3Settler {
     )
         AcrossSettler(_spoke)
         Settler(_protocolFeeBps, _protocolShareOfSenderFeeInPercent, _protocolFeeRecipient)
-        V3Settler(_positionManager, _universalRouter)
+        V4Settler(_positionManager, _universalRouter)
     {}
 }

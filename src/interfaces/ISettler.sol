@@ -2,24 +2,34 @@
 pragma solidity ^0.8.0;
 
 interface ISettler {
-    error AtLeastOneAmountMustBeGreaterThanZero();
-    error InsufficientBalance();
+    error NotSelf();
+    error NotRecipient();
+    error AmountCannotBeZero();
+    error SettlementTokensIdentical();
+    error SettlementMessagesMismatch();
+    error SettlementTokenNotUsed(address token);
 
-    function setProtocolFeeBps(uint24 _protocolFeeBps) external;
-    function setProtocolFeeRecipient(address _protocolFeeRecipient) external;
-    function setProtocolShareOfSenderFeeInPercent(uint8 _protocolShareOfSenderFeeInPercent) external;
-    function settle(address token, uint256 amount, bytes memory message) external returns (uint256);
-
-    event PartiallySettled(
-        bytes32 indexed migrationId, address indexed recipient, address indexed token, uint256 amount
-    );
+    event Refunded(bytes32 indexed migrationId, address indexed recipient, address token, uint256 amount);
+    event PartiallySettled(bytes32 indexed migrationId, address indexed recipient, address token, uint256 amount);
     event FullySettled(
         bytes32 indexed migrationId,
         address indexed recipient,
         uint256 indexed positionId,
-        uint256 amountReceived0,
-        uint256 amountReceived1,
-        uint256 amountRefunded0,
-        uint256 amountRefunded1
+        address token0,
+        address token1,
+        uint256 amount0Used,
+        uint256 amount1Used,
+        uint256 amount0Refunded,
+        uint256 amount1Refunded
     );
+
+    struct BaseSettlementParams {
+        bytes32 migrationId;
+        address recipient;
+        uint24 senderFeeBps;
+        address senderFeeRecipient;
+    }
+
+    function settle(address token, uint256 amount, bytes memory message) external returns (uint256 positionId);
+    function withdraw(bytes32 migrationId) external;
 }

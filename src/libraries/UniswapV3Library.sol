@@ -1,19 +1,16 @@
-// SPDX-License-Identifier: GPL-2.0-or-later
-pragma solidity ^0.8.13;
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity ^0.8.24;
 
 import {IERC20} from "@openzeppelin/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/token/ERC20/utils/SafeERC20.sol";
-import {IUniswapV3Pool} from "@uniswap-v3-core/interfaces/IUniswapV3Pool.sol";
-import {INonfungiblePositionManager} from "@uniswap-v3-periphery/interfaces/INonfungiblePositionManager.sol";
-import {ISwapRouter} from "@uniswap-v3-periphery/interfaces/ISwapRouter.sol";
+// copied and modified from uniswap-v3-periphery, as the original had bad imports
+import {INonfungiblePositionManager as IPositionManager} from "../interfaces/external/INonfungiblePositionManager.sol";
 
 library UniswapV3Library {
     using SafeERC20 for IERC20;
 
-    bytes32 private constant POOL_INIT_CODE_HASH = 0xe34f199b19b2b4f47f68442619d555527d244f78a3297ea89325f843f87b8b54;
-
-    function mintPosition(
-        INonfungiblePositionManager self,
+    function mint(
+        IPositionManager self,
         address token0,
         address token1,
         uint24 fee,
@@ -21,107 +18,30 @@ library UniswapV3Library {
         int24 tickUpper,
         uint256 amount0Desired,
         uint256 amount1Desired,
+        uint256 amount0Min,
+        uint256 amount1Min,
         address recipient
-    ) internal returns (uint256 positionId, uint128 liquidity, uint256 amount0, uint256 amount1) {
-        if (amount0Desired > 0) {
-            IERC20(token0).safeIncreaseAllowance(address(self), amount0Desired);
-        }
-        if (amount1Desired > 0) {
-            IERC20(token1).safeIncreaseAllowance(address(self), amount1Desired);
-        }
+    ) internal returns (uint256 positionId, uint256 amount0, uint256 amount1) {
+        if (amount0Desired > 0) IERC20(token0).safeIncreaseAllowance(address(self), amount0Desired);
+        if (amount1Desired > 0) IERC20(token1).safeIncreaseAllowance(address(self), amount1Desired);
 
-        (positionId, liquidity, amount0, amount1) = self.mint(
-            INonfungiblePositionManager.MintParams({
-                token0: token0,
-                token1: token1,
-                fee: fee,
-                tickLower: tickLower,
-                tickUpper: tickUpper,
-                amount0Desired: amount0Desired,
-                amount1Desired: amount1Desired,
-                amount0Min: 0,
-                amount1Min: 0,
-                recipient: recipient,
-                deadline: block.timestamp
-            })
-        );
-        IERC20(token0).safeDecreaseAllowance(address(self), amount0Desired - amount0);
-        IERC20(token1).safeDecreaseAllowance(address(self), amount1Desired - amount1);
-    }
-
-    function liquidatePosition(INonfungiblePositionManager self, uint256 positionId, address recipient)
-        internal
-        returns (address token0, address token1, uint24 fee, uint256 amount0, uint256 amount1)
-    {
-        // get position info
-        uint128 liquidity;
-        (,, token0, token1, fee,,, liquidity,,,,) = self.positions(positionId);
-
-        // burn all liquidity
-        self.decreaseLiquidity(
-            INonfungiblePositionManager.DecreaseLiquidityParams({
-                tokenId: positionId,
-                liquidity: liquidity,
-                amount0Min: 0,
-                amount1Min: 0,
-                deadline: block.timestamp
-            })
-        );
-
-        // collect all tokens
-        (amount0, amount1) = self.collect(
-            INonfungiblePositionManager.CollectParams({
-                tokenId: positionId,
-                recipient: recipient,
-                amount0Max: type(uint128).max,
-                amount1Max: type(uint128).max
-            })
-        );
-
-        // good hygiene
-        self.burn(positionId);
-    }
-
-    function getCurrentSqrtPriceAndTick(INonfungiblePositionManager self, address token0, address token1, uint24 fee)
-        internal
-        view
-        returns (uint160 sqrtPriceX96, int24 tick)
-    {
-        address pool = address(
-            uint160(
-                uint256(
-                    keccak256(
-                        abi.encodePacked(
-                            hex"ff", self.factory(), keccak256(abi.encode(token0, token1, fee)), POOL_INIT_CODE_HASH
-                        )
-                    )
-                )
+        (positionId,, amount0, amount1) = self.mint(
+            IPositionManager.MintParams(
+                token0,
+                token1,
+                fee,
+                tickLower,
+                tickUpper,
+                amount0Desired,
+                amount1Desired,
+                amount0Min,
+                amount1Min,
+                recipient,
+                block.timestamp
             )
         );
 
-        (sqrtPriceX96, tick,,,,,) = IUniswapV3Pool(pool).slot0();
-    }
-
-    function swap(
-        ISwapRouter self,
-        address tokenIn,
-        address tokenOut,
-        uint24 fee,
-        uint256 amountIn,
-        uint160 sqrtPriceLimitX96
-    ) internal returns (uint256 amountOut) {
-        IERC20(tokenIn).safeIncreaseAllowance(address(self), amountIn);
-
-        amountOut = self.exactInputSingle(
-            ISwapRouter.ExactInputSingleParams({
-                tokenIn: tokenIn,
-                tokenOut: tokenOut,
-                fee: fee,
-                recipient: address(this),
-                amountIn: amountIn,
-                amountOutMinimum: 0,
-                sqrtPriceLimitX96: sqrtPriceLimitX96
-            })
-        );
+        if (amount0 < amount0Desired) IERC20(token0).safeDecreaseAllowance(address(self), amount0Desired - amount0);
+        if (amount1 < amount1Desired) IERC20(token1).safeDecreaseAllowance(address(self), amount1Desired - amount1);
     }
 }
