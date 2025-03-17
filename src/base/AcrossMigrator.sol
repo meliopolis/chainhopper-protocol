@@ -21,6 +21,7 @@ abstract contract AcrossMigrator is IAcrossMigrator, IERC721Receiver, Migrator {
 
         try this.migrate(from, tokenId, data) {}
         catch {
+            // return the token if migration fails
             IERC721(msg.sender).safeTransferFrom(address(this), from, tokenId);
         }
 
@@ -37,6 +38,7 @@ abstract contract AcrossMigrator is IAcrossMigrator, IERC721Receiver, Migrator {
     ) internal override {
         Route memory route = abi.decode(tokenRoute.route, (Route));
 
+        // initiate migration via the spoke pool
         spokePool.depositV3(
             sender,
             destinationSettler,
