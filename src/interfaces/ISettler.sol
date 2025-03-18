@@ -16,10 +16,7 @@ interface ISettler {
         uint256 indexed positionId,
         address token0,
         address token1,
-        uint256 amount0Used,
-        uint256 amount1Used,
-        uint256 amount0Refunded,
-        uint256 amount1Refunded
+        uint128 liquidity
     );
 
     struct BaseSettlementParams {

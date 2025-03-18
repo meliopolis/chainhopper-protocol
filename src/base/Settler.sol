@@ -51,30 +51,13 @@ abstract contract Settler is ISettler, Ownable2Step {
             (uint256 protocolFee, uint256 senderFee) = _calculateFees(amount, baseParams.senderFeeBps);
 
             // settle (implemented in child position manager contract) with single token
-            (
-                uint256 positionId,
-                address token0,
-                address token1,
-                uint256 amount0Used,
-                uint256 amount1Used,
-                uint256 amount0Refunded,
-                uint256 amount1Refunded
-            ) = _settle(token, amount - protocolFee - senderFee, message);
+            (uint256 positionId, address token0, address token1, uint128 liquidity) =
+                _settle(token, amount - protocolFee - senderFee, message);
 
             // transfer fees, after settle to prevent reentrancy
             _transferFees(token, protocolFee, senderFee, baseParams.senderFeeRecipient);
 
-            emit FullySettled(
-                baseParams.migrationId,
-                baseParams.recipient,
-                positionId,
-                token0,
-                token1,
-                amount0Used,
-                amount1Used,
-                amount0Refunded,
-                amount1Refunded
-            );
+            emit FullySettled(baseParams.migrationId, baseParams.recipient, positionId, token0, token1, liquidity);
         } else {
             PartialSettlement memory partialSettlement = partialSettlements[baseParams.migrationId];
             if (partialSettlement.amount == 0) {
@@ -96,15 +79,7 @@ abstract contract Settler is ISettler, Ownable2Step {
                     _calculateFees(partialSettlement.amount, baseParams.senderFeeBps);
 
                 // settle (implemented in child position manager contract) with dual tokens
-                (
-                    uint256 positionId,
-                    address token0,
-                    address token1,
-                    uint256 amount0Used,
-                    uint256 amount1Used,
-                    uint256 amount0Refunded,
-                    uint256 amount1Refunded
-                ) = _settle(
+                (uint256 positionId, address token0, address token1, uint128 liquidity) = _settle(
                     token,
                     partialSettlement.token,
                     amount - protocolFeeA - senderFeeA,
@@ -116,17 +91,7 @@ abstract contract Settler is ISettler, Ownable2Step {
                 _transferFees(token, protocolFeeA, senderFeeA, baseParams.senderFeeRecipient);
                 _transferFees(partialSettlement.token, protocolFeeB, senderFeeB, baseParams.senderFeeRecipient);
 
-                emit FullySettled(
-                    baseParams.migrationId,
-                    baseParams.recipient,
-                    positionId,
-                    token0,
-                    token1,
-                    amount0Used,
-                    amount1Used,
-                    amount0Refunded,
-                    amount1Refunded
-                );
+                emit FullySettled(baseParams.migrationId, baseParams.recipient, positionId, token0, token1, liquidity);
             }
         }
     }
@@ -151,28 +116,12 @@ abstract contract Settler is ISettler, Ownable2Step {
     function _settle(address token, uint256 amount, bytes memory message)
         internal
         virtual
-        returns (
-            uint256 positionId,
-            address token0,
-            address token1,
-            uint256 amount0Used,
-            uint256 amount1Used,
-            uint256 amount0Refunded,
-            uint256 amount1Refunded
-        );
+        returns (uint256 positionId, address token0, address token1, uint128 liquidity);
 
     function _settle(address tokenA, address tokenB, uint256 amountA, uint256 amountB, bytes memory message)
         internal
         virtual
-        returns (
-            uint256 positionId,
-            address token0,
-            address token1,
-            uint256 amount0Used,
-            uint256 amount1Used,
-            uint256 amount0Refunded,
-            uint256 amount1Refunded
-        );
+        returns (uint256 positionId, address token0, address token1, uint128 liquidity);
 
     function _calculateFees(uint256 amount, uint24 senderFeeBps)
         private

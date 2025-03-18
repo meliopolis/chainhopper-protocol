@@ -2,17 +2,20 @@
 pragma solidity ^0.8.24;
 
 import {IERC20} from "@openzeppelin/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/token/ERC20/utils/SafeERC20.sol";
 import {IPermit2} from "@uniswap-permit2/interfaces/IPermit2.sol";
 import {IUniversalRouter} from "@uniswap-universal-router/interfaces/IUniversalRouter.sol";
 import {Commands} from "@uniswap-universal-router/libraries/Commands.sol";
-import {IV4Router} from "@uniswap-v4-periphery/interfaces/IV4Router.sol";
-import {Actions} from "@uniswap-v4-periphery/libraries/Actions.sol";
 import {Currency} from "@uniswap-v4-core/types/Currency.sol";
 import {PoolKey} from "@uniswap-v4-core/types/PoolKey.sol";
 import {IPositionManager} from "@uniswap-v4-periphery/interfaces/IPositionManager.sol";
+import {IV4Router} from "@uniswap-v4-periphery/interfaces/IV4Router.sol";
+import {Actions} from "@uniswap-v4-periphery/libraries/Actions.sol";
 import {Migrator} from "./Migrator.sol";
 
 abstract contract V4Migrator is Migrator {
+    using SafeERC20 for IERC20;
+
     IPositionManager private immutable positionManager;
     IUniversalRouter private immutable universalRouter;
     IPermit2 private immutable permit2;
@@ -67,7 +70,7 @@ abstract contract V4Migrator is Migrator {
         uint256 balanceBefore = currencyOut.balanceOfSelf();
 
         // approve token transfer via permit2
-        IERC20(Currency.unwrap(currencyIn)).approve(address(permit2), amountIn);
+        IERC20(Currency.unwrap(currencyIn)).safeIncreaseAllowance(address(permit2), amountIn);
         permit2.approve(Currency.unwrap(currencyIn), address(positionManager), uint160(amountIn), 0);
 
         // prepare v4 router actions and params
