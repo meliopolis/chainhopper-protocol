@@ -95,7 +95,7 @@ contract AcrossV4Settler is IV4Settler, AcrossSettler {
             uint256 amountOut;
             {
                 uint256 totalFeesInBps = protocolFeeBps + settlementParams.senderFeeBps;
-                uint256 amountToTrade = token == settlementParams.token0
+                uint256 amountToTrade = ethable(token) == settlementParams.token0
                     ? amount - (settlementParams.amount0Min * (10000 - totalFeesInBps)) / 10000
                     : amount - (settlementParams.amount1Min * (10000 - totalFeesInBps)) / 10000;
 
@@ -106,7 +106,7 @@ contract AcrossV4Settler is IV4Settler, AcrossSettler {
                         settlementParams.feeTier,
                         settlementParams.tickSpacing,
                         settlementParams.hooks,
-                        token == settlementParams.token0,
+                        ethable(token) == settlementParams.token0,
                         amountToTrade
                     );
                 }
