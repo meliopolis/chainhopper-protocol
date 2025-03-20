@@ -2,30 +2,14 @@
 pragma solidity ^0.8.24;
 
 import {V3SpokePoolInterface as IAcrossSpokePool} from "@across/interfaces/V3SpokePoolInterface.sol";
-import {IERC721} from "@openzeppelin/token/ERC721/IERC721.sol";
-import {IERC721Receiver} from "@openzeppelin/token/ERC721/IERC721Receiver.sol";
 import {IAcrossMigrator} from "../interfaces/IAcrossMigrator.sol";
 import {Migrator} from "./Migrator.sol";
 
-abstract contract AcrossMigrator is IAcrossMigrator, IERC721Receiver, Migrator {
-    address private immutable positionManager;
+abstract contract AcrossMigrator is IAcrossMigrator, Migrator {
     IAcrossSpokePool private immutable spokePool;
 
-    constructor(address _positionManager, address _spokePool) {
-        positionManager = _positionManager;
+    constructor(address _spokePool) {
         spokePool = IAcrossSpokePool(_spokePool);
-    }
-
-    function onERC721Received(address, address from, uint256 tokenId, bytes memory data) external returns (bytes4) {
-        if (msg.sender != positionManager) revert NotPositionManager();
-
-        try this.migrate(from, tokenId, data) {}
-        catch {
-            // return the token if migration fails
-            IERC721(msg.sender).safeTransferFrom(address(this), from, tokenId);
-        }
-
-        return this.onERC721Received.selector;
     }
 
     function _migrate(

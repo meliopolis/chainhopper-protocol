@@ -2,6 +2,7 @@
 pragma solidity ^0.8.24;
 
 import {IERC20} from "@openzeppelin/token/ERC20/IERC20.sol";
+import {IERC721Receiver} from "@openzeppelin/token/ERC721/IERC721Receiver.sol";
 import {SafeERC20} from "@openzeppelin/token/ERC20/utils/SafeERC20.sol";
 import {IPermit2} from "@uniswap-permit2/interfaces/IPermit2.sol";
 import {IUniversalRouter} from "@uniswap-universal-router/interfaces/IUniversalRouter.sol";
@@ -13,7 +14,7 @@ import {IV4Router} from "@uniswap-v4-periphery/interfaces/IV4Router.sol";
 import {Actions} from "@uniswap-v4-periphery/libraries/Actions.sol";
 import {Migrator} from "./Migrator.sol";
 
-abstract contract V4Migrator is Migrator {
+abstract contract V4Migrator is IERC721Receiver, Migrator {
     using SafeERC20 for IERC20;
 
     IPositionManager private immutable positionManager;
@@ -24,6 +25,14 @@ abstract contract V4Migrator is Migrator {
         positionManager = IPositionManager(_positionManager);
         universalRouter = IUniversalRouter(_universalRouter);
         permit2 = IPermit2(_permit2);
+    }
+
+    function onERC721Received(address, address from, uint256 tokenId, bytes memory data) external returns (bytes4) {
+        if (msg.sender != address(positionManager)) revert NotPositionManager();
+
+        _migrate(from, tokenId, data);
+
+        return this.onERC721Received.selector;
     }
 
     function _liquidate(uint256 positionId)

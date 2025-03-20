@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 interface IMigrator {
-    error NotSelf();
+    error NotPositionManager();
     error ChainSettlerNotSupported();
     error MissingTokenRoutes();
     error TooManyTokenRoutes();
@@ -31,6 +31,4 @@ interface IMigrator {
         TokenRoute[] tokenRoutes;
         bytes settlementParams;
     }
-
-    function migrate(address sender, uint256 positionId, bytes memory data) external;
 }

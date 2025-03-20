@@ -14,9 +14,7 @@ abstract contract Migrator is IMigrator, Ownable2Step {
         chainSettlers[chainId][settler] = supported;
     }
 
-    function migrate(address sender, uint256 positionId, bytes memory data) external {
-        if (msg.sender != address(this)) revert NotSelf();
-
+    function _migrate(address sender, uint256 positionId, bytes memory data) internal {
         MigrationParams memory params = abi.decode(data, (MigrationParams));
         if (!chainSettlers[params.destinationChainId][params.destinationSettler]) revert ChainSettlerNotSupported();
 
