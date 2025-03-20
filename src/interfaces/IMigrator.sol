@@ -3,6 +3,7 @@ pragma solidity ^0.8.0;
 
 interface IMigrator {
     error NotPositionManager();
+    error ChainIdsAndSettlersLengthMismatch();
     error ChainSettlerNotSupported();
     error MissingTokenRoutes();
     error TooManyTokenRoutes();

@@ -10,8 +10,16 @@ abstract contract Migrator is IMigrator, Ownable2Step {
 
     constructor() Ownable(msg.sender) {}
 
-    function setChainSettler(uint32 chainId, address settler, bool supported) external onlyOwner {
-        chainSettlers[chainId][settler] = supported;
+    function flipChainSettlers(uint32[] calldata chainIds, address[] calldata settlers) external onlyOwner {
+        if (chainIds.length != settlers.length) revert ChainIdsAndSettlersLengthMismatch();
+
+        for (uint256 i = 0; i < chainIds.length; i++) {
+            chainSettlers[chainIds[i]][settlers[i]] = !chainSettlers[chainIds[i]][settlers[i]];
+        }
+    }
+
+    function isChainSettlerSupported(uint32 chainId, address settler) external view returns (bool) {
+        return chainSettlers[chainId][settler];
     }
 
     function _migrate(address sender, uint256 positionId, bytes memory data) internal {
