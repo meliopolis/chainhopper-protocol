@@ -7,16 +7,21 @@ import {IPermit2} from "@uniswap-permit2/interfaces/IPermit2.sol";
 import {IUniversalRouter} from "@uniswap-universal-router/interfaces/IUniversalRouter.sol";
 import {Commands} from "@uniswap-universal-router/libraries/Commands.sol";
 import {IHooks} from "@uniswap-v4-core/interfaces/IHooks.sol";
+import {IPoolManager} from "@uniswap-v4-core/interfaces/IPoolManager.sol";
+import {StateLibrary} from "@uniswap-v4-core/libraries/StateLibrary.sol";
+import {TickMath} from "@uniswap-v4-core/libraries/TickMath.sol";
 import {Currency} from "@uniswap-v4-core/types/Currency.sol";
 import {PoolKey} from "@uniswap-v4-core/types/PoolKey.sol";
 import {IPositionManager} from "@uniswap-v4-periphery/interfaces/IPositionManager.sol";
 import {IV4Router} from "@uniswap-v4-periphery/interfaces/IV4Router.sol";
 import {Actions} from "@uniswap-v4-periphery/libraries/Actions.sol";
+import {LiquidityAmounts} from "@uniswap-v4-periphery/libraries/LiquidityAmounts.sol";
 import {IV4Settler} from "../interfaces/IV4Settler.sol";
 import {Settler} from "./Settler.sol";
 
 abstract contract V4Settler is IV4Settler, Settler {
     using SafeERC20 for IERC20;
+    using StateLibrary for IPoolManager;
 
     IPositionManager private immutable positionManager;
     IUniversalRouter private immutable universalRouter;
@@ -126,23 +131,25 @@ abstract contract V4Settler is IV4Settler, Settler {
         // get position id
         uint256 positionId = positionManager.nextTokenId();
 
-        // mint position
-        bytes memory actions = abi.encodePacked(
-            bytes1(uint8(Actions.SETTLE)),
-            bytes1(uint8(Actions.SETTLE)),
-            bytes1(uint8(Actions.MINT_POSITION_FROM_DELTAS)),
-            bytes1(uint8(Actions.TAKE_PAIR))
+        // get liquidity
+        (uint160 sqrtPriceX96,,,) = positionManager.poolManager().getSlot0(poolKey.toId());
+        uint128 liquidity = LiquidityAmounts.getLiquidityForAmounts(
+            sqrtPriceX96,
+            TickMath.getSqrtPriceAtTick(params.tickLower),
+            TickMath.getSqrtPriceAtTick(params.tickUpper),
+            amount0,
+            amount1
         );
-        bytes[] memory _params = new bytes[](4);
-        _params[0] = abi.encode(poolKey.currency0, amount0, true);
-        _params[1] = abi.encode(poolKey.currency1, amount1, true);
-        _params[2] =
-            abi.encode(poolKey, params.tickLower, params.tickUpper, amount0, amount1, params.baseParams.recipient, "");
-        _params[3] = abi.encode(poolKey.currency0, poolKey.currency1, address(this));
-        positionManager.modifyLiquidities(abi.encode(actions, _params), block.timestamp);
 
-        // get position liquidity
-        uint128 liquidity = positionManager.getPositionLiquidity(positionId);
+        // mint position
+        bytes memory actions =
+            abi.encodePacked(bytes1(uint8(Actions.MINT_POSITION)), bytes1(uint8(Actions.SETTLE_PAIR)));
+        bytes[] memory _params = new bytes[](2);
+        _params[0] = abi.encode(
+            poolKey, params.tickLower, params.tickUpper, liquidity, amount0, amount1, params.baseParams.recipient, ""
+        );
+        _params[1] = abi.encode(poolKey.currency0, poolKey.currency1);
+        positionManager.modifyLiquidities(abi.encode(actions, _params), block.timestamp);
 
         // refund unused tokens
         uint256 balance0After = poolKey.currency0.balanceOfSelf();
