@@ -5,7 +5,7 @@ import {AcrossMigrator} from "./base/AcrossMigrator.sol";
 import {V4Migrator} from "./base/V4Migrator.sol";
 
 contract AcrossV4Migrator is AcrossMigrator, V4Migrator {
-    constructor(address _positionManager, address _spokePool, address _universalRouter, address _permit2)
+    constructor(address _positionManager, address _universalRouter, address _permit2, address _spokePool)
         AcrossMigrator(_spokePool)
         V4Migrator(_positionManager, _universalRouter, _permit2)
     {}

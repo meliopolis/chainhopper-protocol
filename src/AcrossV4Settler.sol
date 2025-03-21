@@ -10,10 +10,10 @@ contract AcrossV4Settler is AcrossSettler, V4Settler {
         uint24 _protocolFeeBps,
         uint8 _protocolShareOfSenderFeeInPercent,
         address _protocolFeeRecipient,
-        address _spokePool,
         address _positionManager,
         address _universalRouter,
-        address _permit2
+        address _permit2,
+        address _spokePool
     )
         Settler(_protocolFeeBps, _protocolShareOfSenderFeeInPercent, _protocolFeeRecipient)
         AcrossSettler(_spokePool)

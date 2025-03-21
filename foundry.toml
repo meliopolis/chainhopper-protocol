@@ -19,6 +19,29 @@ remappings = [
     "@uniswap-v4-periphery/=lib/uniswap-v4-periphery/src/",
     "@across/=lib/across/contracts/"
 ]
-ignored = ["lib/uniswap-v3-periphery/contracts/libraries/PoolAddress.sol"]
+
+[rpc_endpoints]
+mainnet = "${MAINNET_RPC_URL}"
+sepolia = "${SEPOLIA_RPC_URL}"
+arbitrum = "${ARBITRUM_RPC_URL}"
+arbitrum_sepolia = "${ARBITRUM_SEPOLIA_RPC_URL}"
+base = "${BASE_RPC_URL}"
+base_sepolia = "${BASE_SEPOLIA_RPC_URL}"
+optimism = "${OPTIMISM_RPC_URL}"
+optimism_sepolia = "${OPTIMISM_SEPOLIA_RPC_URL}"
+unichain = "${UNICHAIN_RPC_URL}"
+unichain_sepolia = "${UNICHAIN_SEPOLIA_RPC_URL}"
+
+[etherscan]
+mainnet = { key = "${ETHERSCAN_API_KEY}", chain = 1 }
+sepolia = { key = "${ETHERSCAN_API_KEY}", chain = 11155111 }
+arbitrum = { key = "${ETHERSCAN_API_KEY}", chain = 42161 }
+arbitrum_sepolia = { key = "${ETHERSCAN_API_KEY}", chain = 421614 }
+base = { key = "${ETHERSCAN_API_KEY}", chain = 8453 }
+base_sepolia = { key = "${ETHERSCAN_API_KEY}", chain = 84532 }
+optimism = { key = "${ETHERSCAN_API_KEY}", chain = 10 }
+optimism_sepolia = { key = "${ETHERSCAN_API_KEY}", chain = 11155420 }
+unichain = { key = "${ETHERSCAN_API_KEY}", chain = 130 }
+unichain_sepolia = { key = "${ETHERSCAN_API_KEY}", chain = 1301 }
 
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
