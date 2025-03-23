@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 interface IMigrator {
     error NotPositionManager();
     error ChainIdsAndSettlersLengthMismatch();
-    error ChainSettlerNotSupported();
+    error ChainSettlerNotSupported(uint32 chainId, address settler);
     error MissingTokenRoutes();
     error TooManyTokenRoutes();
     error AmountsCannotAllBeZero();
@@ -30,6 +30,7 @@ interface IMigrator {
         uint32 destinationChainId;
         address destinationSettler;
         TokenRoute[] tokenRoutes;
+        uint256 amountOtherMin;
         bytes settlementParams;
     }
 }

@@ -13,7 +13,7 @@ abstract contract Settler is ISettler, Ownable2Step {
         address token;
         uint256 amount;
         address recipient;
-        bytes message;
+        bytes data;
     }
 
     uint24 private protocolFeeBps;
@@ -41,18 +41,18 @@ abstract contract Settler is ISettler, Ownable2Step {
         protocolFeeRecipient = _protocolFeeRecipient;
     }
 
-    function settle(address token, uint256 amount, bytes memory message) external {
+    function settle(address token, uint256 amount, bytes memory data) external {
         if (msg.sender != address(this)) revert NotSelf();
         if (amount == 0) revert AmountCannotBeZero();
 
-        BaseSettlementParams memory baseParams = abi.decode(message, (BaseSettlementParams));
+        BaseSettlementParams memory baseParams = abi.decode(data, (BaseSettlementParams));
         if (baseParams.migrationId == bytes32(0)) {
             // calculate fees on the token to be settled
             (uint256 protocolFee, uint256 senderFee) = _calculateFees(amount, baseParams.senderFeeBps);
 
             // settle (implemented in child position manager contract) with single token
             (uint256 positionId, address token0, address token1, uint128 liquidity) =
-                _settle(token, amount - protocolFee - senderFee, message);
+                _settle(token, amount - protocolFee - senderFee, data);
 
             // transfer fees, after settle to prevent reentrancy
             _transferFees(token, protocolFee, senderFee, baseParams.senderFeeRecipient);
@@ -63,12 +63,12 @@ abstract contract Settler is ISettler, Ownable2Step {
             if (partialSettlement.amount == 0) {
                 // store the partial settlement to wait for the other half
                 partialSettlements[baseParams.migrationId] =
-                    PartialSettlement(token, amount, baseParams.recipient, message);
+                    PartialSettlement(token, amount, baseParams.recipient, data);
 
                 emit PartiallySettled(baseParams.migrationId, baseParams.recipient, token, amount);
             } else {
                 if (token == partialSettlement.token) revert SettlementTokensCannotBeTheSame();
-                if (keccak256(message) != keccak256(partialSettlement.message)) revert SettlementMessagesMismatch();
+                if (keccak256(data) != keccak256(partialSettlement.data)) revert SettlementDataMismatch();
 
                 // delete the partial settlement to prevent reentrancy
                 delete partialSettlements[baseParams.migrationId];
@@ -84,7 +84,7 @@ abstract contract Settler is ISettler, Ownable2Step {
                     partialSettlement.token,
                     amount - protocolFeeA - senderFeeA,
                     partialSettlement.amount - protocolFeeB - senderFeeB,
-                    message
+                    data
                 );
 
                 // transfer fees, after settle to prevent reentrancy
@@ -113,12 +113,12 @@ abstract contract Settler is ISettler, Ownable2Step {
         }
     }
 
-    function _settle(address token, uint256 amount, bytes memory message)
+    function _settle(address token, uint256 amount, bytes memory data)
         internal
         virtual
         returns (uint256 positionId, address token0, address token1, uint128 liquidity);
 
-    function _settle(address tokenA, address tokenB, uint256 amountA, uint256 amountB, bytes memory message)
+    function _settle(address tokenA, address tokenB, uint256 amountA, uint256 amountB, bytes memory data)
         internal
         virtual
         returns (uint256 positionId, address token0, address token1, uint128 liquidity);

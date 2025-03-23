@@ -33,13 +33,13 @@ abstract contract V4Settler is IV4Settler, Settler {
         permit2 = IPermit2(_permit2);
     }
 
-    function _settle(address token, uint256 amount, bytes memory message)
+    function _settle(address token, uint256 amount, bytes memory data)
         internal
         override
         returns (uint256, address, address, uint128)
     {
         // decode settlement params and create pool key
-        SettlementParams memory params = abi.decode(message, (SettlementParams));
+        SettlementParams memory params = abi.decode(data, (SettlementParams));
         PoolKey memory poolKey = PoolKey(
             Currency.wrap(params.token0),
             Currency.wrap(params.token1),
@@ -93,17 +93,17 @@ abstract contract V4Settler is IV4Settler, Settler {
             Currency.unwrap(currencyOut),
             zeroForOne ? params.amount0Min : params.amount1Min,
             amountOut,
-            message
+            data
         );
     }
 
-    function _settle(address tokenA, address tokenB, uint256 amountA, uint256 amountB, bytes memory message)
+    function _settle(address tokenA, address tokenB, uint256 amountA, uint256 amountB, bytes memory data)
         internal
         override
         returns (uint256, address, address, uint128)
     {
         // decode settlement params and create pool key
-        SettlementParams memory params = abi.decode(message, (SettlementParams));
+        SettlementParams memory params = abi.decode(data, (SettlementParams));
         PoolKey memory poolKey = PoolKey(
             Currency.wrap(params.token0),
             Currency.wrap(params.token1),

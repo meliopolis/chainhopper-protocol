@@ -3,7 +3,6 @@ pragma solidity ^0.8.0;
 
 interface IAcrossMigrator {
     struct Route {
-        address inputToken;
         address outputToken;
         uint256 maxFees;
         uint32 quoteTimestamp;

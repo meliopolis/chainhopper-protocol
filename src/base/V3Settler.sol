@@ -24,13 +24,13 @@ abstract contract V3Settler is IV3Settler, Settler {
         permit2 = IPermit2(_permit2);
     }
 
-    function _settle(address token, uint256 amount, bytes memory message)
+    function _settle(address token, uint256 amount, bytes memory data)
         internal
         override
         returns (uint256, address, address, uint128)
     {
         // decode settlement params
-        SettlementParams memory params = abi.decode(message, (SettlementParams));
+        SettlementParams memory params = abi.decode(data, (SettlementParams));
 
         // calculate swap direction
         bool zeroForOne = token == params.token0;
@@ -57,16 +57,16 @@ abstract contract V3Settler is IV3Settler, Settler {
             amountOut = IERC20(tokenOut).balanceOf(address(this)) - balanceBefore;
         }
 
-        return _settle(tokenIn, tokenOut, zeroForOne ? params.amount0Min : params.amount1Min, amountOut, message);
+        return _settle(tokenIn, tokenOut, zeroForOne ? params.amount0Min : params.amount1Min, amountOut, data);
     }
 
-    function _settle(address tokenA, address tokenB, uint256 amountA, uint256 amountB, bytes memory message)
+    function _settle(address tokenA, address tokenB, uint256 amountA, uint256 amountB, bytes memory data)
         internal
         override
         returns (uint256, address, address, uint128)
     {
         // decode settlement params
-        SettlementParams memory params = abi.decode(message, (SettlementParams));
+        SettlementParams memory params = abi.decode(data, (SettlementParams));
 
         if (tokenA != params.token0 && tokenA != params.token1) revert TokenNotUsed(tokenA);
         if (tokenB != params.token0 && tokenB != params.token1) revert TokenNotUsed(tokenB);

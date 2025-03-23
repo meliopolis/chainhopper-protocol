@@ -15,3 +15,6 @@ docs/
 
 # Temporary files
 tmp/
+
+# Test coverage
+lcov.info

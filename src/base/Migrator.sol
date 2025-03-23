@@ -24,7 +24,9 @@ abstract contract Migrator is IMigrator, Ownable2Step {
 
     function _migrate(address sender, uint256 positionId, bytes memory data) internal {
         MigrationParams memory params = abi.decode(data, (MigrationParams));
-        if (!chainSettlers[params.destinationChainId][params.destinationSettler]) revert ChainSettlerNotSupported();
+        if (!chainSettlers[params.destinationChainId][params.destinationSettler]) {
+            revert ChainSettlerNotSupported(params.destinationChainId, params.destinationSettler);
+        }
 
         // liquidate (implemented in child position manager contract) the position
         (address token0, address token1, uint256 amount0, uint256 amount1, bytes memory poolInfo) =
@@ -40,14 +42,14 @@ abstract contract Migrator is IMigrator, Ownable2Step {
 
             // amount to migrate, swap (implemented in child position manager contract) if necessary
             uint256 amount = token0 == tokenRoutes[0].token
-                ? amount0 + (amount1 > 0 ? _swap(poolInfo, false, amount1, 0) : 0) // TODO: slippage control
-                : amount1 + (amount0 > 0 ? _swap(poolInfo, true, amount0, 0) : 0); // TODO: slippage control
+                ? amount0 + (amount1 > 0 ? _swap(poolInfo, false, amount1, params.amountOtherMin) : 0)
+                : amount1 + (amount0 > 0 ? _swap(poolInfo, true, amount0, params.amountOtherMin) : 0);
 
-            // prepare migration message with empty migration id
-            bytes memory message = abi.encode(bytes32(0), params.settlementParams);
+            // prepare migration data with empty migration id, reusing the data variable
+            data = abi.encode(bytes32(0), params.settlementParams);
 
             // migrate (implemented in child bridge contract) token
-            _migrate(sender, params.destinationChainId, params.destinationSettler, tokenRoutes[0], amount, message);
+            _bridge(sender, params.destinationChainId, params.destinationSettler, tokenRoutes[0], amount, data);
 
             emit Migrated(
                 bytes32(0), params.destinationChainId, params.destinationSettler, sender, tokenRoutes[0].token, amount
@@ -65,13 +67,13 @@ abstract contract Migrator is IMigrator, Ownable2Step {
                 revert TokenNotRouted(token1);
             }
 
-            // prepare migration message with an unique migration id
+            // prepare migration data with an unique migration id, reusing the data variable
             bytes32 migrationId = keccak256(abi.encodePacked(block.chainid, address(this), ++migrationCounter));
-            bytes memory message = abi.encode(migrationId, params.settlementParams);
+            data = abi.encode(migrationId, params.settlementParams);
 
             // migrate (implemented in child bridge contract) tokens
-            _migrate(sender, params.destinationChainId, params.destinationSettler, tokenRoutes[0], amount0, message);
-            _migrate(sender, params.destinationChainId, params.destinationSettler, tokenRoutes[1], amount1, message);
+            _bridge(sender, params.destinationChainId, params.destinationSettler, tokenRoutes[0], amount0, data);
+            _bridge(sender, params.destinationChainId, params.destinationSettler, tokenRoutes[1], amount1, data);
 
             emit Migrated(
                 migrationId, params.destinationChainId, params.destinationSettler, sender, tokenRoutes[0].token, amount0
@@ -94,12 +96,12 @@ abstract contract Migrator is IMigrator, Ownable2Step {
         virtual
         returns (uint256 amountOut);
 
-    function _migrate(
+    function _bridge(
         address sender,
         uint32 destinationChainId,
         address destinationSettler,
         TokenRoute memory tokenRoute,
         uint256 amount,
-        bytes memory message
+        bytes memory data
     ) internal virtual;
 }

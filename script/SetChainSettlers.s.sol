@@ -24,4 +24,7 @@ contract SetChainSettlers is Script {
 
         Migrator(migrator).flipChainSettlers(chainIds, settlers);
     }
+
+    // add this to be excluded from coverage report
+    function test() public {}
 }

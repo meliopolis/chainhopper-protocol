@@ -6,7 +6,7 @@ interface ISettler {
     error NotRecipient();
     error AmountCannotBeZero();
     error SettlementTokensCannotBeTheSame();
-    error SettlementMessagesMismatch();
+    error SettlementDataMismatch();
 
     event Refunded(bytes32 indexed migrationId, address indexed recipient, address token, uint256 amount);
     event PartiallySettled(bytes32 indexed migrationId, address indexed recipient, address token, uint256 amount);

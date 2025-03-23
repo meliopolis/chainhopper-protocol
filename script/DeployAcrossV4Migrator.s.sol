@@ -25,4 +25,7 @@ contract DeployAcrossV4Migrator is Script {
 
         console.log("AcrossV4Migrator deployed at:", address(migrator));
     }
+
+    // add this to be excluded from coverage report
+    function test() public {}
 }

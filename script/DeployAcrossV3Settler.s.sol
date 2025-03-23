@@ -33,4 +33,7 @@ contract DeployAcrossV3Settler is Script {
 
         console.log("AcrossV3Settler deployed at:", address(settler));
     }
+
+    // add this to be excluded from coverage report
+    function test() public {}
 }

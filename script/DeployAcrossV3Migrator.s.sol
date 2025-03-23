@@ -25,4 +25,7 @@ contract DeployAcrossV3Migrator is Script {
 
         console.log("AcrossV3Migrator deployed at:", address(migrator));
     }
+
+    // add this to be excluded from coverage report
+    function test() public {}
 }
