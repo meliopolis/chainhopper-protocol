@@ -80,7 +80,7 @@ abstract contract V4Migrator is IERC721Receiver, Migrator {
 
         // approve token transfer via permit2
         IERC20(Currency.unwrap(currencyIn)).safeIncreaseAllowance(address(permit2), amountIn);
-        permit2.approve(Currency.unwrap(currencyIn), address(positionManager), uint160(amountIn), 0);
+        permit2.approve(Currency.unwrap(currencyIn), address(universalRouter), uint160(amountIn), 0);
 
         // prepare v4 router actions and params
         bytes memory actions = abi.encodePacked(

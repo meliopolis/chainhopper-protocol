@@ -1,0 +1,78 @@
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity ^0.8.24;
+
+import {Test} from "@forge-std/Test.sol";
+import {IERC20} from "@openzeppelin/token/ERC20/IERC20.sol";
+import {IERC721} from "@openzeppelin/token/ERC721/IERC721.sol";
+import {INonfungiblePositionManager as IPositionManager} from
+    "../../src/interfaces/external/INonfungiblePositionManager.sol";
+import {IMigrator} from "../../src/interfaces/IMigrator.sol";
+import {MockV3Migrator} from "../mocks/MockV3Migrator.sol";
+
+contract V3MigratorTest is Test {
+    string constant ENV = "BASE";
+    address constant USER = address(0x123);
+
+    MockV3Migrator migrator;
+    address private positionManager;
+    address private weth;
+    address private usdc;
+
+    function setUp() public {
+        vm.createSelectFork(vm.envString(string(abi.encodePacked(ENV, "_RPC_URL"))));
+        positionManager = vm.envAddress(string(abi.encodePacked(ENV, "_UNISWAP_V3_POSITION_MANAGER")));
+        weth = vm.envAddress(string(abi.encodePacked(ENV, "_WETH")));
+        usdc = vm.envAddress(string(abi.encodePacked(ENV, "_USDC")));
+
+        migrator = new MockV3Migrator(
+            positionManager,
+            vm.envAddress(string(abi.encodePacked(ENV, "_UNISWAP_UNIVERSAL_ROUTER"))),
+            vm.envAddress(string(abi.encodePacked(ENV, "_UNISWAP_PERMIT2")))
+        );
+    }
+
+    function test_onERC721Received_Fails_IfNotFromPoolManager() public {
+        vm.expectRevert(abi.encodeWithSelector(IMigrator.NotPositionManager.selector));
+
+        vm.prank(USER);
+        migrator.onERC721Received(address(0), address(0), 0, "");
+    }
+
+    function test_onERC721Received_Succeeds() public {
+        vm.prank(positionManager);
+        migrator.onERC721Received(address(0), address(0), 0, "");
+    }
+
+    function test__liquidate_Succeeds() public {
+        deal(weth, address(this), 1e18);
+        deal(usdc, address(this), 1e10);
+
+        IERC20(weth).approve(positionManager, 1e18);
+        IERC20(usdc).approve(positionManager, 1e10);
+
+        (uint256 positionId,,,) = IPositionManager(positionManager).mint(
+            IPositionManager.MintParams(
+                weth, usdc, 500, -600, 600, 1e18, 1e10, 0, 0, address(migrator), block.timestamp
+            )
+        );
+
+        assertGt(positionId, 0);
+
+        vm.expectEmit(true, true, true, true);
+        emit IERC721.Transfer(address(migrator), address(0), positionId);
+
+        (address token0, address token1, uint256 amount0, uint256 amount1,) = migrator.liquidate(positionId);
+
+        assertEq(token0, weth);
+        assertEq(token1, usdc);
+        assertGt(amount0 + amount1, 0);
+    }
+
+    function test__swap_Succeeds() public {
+        deal(weth, address(migrator), 1e18);
+
+        uint256 amountOut = migrator.swap(abi.encode(weth, usdc, uint24(500)), true, 1e18, 0);
+
+        assertGt(amountOut, 0);
+    }
+}

@@ -72,7 +72,7 @@ abstract contract V3Migrator is IERC721Receiver, Migrator {
 
         // approve token transfer via permit2
         IERC20(tokenIn).safeIncreaseAllowance(address(permit2), amountIn);
-        permit2.approve(tokenIn, address(positionManager), uint160(amountIn), 0);
+        permit2.approve(tokenIn, address(universalRouter), uint160(amountIn), 0);
 
         // execute swap via universal router
         bytes memory commands = abi.encodePacked(bytes1(uint8(Commands.V3_SWAP_EXACT_IN)));
