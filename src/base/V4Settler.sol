@@ -42,7 +42,7 @@ abstract contract V4Settler is IV4Settler, Settler {
         returns (uint256, address, address, uint128)
     {
         // convert weth to native eth if needed
-        if (token == weth) {
+        if (token == address(weth)) {
             token = address(0);
             weth.withdraw(amount);
         }
@@ -116,11 +116,11 @@ abstract contract V4Settler is IV4Settler, Settler {
         returns (uint256, address, address, uint128)
     {
         // convert weth to native eth if needed
-        if (tokenA == weth) {
+        if (tokenA == address(weth)) {
             tokenA = address(0);
             weth.withdraw(amountA);
         }
-        if (tokenB == weth) {
+        if (tokenB == address(weth)) {
             tokenB = address(0);
             weth.withdraw(amountB);
         }
