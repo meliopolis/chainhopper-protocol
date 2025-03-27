@@ -12,17 +12,19 @@ contract MigratorTest is Test {
     address constant OWNER = address(0x456);
 
     MockMigrator migrator;
-    address private weth;
-    address private usdc;
-    address private uni;
+    address private token0;
+    address private token1;
+    address private token2;
     uint32[] private chainIds = [1, 2, 3];
     address[] private settlers = [address(0x789), address(0xabc), address(0xdef)];
 
     function setUp() public {
         vm.createSelectFork(vm.envString(string(abi.encodePacked(ENV, "_RPC_URL"))));
-        weth = vm.envAddress(string(abi.encodePacked(ENV, "_WETH")));
-        usdc = vm.envAddress(string(abi.encodePacked(ENV, "_USDC")));
-        uni = vm.envAddress(string(abi.encodePacked(ENV, "_UNI")));
+        token0 = vm.envAddress(string(abi.encodePacked(ENV, "_WETH")));
+        token1 = vm.envAddress(string(abi.encodePacked(ENV, "_USDC")));
+        token2 = vm.envAddress(string(abi.encodePacked(ENV, "_UNI")));
+
+        (token0, token1) = token0 < token1 ? (token0, token1) : (token1, token0);
 
         vm.startPrank(OWNER);
         migrator = new MockMigrator();
@@ -89,7 +91,7 @@ contract MigratorTest is Test {
         IMigrator.TokenRoute[] memory tokenRoutes = new IMigrator.TokenRoute[](0);
         bytes memory data = abi.encode(IMigrator.MigrationParams(chainIds[0], settlers[0], tokenRoutes, 0, ""));
 
-        migrator.dealLiquidity(weth, usdc, 100, 200);
+        migrator.dealLiquidity(token0, token1, 100, 200);
 
         vm.expectRevert(abi.encodeWithSelector(IMigrator.MissingTokenRoutes.selector));
         migrator.migrate(USER, 0, data);
@@ -99,7 +101,7 @@ contract MigratorTest is Test {
         IMigrator.TokenRoute[] memory tokenRoutes = new IMigrator.TokenRoute[](3);
         bytes memory data = abi.encode(IMigrator.MigrationParams(chainIds[0], settlers[0], tokenRoutes, 0, ""));
 
-        migrator.dealLiquidity(weth, usdc, 100, 200);
+        migrator.dealLiquidity(token0, token1, 100, 200);
 
         vm.expectRevert(abi.encodeWithSelector(IMigrator.TooManyTokenRoutes.selector));
         migrator.migrate(USER, 0, data);
@@ -111,10 +113,10 @@ contract MigratorTest is Test {
 
     function test__migrate_Fails_IfTokensNotRouted() public {
         IMigrator.TokenRoute[] memory tokenRoutes = new IMigrator.TokenRoute[](1);
-        tokenRoutes[0] = IMigrator.TokenRoute(uni, "");
+        tokenRoutes[0] = IMigrator.TokenRoute(token2, "");
         bytes memory data = abi.encode(IMigrator.MigrationParams(chainIds[0], settlers[0], tokenRoutes, 0, ""));
 
-        migrator.dealLiquidity(weth, usdc, 100, 200);
+        migrator.dealLiquidity(token0, token1, 100, 200);
 
         vm.expectRevert(abi.encodeWithSelector(IMigrator.TokensNotRouted.selector));
         migrator.migrate(USER, 0, data);
@@ -122,52 +124,52 @@ contract MigratorTest is Test {
 
     function test__migrate_Succeeds_Token0Route_Token0Liquidity() public {
         IMigrator.TokenRoute[] memory tokenRoutes = new IMigrator.TokenRoute[](1);
-        tokenRoutes[0] = IMigrator.TokenRoute(weth, "");
+        tokenRoutes[0] = IMigrator.TokenRoute(token0, "");
         bytes memory data = abi.encode(IMigrator.MigrationParams(chainIds[0], settlers[0], tokenRoutes, 0, ""));
 
-        migrator.dealLiquidity(weth, usdc, 100, 0);
+        migrator.dealLiquidity(token0, token1, 100, 0);
 
         vm.expectEmit(true, true, true, true);
-        emit IMigrator.Migrated(bytes32(0), chainIds[0], settlers[0], USER, weth, 100);
+        emit IMigrator.Migrated(bytes32(0), chainIds[0], settlers[0], USER, token0, 100);
 
         migrator.migrate(USER, 0, data);
     }
 
     function test__migrate_Succeeds_Token0Route_BothLiquidity() public {
         IMigrator.TokenRoute[] memory tokenRoutes = new IMigrator.TokenRoute[](1);
-        tokenRoutes[0] = IMigrator.TokenRoute(weth, "");
+        tokenRoutes[0] = IMigrator.TokenRoute(token0, "");
         bytes memory data = abi.encode(IMigrator.MigrationParams(chainIds[0], settlers[0], tokenRoutes, 0, ""));
 
-        migrator.dealLiquidity(weth, usdc, 100, 200);
+        migrator.dealLiquidity(token0, token1, 100, 200);
 
         vm.expectEmit(true, true, true, true);
-        emit IMigrator.Migrated(bytes32(0), chainIds[0], settlers[0], USER, weth, 100);
+        emit IMigrator.Migrated(bytes32(0), chainIds[0], settlers[0], USER, token0, 100);
 
         migrator.migrate(USER, 0, data);
     }
 
     function test__migrate_Succeeds_Token1Route_Token1Liquidity() public {
         IMigrator.TokenRoute[] memory tokenRoutes = new IMigrator.TokenRoute[](1);
-        tokenRoutes[0] = IMigrator.TokenRoute(usdc, "");
+        tokenRoutes[0] = IMigrator.TokenRoute(token1, "");
         bytes memory data = abi.encode(IMigrator.MigrationParams(chainIds[0], settlers[0], tokenRoutes, 0, ""));
 
-        migrator.dealLiquidity(weth, usdc, 0, 200);
+        migrator.dealLiquidity(token0, token1, 0, 200);
 
         vm.expectEmit(true, true, true, true);
-        emit IMigrator.Migrated(bytes32(0), chainIds[0], settlers[0], USER, usdc, 200);
+        emit IMigrator.Migrated(bytes32(0), chainIds[0], settlers[0], USER, token1, 200);
 
         migrator.migrate(USER, 0, data);
     }
 
     function test__migrate_Succeeds_Token1Route_BothLiquidity() public {
         IMigrator.TokenRoute[] memory tokenRoutes = new IMigrator.TokenRoute[](1);
-        tokenRoutes[0] = IMigrator.TokenRoute(usdc, "");
+        tokenRoutes[0] = IMigrator.TokenRoute(token1, "");
         bytes memory data = abi.encode(IMigrator.MigrationParams(chainIds[0], settlers[0], tokenRoutes, 0, ""));
 
-        migrator.dealLiquidity(weth, usdc, 100, 200);
+        migrator.dealLiquidity(token0, token1, 100, 200);
 
         vm.expectEmit(true, true, true, true);
-        emit IMigrator.Migrated(bytes32(0), chainIds[0], settlers[0], USER, usdc, 200);
+        emit IMigrator.Migrated(bytes32(0), chainIds[0], settlers[0], USER, token1, 200);
 
         migrator.migrate(USER, 0, data);
     }
@@ -178,82 +180,82 @@ contract MigratorTest is Test {
 
     function test__migrate_Fails_IfAmount0IsZero() public {
         IMigrator.TokenRoute[] memory tokenRoutes = new IMigrator.TokenRoute[](2);
-        tokenRoutes[0] = IMigrator.TokenRoute(weth, "");
-        tokenRoutes[0] = IMigrator.TokenRoute(usdc, "");
+        tokenRoutes[0] = IMigrator.TokenRoute(token0, "");
+        tokenRoutes[0] = IMigrator.TokenRoute(token1, "");
         bytes memory data = abi.encode(IMigrator.MigrationParams(chainIds[0], settlers[0], tokenRoutes, 0, ""));
 
-        migrator.dealLiquidity(weth, usdc, 0, 200);
+        migrator.dealLiquidity(token0, token1, 0, 200);
 
-        vm.expectRevert(abi.encodeWithSelector(IMigrator.AmountCannotBeZero.selector, weth));
+        vm.expectRevert(abi.encodeWithSelector(IMigrator.AmountCannotBeZero.selector, token0));
         migrator.migrate(USER, 0, data);
     }
 
     function test__migrate_Fails_IfAmount1IsZero() public {
         IMigrator.TokenRoute[] memory tokenRoutes = new IMigrator.TokenRoute[](2);
-        tokenRoutes[0] = IMigrator.TokenRoute(weth, "");
-        tokenRoutes[0] = IMigrator.TokenRoute(usdc, "");
+        tokenRoutes[0] = IMigrator.TokenRoute(token0, "");
+        tokenRoutes[0] = IMigrator.TokenRoute(token1, "");
         bytes memory data = abi.encode(IMigrator.MigrationParams(chainIds[0], settlers[0], tokenRoutes, 0, ""));
 
-        migrator.dealLiquidity(weth, usdc, 100, 0);
+        migrator.dealLiquidity(token0, token1, 100, 0);
 
-        vm.expectRevert(abi.encodeWithSelector(IMigrator.AmountCannotBeZero.selector, usdc));
+        vm.expectRevert(abi.encodeWithSelector(IMigrator.AmountCannotBeZero.selector, token1));
         migrator.migrate(USER, 0, data);
     }
 
     function test__migrate_Fails_IfToken0NotRouted() public {
         IMigrator.TokenRoute[] memory tokenRoutes = new IMigrator.TokenRoute[](2);
-        tokenRoutes[0] = IMigrator.TokenRoute(uni, "");
-        tokenRoutes[1] = IMigrator.TokenRoute(usdc, "");
+        tokenRoutes[0] = IMigrator.TokenRoute(token2, "");
+        tokenRoutes[1] = IMigrator.TokenRoute(token1, "");
         bytes memory data = abi.encode(IMigrator.MigrationParams(chainIds[0], settlers[0], tokenRoutes, 0, ""));
 
-        migrator.dealLiquidity(weth, usdc, 100, 200);
+        migrator.dealLiquidity(token0, token1, 100, 200);
 
-        vm.expectRevert(abi.encodeWithSelector(IMigrator.TokenNotRouted.selector, weth));
+        vm.expectRevert(abi.encodeWithSelector(IMigrator.TokenNotRouted.selector, token0));
         migrator.migrate(USER, 0, data);
     }
 
     function test__migrate_Fails_IfToken1NotRouted() public {
         IMigrator.TokenRoute[] memory tokenRoutes = new IMigrator.TokenRoute[](2);
-        tokenRoutes[0] = IMigrator.TokenRoute(weth, "");
-        tokenRoutes[1] = IMigrator.TokenRoute(uni, "");
+        tokenRoutes[0] = IMigrator.TokenRoute(token0, "");
+        tokenRoutes[1] = IMigrator.TokenRoute(token2, "");
         bytes memory data = abi.encode(IMigrator.MigrationParams(chainIds[0], settlers[0], tokenRoutes, 0, ""));
 
-        migrator.dealLiquidity(weth, usdc, 100, 200);
+        migrator.dealLiquidity(token0, token1, 100, 200);
 
-        vm.expectRevert(abi.encodeWithSelector(IMigrator.TokenNotRouted.selector, usdc));
+        vm.expectRevert(abi.encodeWithSelector(IMigrator.TokenNotRouted.selector, token1));
         migrator.migrate(USER, 0, data);
     }
 
     function test__migrate_Succeeds_BothTokenRoutes() public {
         IMigrator.TokenRoute[] memory tokenRoutes = new IMigrator.TokenRoute[](2);
-        tokenRoutes[0] = IMigrator.TokenRoute(weth, "");
-        tokenRoutes[1] = IMigrator.TokenRoute(usdc, "");
+        tokenRoutes[0] = IMigrator.TokenRoute(token0, "");
+        tokenRoutes[1] = IMigrator.TokenRoute(token1, "");
         bytes memory data = abi.encode(IMigrator.MigrationParams(chainIds[0], settlers[0], tokenRoutes, 0, ""));
 
         bytes32 migrationId = keccak256(abi.encodePacked(block.chainid, migrator, uint256(1)));
-        migrator.dealLiquidity(weth, usdc, 100, 200);
+        migrator.dealLiquidity(token0, token1, 100, 200);
 
         vm.expectEmit(true, true, true, true);
-        emit IMigrator.Migrated(migrationId, chainIds[0], settlers[0], USER, weth, 100);
+        emit IMigrator.Migrated(migrationId, chainIds[0], settlers[0], USER, token0, 100);
         vm.expectEmit(true, true, true, true);
-        emit IMigrator.Migrated(migrationId, chainIds[0], settlers[0], USER, usdc, 200);
+        emit IMigrator.Migrated(migrationId, chainIds[0], settlers[0], USER, token1, 200);
 
         migrator.migrate(USER, 0, data);
     }
 
     function test__migrate_Succeeds_FlippedTokenRoutes() public {
         IMigrator.TokenRoute[] memory tokenRoutes = new IMigrator.TokenRoute[](2);
-        tokenRoutes[0] = IMigrator.TokenRoute(usdc, "");
-        tokenRoutes[1] = IMigrator.TokenRoute(weth, "");
+        tokenRoutes[0] = IMigrator.TokenRoute(token1, "");
+        tokenRoutes[1] = IMigrator.TokenRoute(token0, "");
         bytes memory data = abi.encode(IMigrator.MigrationParams(chainIds[0], settlers[0], tokenRoutes, 0, ""));
 
         bytes32 migrationId = keccak256(abi.encodePacked(block.chainid, migrator, uint256(1)));
-        migrator.dealLiquidity(weth, usdc, 100, 200);
+        migrator.dealLiquidity(token0, token1, 100, 200);
 
         vm.expectEmit(true, true, true, true);
-        emit IMigrator.Migrated(migrationId, chainIds[0], settlers[0], USER, usdc, 200);
+        emit IMigrator.Migrated(migrationId, chainIds[0], settlers[0], USER, token1, 200);
         vm.expectEmit(true, true, true, true);
-        emit IMigrator.Migrated(migrationId, chainIds[0], settlers[0], USER, weth, 100);
+        emit IMigrator.Migrated(migrationId, chainIds[0], settlers[0], USER, token0, 100);
 
         migrator.migrate(USER, 0, data);
     }

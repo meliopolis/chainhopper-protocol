@@ -4,6 +4,8 @@ pragma solidity ^0.8.24;
 import {V3Migrator} from "../../src/base/V3Migrator.sol";
 
 contract MockV3Migrator is V3Migrator {
+    event NoOp();
+
     constructor(address positionManager, address universalRouter, address permit2)
         V3Migrator(positionManager, universalRouter, permit2)
     {}
@@ -20,11 +22,11 @@ contract MockV3Migrator is V3Migrator {
     }
 
     function _bridge(address, uint32, address, TokenRoute memory, uint256, bytes memory) internal override {
-        // do nothing
+        emit NoOp();
     }
 
     function _migrate(address sender, uint256 positionId, bytes memory data) internal override {
-        // do nothing
+        emit NoOp();
     }
 
     // add this to be excluded from coverage report

@@ -4,6 +4,8 @@ pragma solidity ^0.8.24;
 import {Migrator} from "../../src/base/Migrator.sol";
 
 contract MockMigrator is Migrator {
+    event NoOp();
+
     address private token0;
     address private token1;
     uint256 private amount0;
@@ -25,11 +27,11 @@ contract MockMigrator is Migrator {
     }
 
     function _swap(bytes memory, bool, uint256, uint256) internal override returns (uint256) {
-        // do nothing
+        emit NoOp();
     }
 
     function _bridge(address, uint32, address, TokenRoute memory, uint256, bytes memory) internal override {
-        // do nothing
+        emit NoOp();
     }
 
     // add this to be excluded from coverage report

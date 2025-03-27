@@ -13,10 +13,11 @@ contract AcrossV4Settler is AcrossSettler, V4Settler {
         address _positionManager,
         address _universalRouter,
         address _permit2,
-        address _spokePool
+        address _spokePool,
+        address _weth
     )
         Settler(_protocolFeeBps, _protocolShareOfSenderFeeInPercent, _protocolFeeRecipient)
         AcrossSettler(_spokePool)
-        V4Settler(_positionManager, _universalRouter, _permit2)
+        V4Settler(_positionManager, _universalRouter, _permit2, _weth)
     {}
 }

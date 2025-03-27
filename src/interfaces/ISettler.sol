@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 interface ISettler {
     error NotSelf();
     error NotRecipient();
-    error AmountCannotBeZero();
+    error AmountCannotBeZero(address token);
     error SettlementTokensCannotBeTheSame();
     error SettlementDataMismatch();
 

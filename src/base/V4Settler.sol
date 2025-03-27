@@ -12,6 +12,7 @@ import {StateLibrary} from "@uniswap-v4-core/libraries/StateLibrary.sol";
 import {TickMath} from "@uniswap-v4-core/libraries/TickMath.sol";
 import {Currency} from "@uniswap-v4-core/types/Currency.sol";
 import {PoolKey} from "@uniswap-v4-core/types/PoolKey.sol";
+import {IWETH9} from "@uniswap-v4-periphery/interfaces/external/IWETH9.sol";
 import {IPositionManager} from "@uniswap-v4-periphery/interfaces/IPositionManager.sol";
 import {IV4Router} from "@uniswap-v4-periphery/interfaces/IV4Router.sol";
 import {Actions} from "@uniswap-v4-periphery/libraries/Actions.sol";
@@ -26,11 +27,13 @@ abstract contract V4Settler is IV4Settler, Settler {
     IPositionManager private immutable positionManager;
     IUniversalRouter private immutable universalRouter;
     IPermit2 private immutable permit2;
+    IWETH9 private weth;
 
-    constructor(address _positionManager, address _universalRouter, address _permit2) {
+    constructor(address _positionManager, address _universalRouter, address _permit2, address _weth) {
         positionManager = IPositionManager(_positionManager);
         universalRouter = IUniversalRouter(_universalRouter);
         permit2 = IPermit2(_permit2);
+        weth = IWETH9(_weth);
     }
 
     function _settle(address token, uint256 amount, bytes memory data)
@@ -38,8 +41,18 @@ abstract contract V4Settler is IV4Settler, Settler {
         override
         returns (uint256, address, address, uint128)
     {
-        // decode settlement params and create pool key
+        // convert weth to native eth if needed
+        if (token == weth) {
+            token = address(0);
+            weth.withdraw(amount);
+        }
+
+        // decode settlement params
         SettlementParams memory params = abi.decode(data, (SettlementParams));
+
+        if (token != params.token0 && token != params.token1) revert TokenNotUsed(token);
+
+        // create pool key
         PoolKey memory poolKey = PoolKey(
             Currency.wrap(params.token0),
             Currency.wrap(params.token1),
@@ -64,7 +77,7 @@ abstract contract V4Settler is IV4Settler, Settler {
 
             // approve token transfer via permit2
             IERC20(Currency.unwrap(currencyIn)).safeIncreaseAllowance(address(permit2), amountIn);
-            permit2.approve(Currency.unwrap(currencyIn), address(positionManager), uint160(amountIn), 0);
+            permit2.approve(Currency.unwrap(currencyIn), address(universalRouter), uint160(amountIn), 0);
 
             // prepare v4 router actions and params
             bytes memory actions = abi.encodePacked(
@@ -102,8 +115,23 @@ abstract contract V4Settler is IV4Settler, Settler {
         override
         returns (uint256, address, address, uint128)
     {
-        // decode settlement params and create pool key
+        // convert weth to native eth if needed
+        if (tokenA == weth) {
+            tokenA = address(0);
+            weth.withdraw(amountA);
+        }
+        if (tokenB == weth) {
+            tokenB = address(0);
+            weth.withdraw(amountB);
+        }
+
+        // decode settlement params
         SettlementParams memory params = abi.decode(data, (SettlementParams));
+
+        if (tokenA != params.token0 && tokenA != params.token1) revert TokenNotUsed(tokenA);
+        if (tokenB != params.token0 && tokenB != params.token1) revert TokenNotUsed(tokenB);
+
+        // create pool key
         PoolKey memory poolKey = PoolKey(
             Currency.wrap(params.token0),
             Currency.wrap(params.token1),
@@ -111,9 +139,6 @@ abstract contract V4Settler is IV4Settler, Settler {
             params.tickSpacing,
             IHooks(params.hooks)
         );
-
-        if (tokenA != params.token0 && tokenA != params.token1) revert TokenNotUsed(tokenA);
-        if (tokenB != params.token0 && tokenB != params.token1) revert TokenNotUsed(tokenB);
 
         // align amounts to settlement tokens
         (uint256 amount0, uint256 amount1) = tokenA == params.token0 ? (amountA, amountB) : (amountB, amountA);

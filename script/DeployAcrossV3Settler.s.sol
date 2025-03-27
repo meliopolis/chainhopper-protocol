@@ -6,10 +6,10 @@ import {AcrossV3Settler} from "../src/AcrossV3Settler.sol";
 
 /*
     forge script script/DeployAcrossV3Settler.s.sol:DeployAcrossV3Settler \
-    --rpc-url sepolia \
+    --rpc-url <rpc_endpoints> \
     --broadcast \
     --verify \
-    --sig 'run(string,uint24,uint8,address)' SEPOLIA <ProtocolFeeBps> <ProtocolShareOfSenderFeeInPercent> <ProtocolFeeRecipient>
+    --sig 'run(string,uint24,uint8,address)' <ENV> <ProtocolFeeBps> <ProtocolShareOfSenderFeeInPercent> <ProtocolFeeRecipient>
 */
 
 contract DeployAcrossV3Settler is Script {

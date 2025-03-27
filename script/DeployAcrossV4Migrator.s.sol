@@ -6,10 +6,10 @@ import {AcrossV4Migrator} from "../src/AcrossV4Migrator.sol";
 
 /*
     forge script script/DeployAcrossV4Migrator.s.sol:DeployAcrossV4Migrator \
-    --rpc-url sepolia \
+    --rpc-url <rpc_endpoints> \
     --broadcast \
     --verify \
-    --sig 'run(string)' SEPOLIA
+    --sig 'run(string)' <ENV>
 */
 
 contract DeployAcrossV4Migrator is Script {

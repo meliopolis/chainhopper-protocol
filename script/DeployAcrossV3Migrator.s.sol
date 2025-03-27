@@ -6,10 +6,10 @@ import {AcrossV3Migrator} from "../src/AcrossV3Migrator.sol";
 
 /*
     forge script script/DeployAcrossV3Migrator.s.sol:DeployAcrossV3Migrator \
-    --rpc-url sepolia \
+    --rpc-url <rpc_endpoints> \
     --broadcast \
     --verify \
-    --sig 'run(string)' SEPOLIA
+    --sig 'run(string)' <ENV>
 */
 
 contract DeployAcrossV3Migrator is Script {

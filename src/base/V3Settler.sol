@@ -32,6 +32,8 @@ abstract contract V3Settler is IV3Settler, Settler {
         // decode settlement params
         SettlementParams memory params = abi.decode(data, (SettlementParams));
 
+        if (token != params.token0 && token != params.token1) revert TokenNotUsed(token);
+
         // calculate swap direction
         bool zeroForOne = token == params.token0;
         (address tokenIn, address tokenOut) = zeroForOne ? (token, params.token1) : (params.token0, token);
@@ -45,7 +47,7 @@ abstract contract V3Settler is IV3Settler, Settler {
 
             // approve token transfer via permit2
             IERC20(tokenIn).safeIncreaseAllowance(address(permit2), amountIn);
-            permit2.approve(tokenIn, address(positionManager), uint160(amountIn), 0);
+            permit2.approve(tokenIn, address(universalRouter), uint160(amountIn), 0);
 
             // execute swap via universal router
             bytes memory commands = abi.encodePacked(bytes1(uint8(Commands.V3_SWAP_EXACT_IN)));

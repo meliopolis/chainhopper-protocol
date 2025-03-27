@@ -12,11 +12,11 @@ contract AcrossMigratorTest is Test {
     address constant USER = address(0x123);
 
     MockAcrossMigrator migrator;
-    address private weth;
+    address private token;
 
     function setUp() public {
         vm.createSelectFork(vm.envString(string(abi.encodePacked(ENV, "_RPC_URL"))));
-        weth = vm.envAddress(string(abi.encodePacked(ENV, "_WETH")));
+        token = vm.envAddress(string(abi.encodePacked(ENV, "_WETH")));
 
         migrator = new MockAcrossMigrator(vm.envAddress(string(abi.encodePacked(ENV, "_ACROSS_SPOKE_POOL"))));
     }
@@ -24,11 +24,11 @@ contract AcrossMigratorTest is Test {
     function test_bridge_Succeeds() public {
         IAcrossMigrator.Route memory route =
             IAcrossMigrator.Route(address(0), 0, uint32(block.timestamp), 0, address(0), 0);
-        IMigrator.TokenRoute memory tokenRoute = IMigrator.TokenRoute(weth, abi.encode(route));
+        IMigrator.TokenRoute memory tokenRoute = IMigrator.TokenRoute(token, abi.encode(route));
 
         vm.expectEmit(true, false, true, true);
         emit IAcrossSpokePool.FundsDeposited(
-            bytes32(uint256(uint160(weth))),
+            bytes32(uint256(uint160(token))),
             bytes32(0),
             0,
             0,

@@ -6,7 +6,7 @@ import {Migrator} from "../src/base/Migrator.sol";
 
 /*
     forge script script/SetChainSettlers.s.sol:SetChainSettlers \
-    --rpc-url sepolia \
+    --rpc-url <rpc_endpoints> \
     --broadcast \
     --verify \
     --sig 'run(address)' <MIGRATOR ADDRESS>

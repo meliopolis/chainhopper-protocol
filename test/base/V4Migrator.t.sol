@@ -26,15 +26,17 @@ contract V4MigratorTest is Test {
     MockV4Migrator migrator;
     address private positionManager;
     address private permit2;
-    address private weth;
-    address private usdc;
+    address private token0;
+    address private token1;
 
     function setUp() public {
         vm.createSelectFork(vm.envString(string(abi.encodePacked(ENV, "_RPC_URL"))));
         positionManager = vm.envAddress(string(abi.encodePacked(ENV, "_UNISWAP_V4_POSITION_MANAGER")));
         permit2 = vm.envAddress(string(abi.encodePacked(ENV, "_UNISWAP_PERMIT2")));
-        weth = vm.envAddress(string(abi.encodePacked(ENV, "_WETH")));
-        usdc = vm.envAddress(string(abi.encodePacked(ENV, "_USDC")));
+        token0 = vm.envAddress(string(abi.encodePacked(ENV, "_WETH")));
+        token1 = vm.envAddress(string(abi.encodePacked(ENV, "_USDC")));
+
+        (token0, token1) = token0 < token1 ? (token0, token1) : (token1, token0);
 
         migrator = new MockV4Migrator(
             positionManager, vm.envAddress(string(abi.encodePacked(ENV, "_UNISWAP_UNIVERSAL_ROUTER"))), permit2
@@ -54,15 +56,15 @@ contract V4MigratorTest is Test {
     }
 
     function test__liquidate_Succeeds() public {
-        deal(weth, address(this), 1e18);
-        deal(usdc, address(this), 1e10);
+        deal(token0, address(this), 1e18);
+        deal(token1, address(this), 1e10);
 
-        IERC20(weth).approve(address(permit2), 1e18);
-        IPermit2(permit2).approve(weth, address(positionManager), uint160(1e18), 0);
-        IERC20(usdc).approve(address(permit2), 1e10);
-        IPermit2(permit2).approve(usdc, address(positionManager), uint160(1e10), 0);
+        IERC20(token0).approve(address(permit2), 1e18);
+        IPermit2(permit2).approve(token0, address(positionManager), uint160(1e18), 0);
+        IERC20(token1).approve(address(permit2), 1e10);
+        IPermit2(permit2).approve(token1, address(positionManager), uint160(1e10), 0);
 
-        PoolKey memory poolKey = PoolKey(Currency.wrap(weth), Currency.wrap(usdc), 500, 10, IHooks(address(0)));
+        PoolKey memory poolKey = PoolKey(Currency.wrap(token0), Currency.wrap(token1), 500, 10, IHooks(address(0)));
         (uint160 sqrtPriceX96,,,) = IPositionManager(positionManager).poolManager().getSlot0(poolKey.toId());
         uint128 liquidity = LiquidityAmounts.getLiquidityForAmounts(
             sqrtPriceX96, TickMath.getSqrtPriceAtTick(-600), TickMath.getSqrtPriceAtTick(600), 1e18, 1e10
@@ -76,7 +78,7 @@ contract V4MigratorTest is Test {
             abi.encodePacked(bytes1(uint8(Actions.MINT_POSITION)), bytes1(uint8(Actions.SETTLE_PAIR)));
         bytes[] memory _params = new bytes[](2);
         _params[0] = abi.encode(poolKey, -600, 600, liquidity, 1e18, 1e10, address(migrator), "");
-        _params[1] = abi.encode(Currency.wrap(weth), Currency.wrap(usdc));
+        _params[1] = abi.encode(Currency.wrap(token0), Currency.wrap(token1));
         IPositionManager(positionManager).modifyLiquidities(abi.encode(actions, _params), block.timestamp);
 
         vm.expectEmit(true, true, true, true);
@@ -84,15 +86,22 @@ contract V4MigratorTest is Test {
 
         (address token0, address token1, uint256 amount0, uint256 amount1,) = migrator.liquidate(positionId);
 
-        assertEq(token0, weth);
-        assertEq(token1, usdc);
+        assertEq(token0, token0);
+        assertEq(token1, token1);
         assertGt(amount0 + amount1, 0);
     }
 
-    function test__swap_Succeeds() public {
-        deal(weth, address(migrator), 1e18);
+    function test__swap_Fails_IfAmountOtherMinNotMet() public {
+        deal(token0, address(migrator), 1e18);
 
-        uint256 amountOut = migrator.swap(abi.encode(weth, usdc, uint24(500), int24(10), address(0)), true, 1e18, 0);
+        vm.expectRevert();
+        migrator.swap(abi.encode(token0, token1, uint24(500), int24(10), address(0)), true, 1e18, type(uint256).max);
+    }
+
+    function test__swap_Succeeds() public {
+        deal(token0, address(migrator), 1e18);
+
+        uint256 amountOut = migrator.swap(abi.encode(token0, token1, uint24(500), int24(10), address(0)), true, 1e18, 0);
 
         assertGt(amountOut, 0);
     }

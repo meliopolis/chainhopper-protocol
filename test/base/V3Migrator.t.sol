@@ -15,14 +15,16 @@ contract V3MigratorTest is Test {
 
     MockV3Migrator migrator;
     address private positionManager;
-    address private weth;
-    address private usdc;
+    address private token0;
+    address private token1;
 
     function setUp() public {
         vm.createSelectFork(vm.envString(string(abi.encodePacked(ENV, "_RPC_URL"))));
         positionManager = vm.envAddress(string(abi.encodePacked(ENV, "_UNISWAP_V3_POSITION_MANAGER")));
-        weth = vm.envAddress(string(abi.encodePacked(ENV, "_WETH")));
-        usdc = vm.envAddress(string(abi.encodePacked(ENV, "_USDC")));
+        token0 = vm.envAddress(string(abi.encodePacked(ENV, "_WETH")));
+        token1 = vm.envAddress(string(abi.encodePacked(ENV, "_USDC")));
+
+        (token0, token1) = token0 < token1 ? (token0, token1) : (token1, token0);
 
         migrator = new MockV3Migrator(
             positionManager,
@@ -44,15 +46,15 @@ contract V3MigratorTest is Test {
     }
 
     function test__liquidate_Succeeds() public {
-        deal(weth, address(this), 1e18);
-        deal(usdc, address(this), 1e10);
+        deal(token0, address(this), 1e18);
+        deal(token1, address(this), 1e10);
 
-        IERC20(weth).approve(positionManager, 1e18);
-        IERC20(usdc).approve(positionManager, 1e10);
+        IERC20(token0).approve(positionManager, 1e18);
+        IERC20(token1).approve(positionManager, 1e10);
 
         (uint256 positionId,,,) = IPositionManager(positionManager).mint(
             IPositionManager.MintParams(
-                weth, usdc, 500, -600, 600, 1e18, 1e10, 0, 0, address(migrator), block.timestamp
+                token0, token1, 500, -600, 600, 1e18, 1e10, 0, 0, address(migrator), block.timestamp
             )
         );
 
@@ -63,15 +65,22 @@ contract V3MigratorTest is Test {
 
         (address token0, address token1, uint256 amount0, uint256 amount1,) = migrator.liquidate(positionId);
 
-        assertEq(token0, weth);
-        assertEq(token1, usdc);
+        assertEq(token0, token0);
+        assertEq(token1, token1);
         assertGt(amount0 + amount1, 0);
     }
 
-    function test__swap_Succeeds() public {
-        deal(weth, address(migrator), 1e18);
+    function test__swap_Fails_IfAmountOtherMinNotMet() public {
+        deal(token0, address(migrator), 1e18);
 
-        uint256 amountOut = migrator.swap(abi.encode(weth, usdc, uint24(500)), true, 1e18, 0);
+        vm.expectRevert();
+        migrator.swap(abi.encode(token0, token1, uint24(500)), true, 1e18, type(uint256).max);
+    }
+
+    function test__swap_Succeeds() public {
+        deal(token0, address(migrator), 1e18);
+
+        uint256 amountOut = migrator.swap(abi.encode(token0, token1, uint24(500)), true, 1e18, 0);
 
         assertGt(amountOut, 0);
     }

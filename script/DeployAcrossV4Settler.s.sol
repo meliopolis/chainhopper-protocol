@@ -6,10 +6,10 @@ import {AcrossV4Settler} from "../src/AcrossV4Settler.sol";
 
 /*
     forge script script/DeployAcrossV4Settler.s.sol:DeployAcrossV4Settler \
-    --rpc-url sepolia \
+    --rpc-url <rpc_endpoints> \
     --broadcast \
     --verify \
-    --sig 'run(string,uint24,uint8,address)' SEPOLIA <ProtocolFeeBps> <ProtocolShareOfSenderFeeInPercent> <ProtocolFeeRecipient>
+    --sig 'run(string,uint24,uint8,address)' <ENV> <ProtocolFeeBps> <ProtocolShareOfSenderFeeInPercent> <ProtocolFeeRecipient>
 */
 
 contract DeployAcrossV4Settler is Script {
@@ -28,7 +28,8 @@ contract DeployAcrossV4Settler is Script {
             vm.envAddress(string(abi.encodePacked(env, "_UNISWAP_V4_POSITION_MANAGER"))),
             vm.envAddress(string(abi.encodePacked(env, "_UNISWAP_UNIVERSAL_ROUTER"))),
             vm.envAddress(string(abi.encodePacked(env, "_UNISWAP_PERMIT2"))),
-            vm.envAddress(string(abi.encodePacked(env, "_ACROSS_SPOKE_POOL")))
+            vm.envAddress(string(abi.encodePacked(env, "_ACROSS_SPOKE_POOL"))),
+            vm.envAddress(string(abi.encodePacked(env, "_WETH")))
         );
 
         console.log("AcrossV4Settler deployed at:", address(settler));

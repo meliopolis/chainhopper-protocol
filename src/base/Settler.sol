@@ -41,9 +41,9 @@ abstract contract Settler is ISettler, Ownable2Step {
         protocolFeeRecipient = _protocolFeeRecipient;
     }
 
-    function settle(address token, uint256 amount, bytes memory data) external {
+    function settle(address token, uint256 amount, bytes memory data) external virtual {
         if (msg.sender != address(this)) revert NotSelf();
-        if (amount == 0) revert AmountCannotBeZero();
+        if (amount == 0) revert AmountCannotBeZero(token);
 
         BaseSettlementParams memory baseParams = abi.decode(data, (BaseSettlementParams));
         if (baseParams.migrationId == bytes32(0)) {
@@ -100,7 +100,7 @@ abstract contract Settler is ISettler, Ownable2Step {
         _refund(migrationId, true);
     }
 
-    function _refund(bytes32 migrationId, bool onlyRecipient) internal {
+    function _refund(bytes32 migrationId, bool onlyRecipient) internal virtual {
         PartialSettlement memory partialSettlement = partialSettlements[migrationId];
         if (partialSettlement.amount > 0) {
             if (onlyRecipient && msg.sender != partialSettlement.recipient) revert NotRecipient();
