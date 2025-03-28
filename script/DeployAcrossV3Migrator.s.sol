@@ -8,6 +8,7 @@ import {AcrossV3Migrator} from "../src/AcrossV3Migrator.sol";
     forge script script/DeployAcrossV3Migrator.s.sol:DeployAcrossV3Migrator \
     --rpc-url <rpc_endpoints> \
     --broadcast \
+    --etherscan-api-key <etherscan_api_key> \
     --verify \
     --sig 'run(string)' <ENV>
 */
