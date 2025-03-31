@@ -11,6 +11,11 @@ contract AcrossV3Migrator is AcrossMigrator, V3Migrator {
         address _positionManager,
         address _universalRouter,
         address _permit2,
-        address _spokePool
-    ) Migrator(_initialOwner) AcrossMigrator(_spokePool) V3Migrator(_positionManager, _universalRouter, _permit2) {}
+        address _spokePool,
+        address _weth
+    )
+        Migrator(_weth, _initialOwner)
+        AcrossMigrator(_spokePool)
+        V3Migrator(_positionManager, _universalRouter, _permit2)
+    {}
 }

@@ -22,14 +22,16 @@ abstract contract AcrossMigrator is IAcrossMigrator, Migrator {
         address settler,
         address token,
         uint256 amount,
+        bool isTokenNative,
         bytes memory route,
         bytes memory data
     ) internal override {
         Route memory _route = abi.decode(route, (Route));
         IERC20(token).safeIncreaseAllowance(address(spokePool), amount);
+        uint256 value = isTokenNative ? amount : 0;
 
         // initiate migration via the spoke pool
-        spokePool.depositV3(
+        spokePool.depositV3{value: value}(
             sender,
             settler,
             token,

@@ -9,7 +9,7 @@ contract MockV4Migrator is V4Migrator {
 
     constructor(address positionManager, address universalRouter, address permit2)
         V4Migrator(positionManager, universalRouter, permit2)
-        Migrator(msg.sender)
+        Migrator(weth, msg.sender)
     {}
 
     function liquidate(uint256 positionId, uint256 amount0Min, uint256 amount1Min)
@@ -26,7 +26,7 @@ contract MockV4Migrator is V4Migrator {
         return _swap(poolInfo, zeroForOne, amountIn, amountOutMin);
     }
 
-    function _bridge(address, uint32, address, address, uint256, bytes memory, bytes memory) internal override {
+    function _bridge(address, uint32, address, address, uint256, bool, bytes memory, bytes memory) internal override {
         emit NoOp();
     }
 

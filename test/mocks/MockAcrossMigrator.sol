@@ -5,7 +5,7 @@ import {AcrossMigrator} from "../../src/base/AcrossMigrator.sol";
 import {Migrator} from "../../src/base/Migrator.sol";
 
 contract MockAcrossMigrator is AcrossMigrator {
-    constructor(address _spokePool) AcrossMigrator(_spokePool) Migrator(msg.sender) {}
+    constructor(address _spokePool, address _weth) AcrossMigrator(_spokePool) Migrator(_weth, msg.sender) {}
 
     function mockBridge(
         address sender,
@@ -13,10 +13,11 @@ contract MockAcrossMigrator is AcrossMigrator {
         address settler,
         address token,
         uint256 amount,
+        bool isTokenNative,
         bytes memory route,
         bytes memory data
     ) external {
-        _bridge(sender, chainId, settler, token, amount, route, data);
+        _bridge(sender, chainId, settler, token, amount, isTokenNative, route, data);
     }
 
     function _liquidate(uint256, uint256, uint256)

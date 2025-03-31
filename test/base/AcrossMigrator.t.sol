@@ -18,7 +18,7 @@ contract AcrossMigratorTest is Test {
         vm.createSelectFork(vm.envString(string(abi.encodePacked(ENV, "_RPC_URL"))));
         token = vm.envAddress(string(abi.encodePacked(ENV, "_WETH")));
 
-        migrator = new MockAcrossMigrator(vm.envAddress(string(abi.encodePacked(ENV, "_ACROSS_SPOKE_POOL"))));
+        migrator = new MockAcrossMigrator(vm.envAddress(string(abi.encodePacked(ENV, "_ACROSS_SPOKE_POOL"))), token);
     }
 
     function test_bridge_Succeeds() public {
@@ -43,6 +43,6 @@ contract AcrossMigratorTest is Test {
             ""
         );
 
-        migrator.mockBridge(USER, 1, address(0), tokenRoute.token, 0, tokenRoute.route, "");
+        migrator.mockBridge(USER, 1, address(0), tokenRoute.token, 0, true, tokenRoute.route, "");
     }
 }

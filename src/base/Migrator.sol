@@ -12,9 +12,12 @@ abstract contract Migrator is IMigrator, Ownable2Step {
     event ChainSettlerUpdated(uint32 indexed chainId, address indexed settler, bool value);
 
     uint40 public lastNounce;
+    address public weth;
     mapping(uint32 => mapping(address => bool)) public chainSettlers;
 
-    constructor(address initialOwner) Ownable(initialOwner) {}
+    constructor(address _weth, address initialOwner) Ownable(initialOwner) {
+        weth = _weth;
+    }
 
     function setChainSettlers(uint32[] calldata chainIds, address[] calldata settlers, bool[] calldata values)
         external
@@ -38,16 +41,21 @@ abstract contract Migrator is IMigrator, Ownable2Step {
             TokenRoute memory tokenRoute = params.tokenRoutes[0];
 
             uint256 amount;
+            bool isToken0Native;
             {
                 // liquidate the position
                 (address token0, address token1, uint256 amount0, uint256 amount1, bytes memory poolInfo) =
                     _liquidate(positionId, params.amount0Min, params.amount1Min);
 
+                isToken0Native = token0 == address(0);
 
-                if (token0 != tokenRoute.token && token1 != tokenRoute.token) revert TokensNotRouted(token0, token1);
+                if (
+                    (token0 != tokenRoute.token && token1 != tokenRoute.token)
+                        && (token0 != address(0) || tokenRoute.token != weth)
+                ) revert TokensNotRouted(token0, token1);
 
                 // calculate amount
-                amount = token0 == tokenRoute.token
+                amount = (token0 == tokenRoute.token || isToken0Native)
                     ? amount0 + (amount1 > 0 ? _swap(poolInfo, false, amount1, params.amountSwapOutMin) : 0)
                     : amount1 + (amount0 > 0 ? _swap(poolInfo, true, amount0, params.amountSwapOutMin) : 0);
                 if (amount == 0) revert TokenAmountMissing(tokenRoute.token);
@@ -59,7 +67,9 @@ abstract contract Migrator is IMigrator, Ownable2Step {
             data = abi.encode(migrationId, params.settlementParams);
 
             // bridge token
-            _bridge(sender, params.chainId, params.settler, tokenRoute.token, amount, tokenRoute.route, data);
+            _bridge(
+                sender, params.chainId, params.settler, tokenRoute.token, amount, isToken0Native, tokenRoute.route, data
+            );
 
             emit Migration(migrationId, positionId, tokenRoute.token, sender, amount);
         } else if (params.tokenRoutes.length == 2) {
@@ -68,11 +78,14 @@ abstract contract Migrator is IMigrator, Ownable2Step {
 
             uint256 amount0;
             uint256 amount1;
+            bool isToken0Native;
             {
                 // liquidate the position
                 address token0;
                 address token1;
                 (token0, token1, amount0, amount1,) = _liquidate(positionId, params.amount0Min, params.amount1Min);
+
+                isToken0Native = token0 == address(0);
 
                 if (token0 == tokenRoute1.token && token1 == tokenRoute0.token) {
                     // flip amounts to match token routes
@@ -93,8 +106,17 @@ abstract contract Migrator is IMigrator, Ownable2Step {
             data = abi.encode(migrationId, params.settlementParams);
 
             // bridge  tokens
-            _bridge(sender, params.chainId, params.settler, tokenRoute0.token, amount0, tokenRoute0.route, data);
-            _bridge(sender, params.chainId, params.settler, tokenRoute1.token, amount1, tokenRoute1.route, data);
+            _bridge(
+                sender,
+                params.chainId,
+                params.settler,
+                tokenRoute0.token,
+                amount0,
+                isToken0Native,
+                tokenRoute0.route,
+                data
+            );
+            _bridge(sender, params.chainId, params.settler, tokenRoute1.token, amount1, false, tokenRoute1.route, data);
 
             emit Migration(migrationId, positionId, tokenRoute0.token, sender, amount0);
             emit Migration(migrationId, positionId, tokenRoute1.token, sender, amount1);
@@ -109,6 +131,7 @@ abstract contract Migrator is IMigrator, Ownable2Step {
         address settler,
         address token,
         uint256 amount,
+        bool isTokenNative,
         bytes memory route,
         bytes memory data
     ) internal virtual;

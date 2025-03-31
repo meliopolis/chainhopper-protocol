@@ -29,7 +29,8 @@ contract V3MigratorTest is Test {
         migrator = new MockV3Migrator(
             positionManager,
             vm.envAddress(string(abi.encodePacked(ENV, "_UNISWAP_UNIVERSAL_ROUTER"))),
-            vm.envAddress(string(abi.encodePacked(ENV, "_UNISWAP_PERMIT2")))
+            vm.envAddress(string(abi.encodePacked(ENV, "_UNISWAP_PERMIT2"))),
+            token0
         );
     }
 

@@ -9,7 +9,7 @@ contract MockMigrator is Migrator {
     uint256 private amount0;
     uint256 private amount1;
 
-    constructor(address initialOwner) Migrator(initialOwner) {}
+    constructor(address _weth, address initialOwner) Migrator(_weth, initialOwner) {}
 
     function setLiquidity(address _token0, address _token1, uint256 _amount0, uint256 _amount1) external {
         token0 = _token0;
@@ -22,7 +22,7 @@ contract MockMigrator is Migrator {
         _migrate(sender, positionId, data);
     }
 
-    function _bridge(address, uint32, address, address, uint256, bytes memory, bytes memory) internal override {}
+    function _bridge(address, uint32, address, address, uint256, bool, bytes memory, bytes memory) internal override {}
 
     function _liquidate(uint256, uint256, uint256)
         internal

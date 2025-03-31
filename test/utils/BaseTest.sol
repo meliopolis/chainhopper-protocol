@@ -25,7 +25,7 @@ contract BaseTest is Test {
 
     function setUp() public virtual {
         vm.createSelectFork(vm.envString(string(abi.encodePacked(ENV, "_RPC_URL"))));
-        migrator = new MockMigrator(OWNER);
+        migrator = new MockMigrator(weth, OWNER);
         settler = new MockSettler(OWNER);
 
         uniswapV3PositionManager = vm.envAddress(string(abi.encodePacked(ENV, "_UNISWAP_V3_POSITION_MANAGER")));

@@ -7,9 +7,9 @@ import {V3Migrator} from "../../src/base/V3Migrator.sol";
 contract MockV3Migrator is V3Migrator {
     event NoOp();
 
-    constructor(address positionManager, address universalRouter, address permit2)
+    constructor(address positionManager, address universalRouter, address permit2, address weth)
         V3Migrator(positionManager, universalRouter, permit2)
-        Migrator(msg.sender)
+        Migrator(weth, msg.sender)
     {}
 
     function liquidate(uint256 positionId, uint256 amount0Min, uint256 amount1Min)
@@ -26,7 +26,7 @@ contract MockV3Migrator is V3Migrator {
         return _swap(poolInfo, zeroForOne, amountIn, amountOutMin);
     }
 
-    function _bridge(address, uint32, address, address, uint256, bytes memory, bytes memory) internal override {
+    function _bridge(address, uint32, address, address, uint256, bool, bytes memory, bytes memory) internal override {
         emit NoOp();
     }
 

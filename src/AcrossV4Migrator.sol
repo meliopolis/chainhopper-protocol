@@ -11,6 +11,11 @@ contract AcrossV4Migrator is AcrossMigrator, V4Migrator {
         address _positionManager,
         address _universalRouter,
         address _permit2,
-        address _spokePool
-    ) Migrator(_initialOwner) AcrossMigrator(_spokePool) V4Migrator(_positionManager, _universalRouter, _permit2) {}
+        address _spokePool,
+        address _weth
+    )
+        Migrator(_weth, _initialOwner)
+        AcrossMigrator(_spokePool)
+        V4Migrator(_positionManager, _universalRouter, _permit2)
+    {}
 }

@@ -10,7 +10,7 @@ import {AcrossV3Migrator} from "../src/AcrossV3Migrator.sol";
     --broadcast \
     --etherscan-api-key <etherscan_api_key> \
     --verify \
-    --sig 'run(string)' <ENV> <initialOwner>
+    --sig 'run(string, address)' <ENV> <initialOwner>
 */
 
 contract DeployAcrossV3Migrator is Script {
@@ -22,7 +22,8 @@ contract DeployAcrossV3Migrator is Script {
             vm.envAddress(string(abi.encodePacked(env, "_UNISWAP_V3_POSITION_MANAGER"))),
             vm.envAddress(string(abi.encodePacked(env, "_UNISWAP_UNIVERSAL_ROUTER"))),
             vm.envAddress(string(abi.encodePacked(env, "_UNISWAP_PERMIT2"))),
-            vm.envAddress(string(abi.encodePacked(env, "_ACROSS_SPOKE_POOL")))
+            vm.envAddress(string(abi.encodePacked(env, "_ACROSS_SPOKE_POOL"))),
+            vm.envAddress(string(abi.encodePacked(env, "_WETH")))
         );
 
         console.log("AcrossV3Migrator deployed at:", address(migrator));
