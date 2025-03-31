@@ -32,7 +32,7 @@ contract SettlerTest is BaseTest {
     }
 
     function test_fuzz_setProtocolShareBps(uint16 protocolShareBps) public {
-        if (protocolShareBps > 10_000) {
+        if (protocolShareBps > 100) {
             vm.expectRevert(abi.encodeWithSelector(Settler.InvalidProtocolShareBps.selector, protocolShareBps));
 
             vm.prank(OWNER);
@@ -56,7 +56,7 @@ contract SettlerTest is BaseTest {
     }
 
     function test_fuzz_setProtocolShareOfSenderFeePct(uint8 protocolShareOfSenderFeePct) public {
-        if (protocolShareOfSenderFeePct > 100) {
+        if (protocolShareOfSenderFeePct > 50) {
             vm.expectRevert(
                 abi.encodeWithSelector(Settler.InvalidProtocolShareOfSenderFeePct.selector, protocolShareOfSenderFeePct)
             );
@@ -212,8 +212,8 @@ contract SettlerTest is BaseTest {
     // _calculateFees() & _payFees()
 
     function test__calculateFees_fails_ifMaxFeeExceeded() public {
-        uint16 protocolShareBps = 5_000;
-        uint16 senderShareBps = 5_001;
+        uint16 protocolShareBps = 100;
+        uint16 senderShareBps = 50;
         vm.prank(OWNER);
         settler.setProtocolShareBps(protocolShareBps);
 
@@ -225,8 +225,8 @@ contract SettlerTest is BaseTest {
     function test_fuzz__calculateFees(uint16 protocolShareBps, uint8 protocolShareOfSenderFeePct, uint16 senderShareBps)
         public
     {
-        vm.assume(protocolShareBps + uint256(senderShareBps) <= 10_000);
-        vm.assume(protocolShareOfSenderFeePct <= 100);
+        vm.assume(protocolShareBps + uint256(senderShareBps) <= 100);
+        vm.assume(protocolShareOfSenderFeePct <= 50);
 
         vm.startPrank(OWNER);
         settler.setProtocolShareBps(protocolShareBps);

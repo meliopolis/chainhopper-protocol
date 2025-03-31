@@ -26,8 +26,8 @@ abstract contract Settler is ISettler, Ownable2Step {
         bytes data;
     }
 
-    uint16 private constant MAX_BPS = 10_000;
-    uint8 private constant MAX_PCT = 100;
+    uint16 private constant MAX_BPS = 100;
+    uint8 private constant MAX_PCT = 50;
 
     uint16 public protocolShareBps;
     uint8 public protocolShareOfSenderFeePct;
