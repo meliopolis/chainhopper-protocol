@@ -101,4 +101,6 @@ abstract contract V4Migrator is IERC721Receiver, Migrator {
 
         return currencyOut.balanceOfSelf() - balanceBefore;
     }
+
+    receive() external payable {}
 }

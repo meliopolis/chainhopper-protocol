@@ -38,7 +38,7 @@ abstract contract Migrator is IMigrator, Ownable2Step {
         if (tokenRoutes.length == 0) {
             revert MissingTokenRoutes();
         } else if (tokenRoutes.length == 1) {
-            if (token0 != tokenRoutes[0].token && token1 != tokenRoutes[0].token) revert TokensNotRouted();
+            if ((token0 != tokenRoutes[0].token && token1 != tokenRoutes[0].token) || (token0 == address(0) && tokenRoutes[0].token == _weth)) revert TokensNotRouted();
 
             // amount to migrate, swap (implemented in child position manager contract) if necessary
             uint256 amount = token0 == tokenRoutes[0].token

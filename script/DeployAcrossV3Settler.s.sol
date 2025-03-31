@@ -7,6 +7,7 @@ import {AcrossV3Settler} from "../src/AcrossV3Settler.sol";
 /*
     forge script script/DeployAcrossV3Settler.s.sol:DeployAcrossV3Settler \
     --rpc-url <rpc_endpoints> \
+    --etherscan-api-key <etherscan_api_key> \
     --broadcast \
     --verify \
     --sig 'run(string,uint24,uint8,address)' <ENV> <ProtocolFeeBps> <ProtocolShareOfSenderFeeInPercent> <ProtocolFeeRecipient>

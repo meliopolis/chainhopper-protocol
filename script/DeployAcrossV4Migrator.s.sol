@@ -7,6 +7,7 @@ import {AcrossV4Migrator} from "../src/AcrossV4Migrator.sol";
 /*
     forge script script/DeployAcrossV4Migrator.s.sol:DeployAcrossV4Migrator \
     --rpc-url <rpc_endpoints> \
+    --etherscan-api-key <etherscan_api_key> \
     --broadcast \
     --verify \
     --sig 'run(string)' <ENV>
