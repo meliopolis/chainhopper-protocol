@@ -43,6 +43,6 @@ contract AcrossMigratorTest is Test {
             ""
         );
 
-        migrator.mockBridge(USER, 1, address(0), tokenRoute, 0, "");
+        migrator.mockBridge(USER, 1, address(0), tokenRoute.token, 0, tokenRoute.route, "");
     }
 }

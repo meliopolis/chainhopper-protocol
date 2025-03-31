@@ -36,11 +36,7 @@ abstract contract V4Settler is IV4Settler, Settler {
         weth = IWETH9(_weth);
     }
 
-    function _settle(address token, uint256 amount, bytes memory data)
-        internal
-        override
-        returns (uint256, address, address, uint128)
-    {
+    function _settleSingle(address token, uint256 amount, bytes memory data) internal override returns (uint256) {
         // convert weth to native eth if needed
         if (token == address(weth)) {
             token = address(0);
@@ -101,7 +97,7 @@ abstract contract V4Settler is IV4Settler, Settler {
             amountOut = currencyOut.balanceOfSelf() - balanceBefore;
         }
 
-        return _settle(
+        return _settleDual(
             Currency.unwrap(currencyIn),
             Currency.unwrap(currencyOut),
             zeroForOne ? params.amount0Min : params.amount1Min,
@@ -110,10 +106,10 @@ abstract contract V4Settler is IV4Settler, Settler {
         );
     }
 
-    function _settle(address tokenA, address tokenB, uint256 amountA, uint256 amountB, bytes memory data)
+    function _settleDual(address tokenA, address tokenB, uint256 amountA, uint256 amountB, bytes memory data)
         internal
         override
-        returns (uint256, address, address, uint128)
+        returns (uint256)
     {
         // convert weth to native eth if needed
         if (tokenA == address(weth)) {
@@ -186,6 +182,6 @@ abstract contract V4Settler is IV4Settler, Settler {
             poolKey.currency1.transfer(params.baseParams.recipient, balance1After + amount1 - balance1Before);
         }
 
-        return (positionId, params.token0, params.token1, liquidity);
+        return positionId;
     }
 }

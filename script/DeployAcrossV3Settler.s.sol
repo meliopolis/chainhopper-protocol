@@ -10,22 +10,15 @@ import {AcrossV3Settler} from "../src/AcrossV3Settler.sol";
     --etherscan-api-key <etherscan_api_key> \
     --broadcast \
     --verify \
-    --sig 'run(string,uint24,uint8,address)' <ENV> <ProtocolFeeBps> <ProtocolShareOfSenderFeeInPercent> <ProtocolFeeRecipient>
+    --sig 'run(string,uint24,uint8,address)' <ENV> <initialOwner>
 */
 
 contract DeployAcrossV3Settler is Script {
-    function run(
-        string memory env,
-        uint24 protocolFeeBps,
-        uint8 protocolShareOfSenderFeeInPercent,
-        address protocolFeeRecipient
-    ) public {
+    function run(string memory env, address initialOwner) public {
         vm.broadcast(vm.envUint("PRIVATE_KEY"));
 
         AcrossV3Settler settler = new AcrossV3Settler(
-            protocolFeeBps,
-            protocolShareOfSenderFeeInPercent,
-            protocolFeeRecipient,
+            initialOwner,
             vm.envAddress(string(abi.encodePacked(env, "_UNISWAP_V3_POSITION_MANAGER"))),
             vm.envAddress(string(abi.encodePacked(env, "_UNISWAP_UNIVERSAL_ROUTER"))),
             vm.envAddress(string(abi.encodePacked(env, "_UNISWAP_PERMIT2"))),

@@ -13,6 +13,7 @@ interface IV3Settler is ISettler {
         uint24 fee;
         int24 tickLower;
         int24 tickUpper;
+        uint256 amountSwapIn;
         uint256 amount0Min;
         uint256 amount1Min;
     }

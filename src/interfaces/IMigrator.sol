@@ -1,24 +1,24 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.0;
 
+import {MigrationId} from "../types/MigrationId.sol";
+
 interface IMigrator {
     error NotPositionManager();
-    error ChainIdsAndSettlersLengthMismatch();
-    error ChainSettlerNotSupported(uint32 chainId, address settler);
-    error MissingTokenRoutes();
-    error TooManyTokenRoutes();
-    error AmountsCannotAllBeZero();
-    error AmountCannotBeZero(address token);
-    error TokensNotRouted();
+    error ChainSettlerNotFound(uint32 chainId, address settler);
+    error TokenRoutesMissing();
+    error TokenRoutesTooMany();
+    error TokenAmountInsufficient();
+    error TokenAmountMissing(address token);
     error TokenNotRouted(address token);
+    error TokensNotRouted(address token0, address token1);
 
-    event Migrated(
-        bytes32 indexed migrationId,
-        uint32 indexed destinationChainId,
-        address indexed destinationSettler,
+    event Migration(
+        MigrationId indexed migrationId,
+        uint256 indexed positionId,
+        address indexed token,
         address sender,
-        address token,
-        uint256 amount
+        uint256 amout
     );
 
     struct TokenRoute {
@@ -27,10 +27,12 @@ interface IMigrator {
     }
 
     struct MigrationParams {
-        uint32 destinationChainId;
-        address destinationSettler;
+        uint32 chainId;
+        address settler;
+        uint256 amount0Min;
+        uint256 amount1Min;
+        uint256 amountSwapOutMin;
         TokenRoute[] tokenRoutes;
-        uint256 amountOtherMin;
         bytes settlementParams;
     }
 }

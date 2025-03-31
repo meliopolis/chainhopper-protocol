@@ -9,22 +9,15 @@ import {AcrossV4Settler} from "../src/AcrossV4Settler.sol";
     --rpc-url <rpc_endpoints> \
     --broadcast \
     --verify \
-    --sig 'run(string,uint24,uint8,address)' <ENV> <ProtocolFeeBps> <ProtocolShareOfSenderFeeInPercent> <ProtocolFeeRecipient>
+    --sig 'run(string,uint24,uint8,address)' <ENV> <initialOwner>
 */
 
 contract DeployAcrossV4Settler is Script {
-    function run(
-        string memory env,
-        uint24 protocolFeeBps,
-        uint8 protocolShareOfSenderFeeInPercent,
-        address protocolFeeRecipient
-    ) public {
+    function run(string memory env, address initialOwner) public {
         vm.broadcast(vm.envUint("PRIVATE_KEY"));
 
         AcrossV4Settler settler = new AcrossV4Settler(
-            protocolFeeBps,
-            protocolShareOfSenderFeeInPercent,
-            protocolFeeRecipient,
+            initialOwner,
             vm.envAddress(string(abi.encodePacked(env, "_UNISWAP_V4_POSITION_MANAGER"))),
             vm.envAddress(string(abi.encodePacked(env, "_UNISWAP_UNIVERSAL_ROUTER"))),
             vm.envAddress(string(abi.encodePacked(env, "_UNISWAP_PERMIT2"))),

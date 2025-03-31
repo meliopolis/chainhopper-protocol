@@ -35,7 +35,7 @@ abstract contract V4Migrator is IERC721Receiver, Migrator {
         return this.onERC721Received.selector;
     }
 
-    function _liquidate(uint256 positionId)
+    function _liquidate(uint256 positionId, uint256 amount0Min, uint256 amount1Min)
         internal
         override
         returns (address, address, uint256, uint256, bytes memory)
@@ -53,6 +53,9 @@ abstract contract V4Migrator is IERC721Receiver, Migrator {
         params[0] = abi.encode(positionId, 0, 0, "");
         params[1] = abi.encode(poolKey.currency0, poolKey.currency1, address(this));
         positionManager.modifyLiquidities(abi.encode(actions, params), block.timestamp);
+
+        if (poolKey.currency0.balanceOfSelf() - balance0Before < amount0Min) revert TokenAmountInsufficient();
+        if (poolKey.currency1.balanceOfSelf() - balance1Before < amount1Min) revert TokenAmountInsufficient();
 
         return (
             Currency.unwrap(poolKey.currency0),
