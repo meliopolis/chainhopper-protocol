@@ -252,9 +252,9 @@ contract SettlerTest is BaseTest {
         }
 
         vm.expectEmit(true, false, false, true);
-        emit ISettler.FeePayment(token, protocolFee, senderFee);
+        emit ISettler.FeePayment(MigrationId.wrap(0), token, protocolFee, senderFee);
 
-        settler.payFees(token, protocolFee, senderFee);
+        settler.payFees(MigrationId.wrap(0), token, protocolFee, senderFee);
     }
 
     // _transfer()

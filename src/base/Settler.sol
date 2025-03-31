@@ -80,7 +80,7 @@ abstract contract Settler is ISettler, Ownable2Step {
             uint256 positionId = _settleSingle(token, amount - protocolFee - senderFee, data);
 
             // transfer fees after settlement to prevent reentrancy
-            _payFees(token, protocolFee, senderFee, baseParams.senderFeeRecipient);
+            _payFees(baseParams.migrationId, token, protocolFee, senderFee, baseParams.senderFeeRecipient);
 
             emit Settlement(baseParams.migrationId, baseParams.recipient, positionId);
         } else {
@@ -109,8 +109,14 @@ abstract contract Settler is ISettler, Ownable2Step {
                 );
 
                 // transfer fees after settlement to prevent reentrancy
-                _payFees(token, protocolFeeA, senderFeeA, baseParams.senderFeeRecipient);
-                _payFees(settlementCache.token, protocolFeeB, senderFeeB, baseParams.senderFeeRecipient);
+                _payFees(baseParams.migrationId, token, protocolFeeA, senderFeeA, baseParams.senderFeeRecipient);
+                _payFees(
+                    baseParams.migrationId,
+                    settlementCache.token,
+                    protocolFeeB,
+                    senderFeeB,
+                    baseParams.senderFeeRecipient
+                );
 
                 emit Settlement(baseParams.migrationId, baseParams.recipient, positionId);
             }
@@ -138,11 +144,17 @@ abstract contract Settler is ISettler, Ownable2Step {
         }
     }
 
-    function _payFees(address token, uint256 protocolFee, uint256 senderFee, address senderFeeRecipient) internal {
+    function _payFees(
+        MigrationId migrationId,
+        address token,
+        uint256 protocolFee,
+        uint256 senderFee,
+        address senderFeeRecipient
+    ) internal {
         if (protocolFee > 0) _transfer(token, protocolFeeRecipient, protocolFee);
         if (senderFee > 0) _transfer(token, senderFeeRecipient, senderFee);
 
-        emit FeePayment(token, protocolFee, senderFee);
+        emit FeePayment(migrationId, token, protocolFee, senderFee);
     }
 
     function _refund(MigrationId migrationId, bool onlyRecipient) internal {

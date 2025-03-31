@@ -23,8 +23,8 @@ contract MockSettler is Settler {
         return _calculateFees(amount, senderShareBps);
     }
 
-    function payFees(address token, uint256 protocolFee, uint256 senderFee) external {
-        _payFees(token, protocolFee, senderFee, address(0));
+    function payFees(MigrationId migrationId, address token, uint256 protocolFee, uint256 senderFee) external {
+        _payFees(migrationId, token, protocolFee, senderFee, address(0));
     }
 
     function transfer(address token, address recipient, uint256 amount) external {

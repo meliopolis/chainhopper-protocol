@@ -14,7 +14,7 @@ interface ISettler {
 
     event Migrated(MigrationId indexed migrationId, address indexed recipient, address indexed token, uint256 amount);
     event Settlement(MigrationId indexed migrationId, address indexed recipient, uint256 positionId);
-    event FeePayment(address indexed token, uint256 protocolFee, uint256 senderFee);
+    event FeePayment(MigrationId indexed migrationId, address indexed token, uint256 protocolFee, uint256 senderFee);
     event Refund(MigrationId indexed migrationId, address indexed recipient, address indexed token, uint256 amount);
 
     struct BaseSettlementParams {
