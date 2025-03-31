@@ -84,7 +84,7 @@ contract V4MigratorTest is Test {
         vm.expectEmit(true, true, true, true);
         emit IERC721.Transfer(address(migrator), address(0), positionId);
 
-        (address _token0, address _token1, uint256 amount0, uint256 amount1,) = migrator.liquidate(positionId);
+        (address _token0, address _token1, uint256 amount0, uint256 amount1,) = migrator.liquidate(positionId, 0, 0);
 
         assertEq(token0, _token0);
         assertEq(token1, _token1);

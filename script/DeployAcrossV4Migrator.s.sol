@@ -9,14 +9,15 @@ import {AcrossV4Migrator} from "../src/AcrossV4Migrator.sol";
     --rpc-url <rpc_endpoints> \
     --broadcast \
     --verify \
-    --sig 'run(string)' <ENV>
+    --sig 'run(string)' <ENV> <initialOwner>
 */
 
 contract DeployAcrossV4Migrator is Script {
-    function run(string memory env) public {
+    function run(string memory env, address initialOwner) public {
         vm.broadcast(vm.envUint("PRIVATE_KEY"));
 
         AcrossV4Migrator migrator = new AcrossV4Migrator(
+            initialOwner,
             vm.envAddress(string(abi.encodePacked(env, "_UNISWAP_V4_POSITION_MANAGER"))),
             vm.envAddress(string(abi.encodePacked(env, "_UNISWAP_UNIVERSAL_ROUTER"))),
             vm.envAddress(string(abi.encodePacked(env, "_UNISWAP_PERMIT2"))),

@@ -24,11 +24,7 @@ abstract contract V3Settler is IV3Settler, Settler {
         permit2 = IPermit2(_permit2);
     }
 
-    function _settle(address token, uint256 amount, bytes memory data)
-        internal
-        override
-        returns (uint256, address, address, uint128)
-    {
+    function _settleSingle(address token, uint256 amount, bytes memory data) internal override returns (uint256) {
         // decode settlement params
         SettlementParams memory params = abi.decode(data, (SettlementParams));
 
@@ -59,13 +55,13 @@ abstract contract V3Settler is IV3Settler, Settler {
             amountOut = IERC20(tokenOut).balanceOf(address(this)) - balanceBefore;
         }
 
-        return _settle(tokenIn, tokenOut, zeroForOne ? params.amount0Min : params.amount1Min, amountOut, data);
+        return _settleDual(tokenIn, tokenOut, zeroForOne ? params.amount0Min : params.amount1Min, amountOut, data);
     }
 
-    function _settle(address tokenA, address tokenB, uint256 amountA, uint256 amountB, bytes memory data)
+    function _settleDual(address tokenA, address tokenB, uint256 amountA, uint256 amountB, bytes memory data)
         internal
         override
-        returns (uint256, address, address, uint128)
+        returns (uint256)
     {
         // decode settlement params
         SettlementParams memory params = abi.decode(data, (SettlementParams));
@@ -81,7 +77,7 @@ abstract contract V3Settler is IV3Settler, Settler {
         if (amount1 > 0) IERC20(params.token1).safeIncreaseAllowance(address(positionManager), amount1);
 
         // mint position
-        (uint256 positionId, uint128 liquidity, uint256 amount0Used, uint256 amount1Used) = positionManager.mint(
+        (uint256 positionId,, uint256 amount0Used, uint256 amount1Used) = positionManager.mint(
             IPositionManager.MintParams(
                 params.token0,
                 params.token1,
@@ -105,6 +101,6 @@ abstract contract V3Settler is IV3Settler, Settler {
             IERC20(params.token1).safeTransfer(params.baseParams.recipient, amount1 - amount1Used);
         }
 
-        return (positionId, params.token0, params.token1, liquidity);
+        return positionId;
     }
 }

@@ -7,17 +7,11 @@ import {V4Settler} from "./base/V4Settler.sol";
 
 contract AcrossV4Settler is AcrossSettler, V4Settler {
     constructor(
-        uint24 _protocolFeeBps,
-        uint8 _protocolShareOfSenderFeeInPercent,
-        address _protocolFeeRecipient,
+        address _initialOwner,
         address _positionManager,
         address _universalRouter,
         address _permit2,
         address _spokePool,
         address _weth
-    )
-        Settler(_protocolFeeBps, _protocolShareOfSenderFeeInPercent, _protocolFeeRecipient)
-        AcrossSettler(_spokePool)
-        V4Settler(_positionManager, _universalRouter, _permit2, _weth)
-    {}
+    ) Settler(_initialOwner) AcrossSettler(_spokePool) V4Settler(_positionManager, _universalRouter, _permit2, _weth) {}
 }

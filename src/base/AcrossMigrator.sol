@@ -18,28 +18,29 @@ abstract contract AcrossMigrator is IAcrossMigrator, Migrator {
 
     function _bridge(
         address sender,
-        uint32 destinationChainId,
-        address destinationSettler,
-        TokenRoute memory tokenRoute,
+        uint32 chainId,
+        address settler,
+        address token,
         uint256 amount,
+        bytes memory route,
         bytes memory data
     ) internal override {
-        Route memory route = abi.decode(tokenRoute.route, (Route));
-        IERC20(tokenRoute.token).safeIncreaseAllowance(address(spokePool), amount);
+        Route memory _route = abi.decode(route, (Route));
+        IERC20(token).safeIncreaseAllowance(address(spokePool), amount);
 
         // initiate migration via the spoke pool
         spokePool.depositV3(
             sender,
-            destinationSettler,
-            tokenRoute.token,
-            route.outputToken,
+            settler,
+            token,
+            _route.outputToken,
             amount,
-            amount - route.maxFees,
-            destinationChainId,
-            route.exclusiveRelayer,
-            route.quoteTimestamp,
-            uint32(block.timestamp) + route.fillDeadlineOffset,
-            route.exclusivityDeadline,
+            amount - _route.maxFees,
+            chainId,
+            _route.exclusiveRelayer,
+            _route.quoteTimestamp,
+            uint32(block.timestamp) + _route.fillDeadlineOffset,
+            _route.exclusivityDeadline,
             data
         );
     }

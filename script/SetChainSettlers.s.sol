@@ -20,9 +20,12 @@ contract SetChainSettlers is Script {
         address[] memory settlers = new address[](2);
         // TODO:
 
+        bool[] memory values = new bool[](2);
+        // TODO:
+
         vm.broadcast(vm.envUint("PRIVATE_KEY"));
 
-        Migrator(migrator).flipChainSettlers(chainIds, settlers);
+        Migrator(migrator).setChainSettlers(chainIds, settlers, values);
     }
 
     // add this to be excluded from coverage report

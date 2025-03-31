@@ -5,6 +5,7 @@ import {AcrossMessageHandler as IAcrossMessageHandler} from "@across/interfaces/
 import {IERC20} from "@openzeppelin/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/token/ERC20/utils/SafeERC20.sol";
 import {IAcrossSettler} from "../interfaces/IAcrossSettler.sol";
+import {MigrationModes} from "../types/MigrationMode.sol";
 import {Settler} from "./Settler.sol";
 
 abstract contract AcrossSettler is IAcrossSettler, IAcrossMessageHandler, Settler {
@@ -25,7 +26,7 @@ abstract contract AcrossSettler is IAcrossSettler, IAcrossMessageHandler, Settle
 
             // refund this and partially settled token if settlement fails
             IERC20(token).safeTransfer(baseParams.recipient, amount);
-            if (baseParams.migrationId != bytes32(0)) {
+            if (baseParams.migrationId.mode() == MigrationModes.DUAL) {
                 _refund(baseParams.migrationId, false);
             }
         }

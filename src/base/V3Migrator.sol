@@ -32,7 +32,7 @@ abstract contract V3Migrator is IERC721Receiver, Migrator {
         return this.onERC721Received.selector;
     }
 
-    function _liquidate(uint256 positionId)
+    function _liquidate(uint256 positionId, uint256 amount0Min, uint256 amount1Min)
         internal
         override
         returns (address, address, uint256, uint256, bytes memory)
@@ -49,6 +49,9 @@ abstract contract V3Migrator is IERC721Receiver, Migrator {
         (uint256 amount0, uint256 amount1) = positionManager.collect(
             IPositionManager.CollectParams(positionId, address(this), type(uint128).max, type(uint128).max)
         );
+
+        if (amount0 < amount0Min) revert TokenAmountInsufficient();
+        if (amount1 < amount1Min) revert TokenAmountInsufficient();
 
         // burn position
         positionManager.burn(positionId);

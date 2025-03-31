@@ -1,31 +1,29 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.0;
 
+import {MigrationId} from "../types/MigrationId.sol";
+
 interface ISettler {
     error NotSelf();
     error NotRecipient();
-    error AmountCannotBeZero(address token);
-    error SettlementTokensCannotBeTheSame();
+    error TokenAmountMissing(address token);
+    error InvalidSenderShareBps(uint16 senderShareBps);
     error SettlementDataMismatch();
+    error MaxFeeExceeded(uint16 protocolShareBps, uint16 senderShareBps);
+    error NativeAssetTransferFailed(address to, uint256 amount);
 
-    event Refunded(bytes32 indexed migrationId, address indexed recipient, address token, uint256 amount);
-    event PartiallySettled(bytes32 indexed migrationId, address indexed recipient, address token, uint256 amount);
-    event FullySettled(
-        bytes32 indexed migrationId,
-        address indexed recipient,
-        uint256 indexed positionId,
-        address token0,
-        address token1,
-        uint128 liquidity
-    );
+    event Migrated(MigrationId indexed migrationId, address indexed recipient, address indexed token, uint256 amount);
+    event Settlement(MigrationId indexed migrationId, address indexed recipient, uint256 positionId);
+    event FeePayment(address indexed token, uint256 protocolFee, uint256 senderFee);
+    event Refund(MigrationId indexed migrationId, address indexed recipient, address indexed token, uint256 amount);
 
     struct BaseSettlementParams {
-        bytes32 migrationId;
+        MigrationId migrationId;
         address recipient;
-        uint24 senderFeeBps;
+        uint16 senderShareBps;
         address senderFeeRecipient;
     }
 
-    function withdraw(bytes32 migrationId) external;
     function settle(address token, uint256 amount, bytes memory data) external;
+    function withdraw(MigrationId migrationId) external;
 }

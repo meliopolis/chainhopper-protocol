@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.24;
 
+import {Migrator} from "../../src/base/Migrator.sol";
 import {V3Migrator} from "../../src/base/V3Migrator.sol";
 
 contract MockV3Migrator is V3Migrator {
@@ -8,10 +9,14 @@ contract MockV3Migrator is V3Migrator {
 
     constructor(address positionManager, address universalRouter, address permit2)
         V3Migrator(positionManager, universalRouter, permit2)
+        Migrator(msg.sender)
     {}
 
-    function liquidate(uint256 positionId) external returns (address, address, uint256, uint256, bytes memory) {
-        return _liquidate(positionId);
+    function liquidate(uint256 positionId, uint256 amount0Min, uint256 amount1Min)
+        external
+        returns (address, address, uint256, uint256, bytes memory)
+    {
+        return _liquidate(positionId, amount0Min, amount1Min);
     }
 
     function swap(bytes memory poolInfo, bool zeroForOne, uint256 amountIn, uint256 amountOutMin)
@@ -21,11 +26,11 @@ contract MockV3Migrator is V3Migrator {
         return _swap(poolInfo, zeroForOne, amountIn, amountOutMin);
     }
 
-    function _bridge(address, uint32, address, TokenRoute memory, uint256, bytes memory) internal override {
+    function _bridge(address, uint32, address, address, uint256, bytes memory, bytes memory) internal override {
         emit NoOp();
     }
 
-    function _migrate(address sender, uint256 positionId, bytes memory data) internal override {
+    function _migrate(address, uint256, bytes memory) internal override {
         emit NoOp();
     }
 

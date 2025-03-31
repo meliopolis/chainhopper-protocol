@@ -3,90 +3,116 @@ pragma solidity ^0.8.24;
 
 import {Ownable2Step, Ownable} from "@openzeppelin/access/Ownable2Step.sol";
 import {IMigrator} from "../interfaces/IMigrator.sol";
+import {MigrationId, MigrationIdLibrary} from "../types/MigrationId.sol";
+import {MigrationModes} from "../types/MigrationMode.sol";
 
 abstract contract Migrator is IMigrator, Ownable2Step {
-    uint256 private migrationCounter;
-    mapping(uint32 => mapping(address => bool)) private chainSettlers;
+    error ParamsLengthMismatch();
 
-    constructor() Ownable(msg.sender) {}
+    event ChainSettlerUpdated(uint32 indexed chainId, address indexed settler, bool value);
 
-    function flipChainSettlers(uint32[] calldata chainIds, address[] calldata settlers) external onlyOwner {
-        if (chainIds.length != settlers.length) revert ChainIdsAndSettlersLengthMismatch();
+    uint40 public lastNounce;
+    mapping(uint32 => mapping(address => bool)) public chainSettlers;
 
-        for (uint256 i = 0; i < chainIds.length; i++) {
-            chainSettlers[chainIds[i]][settlers[i]] = !chainSettlers[chainIds[i]][settlers[i]];
+    constructor(address initialOwner) Ownable(initialOwner) {}
+
+    function setChainSettlers(uint32[] calldata chainIds, address[] calldata settlers, bool[] calldata values)
+        external
+        onlyOwner
+    {
+        if (chainIds.length != values.length || settlers.length != values.length) revert ParamsLengthMismatch();
+
+        for (uint256 i = 0; i < values.length; i++) {
+            chainSettlers[chainIds[i]][settlers[i]] = values[i];
+            emit ChainSettlerUpdated(chainIds[i], settlers[i], values[i]);
         }
-    }
-
-    function isChainSettlerSupported(uint32 chainId, address settler) external view returns (bool) {
-        return chainSettlers[chainId][settler];
     }
 
     function _migrate(address sender, uint256 positionId, bytes memory data) internal virtual {
         MigrationParams memory params = abi.decode(data, (MigrationParams));
-        if (!chainSettlers[params.destinationChainId][params.destinationSettler]) {
-            revert ChainSettlerNotSupported(params.destinationChainId, params.destinationSettler);
-        }
+        if (!chainSettlers[params.chainId][params.settler]) revert ChainSettlerNotFound(params.chainId, params.settler);
 
-        // liquidate (implemented in child position manager contract) the position
-        (address token0, address token1, uint256 amount0, uint256 amount1, bytes memory poolInfo) =
-            _liquidate(positionId);
+        if (params.tokenRoutes.length == 0) {
+            revert TokenRoutesMissing();
+        } else if (params.tokenRoutes.length == 1) {
+            TokenRoute memory tokenRoute = params.tokenRoutes[0];
 
-        if (amount0 == 0 && amount1 == 0) revert AmountsCannotAllBeZero();
+            uint256 amount;
+            {
+                // liquidate the position
+                (address token0, address token1, uint256 amount0, uint256 amount1, bytes memory poolInfo) =
+                    _liquidate(positionId, params.amount0Min, params.amount1Min);
 
-        TokenRoute[] memory tokenRoutes = params.tokenRoutes;
-        if (tokenRoutes.length == 0) {
-            revert MissingTokenRoutes();
-        } else if (tokenRoutes.length == 1) {
-            if (token0 != tokenRoutes[0].token && token1 != tokenRoutes[0].token) revert TokensNotRouted();
+                if (token0 != tokenRoute.token && token1 != tokenRoute.token) revert TokensNotRouted(token0, token1);
 
-            // amount to migrate, swap (implemented in child position manager contract) if necessary
-            uint256 amount = token0 == tokenRoutes[0].token
-                ? amount0 + (amount1 > 0 ? _swap(poolInfo, false, amount1, params.amountOtherMin) : 0)
-                : amount1 + (amount0 > 0 ? _swap(poolInfo, true, amount0, params.amountOtherMin) : 0);
-
-            // prepare migration data with empty migration id, reusing the data variable
-            data = abi.encode(bytes32(0), params.settlementParams);
-
-            // migrate (implemented in child bridge contract) token
-            _bridge(sender, params.destinationChainId, params.destinationSettler, tokenRoutes[0], amount, data);
-
-            emit Migrated(
-                bytes32(0), params.destinationChainId, params.destinationSettler, sender, tokenRoutes[0].token, amount
-            );
-        } else if (tokenRoutes.length == 2) {
-            if (amount0 == 0) revert AmountCannotBeZero(token0);
-            if (amount1 == 0) revert AmountCannotBeZero(token1);
-
-            if (token0 == params.tokenRoutes[1].token && token1 == params.tokenRoutes[0].token) {
-                // flip amounts to match token routes if necessary
-                (amount0, amount1) = (amount1, amount0);
-            } else if (token0 != params.tokenRoutes[0].token) {
-                revert TokenNotRouted(token0);
-            } else if (token1 != params.tokenRoutes[1].token) {
-                revert TokenNotRouted(token1);
+                // calculate amount
+                amount = token0 == tokenRoute.token
+                    ? amount0 + (amount1 > 0 ? _swap(poolInfo, false, amount1, params.amountSwapOutMin) : 0)
+                    : amount1 + (amount0 > 0 ? _swap(poolInfo, true, amount0, params.amountSwapOutMin) : 0);
+                if (amount == 0) revert TokenAmountMissing(tokenRoute.token);
             }
 
-            // prepare migration data with an unique migration id, reusing the data variable
-            bytes32 migrationId = keccak256(abi.encodePacked(block.chainid, address(this), ++migrationCounter));
+            // generate migration id and data (reusing the data variable)
+            MigrationId migrationId =
+                MigrationIdLibrary.from(uint32(block.chainid), address(this), MigrationModes.SINGLE, ++lastNounce);
             data = abi.encode(migrationId, params.settlementParams);
 
-            // migrate (implemented in child bridge contract) tokens
-            _bridge(sender, params.destinationChainId, params.destinationSettler, tokenRoutes[0], amount0, data);
-            _bridge(sender, params.destinationChainId, params.destinationSettler, tokenRoutes[1], amount1, data);
+            // bridge token
+            _bridge(sender, params.chainId, params.settler, tokenRoute.token, amount, tokenRoute.route, data);
 
-            emit Migrated(
-                migrationId, params.destinationChainId, params.destinationSettler, sender, tokenRoutes[0].token, amount0
-            );
-            emit Migrated(
-                migrationId, params.destinationChainId, params.destinationSettler, sender, tokenRoutes[1].token, amount1
-            );
+            emit Migration(migrationId, positionId, tokenRoute.token, sender, amount);
+        } else if (params.tokenRoutes.length == 2) {
+            TokenRoute memory tokenRoute0 = params.tokenRoutes[0];
+            TokenRoute memory tokenRoute1 = params.tokenRoutes[1];
+
+            uint256 amount0;
+            uint256 amount1;
+            {
+                // liquidate the position
+                address token0;
+                address token1;
+                (token0, token1, amount0, amount1,) = _liquidate(positionId, params.amount0Min, params.amount1Min);
+
+                if (token0 == tokenRoute1.token && token1 == tokenRoute0.token) {
+                    // flip amounts to match token routes
+                    (amount0, amount1) = (amount1, amount0);
+                } else if (token0 != tokenRoute0.token) {
+                    revert TokenNotRouted(token0);
+                } else if (token1 != tokenRoute1.token) {
+                    revert TokenNotRouted(token1);
+                }
+
+                if (amount0 == 0) revert TokenAmountMissing(tokenRoute0.token);
+                if (amount1 == 0) revert TokenAmountMissing(tokenRoute1.token);
+            }
+
+            // generate migration id and data (reusing the data variable)
+            MigrationId migrationId =
+                MigrationIdLibrary.from(uint32(block.chainid), address(this), MigrationModes.DUAL, ++lastNounce);
+            data = abi.encode(migrationId, params.settlementParams);
+
+            // bridge  tokens
+            _bridge(sender, params.chainId, params.settler, tokenRoute0.token, amount0, tokenRoute0.route, data);
+            _bridge(sender, params.chainId, params.settler, tokenRoute1.token, amount1, tokenRoute1.route, data);
+
+            emit Migration(migrationId, positionId, tokenRoute0.token, sender, amount0);
+            emit Migration(migrationId, positionId, tokenRoute1.token, sender, amount1);
         } else {
-            revert TooManyTokenRoutes();
+            revert TokenRoutesTooMany();
         }
     }
 
-    function _liquidate(uint256 positionId)
+    function _bridge(
+        address sender,
+        uint32 chainId,
+        address settler,
+        address token,
+        uint256 amount,
+        bytes memory route,
+        bytes memory data
+    ) internal virtual;
+
+    function _liquidate(uint256 positionId, uint256 amount0Min, uint256 amount1Min)
         internal
         virtual
         returns (address token0, address token1, uint256 amount0, uint256 amount1, bytes memory poolInfo);
@@ -95,13 +121,4 @@ abstract contract Migrator is IMigrator, Ownable2Step {
         internal
         virtual
         returns (uint256 amountOut);
-
-    function _bridge(
-        address sender,
-        uint32 destinationChainId,
-        address destinationSettler,
-        TokenRoute memory tokenRoute,
-        uint256 amount,
-        bytes memory data
-    ) internal virtual;
 }
