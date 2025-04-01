@@ -44,32 +44,33 @@ abstract contract V4Settler is IV4Settler, Settler {
         }
 
         // decode settlement params
-        SettlementParams memory params = abi.decode(data, (SettlementParams));
+        SettlementParams memory settlementParams = abi.decode(data, (SettlementParams));
+        V4MintParams memory mintParams = abi.decode(settlementParams.mintParams, (V4MintParams));
 
-        if (token != params.token0 && token != params.token1) revert TokenNotUsed(token);
+        if (token != mintParams.token0 && token != mintParams.token1) revert TokenNotUsed(token);
 
         // create pool key
         PoolKey memory poolKey = PoolKey(
-            Currency.wrap(params.token0),
-            Currency.wrap(params.token1),
-            params.fee,
-            params.tickSpacing,
-            IHooks(params.hooks)
+            Currency.wrap(mintParams.token0),
+            Currency.wrap(mintParams.token1),
+            mintParams.fee,
+            mintParams.tickSpacing,
+            IHooks(mintParams.hooks)
         );
 
         // calculate swap direction
-        bool zeroForOne = token == params.token0;
+        bool zeroForOne = token == mintParams.token0;
         (Currency currencyIn, Currency currencyOut) =
             zeroForOne ? (poolKey.currency0, poolKey.currency1) : (poolKey.currency1, poolKey.currency0);
 
         // calculate amount in and out
-        uint256 amountIn = amount - (zeroForOne ? params.amount0Min : params.amount1Min);
+        uint256 amountIn = amount * mintParams.swapAmountInThousandBps / 10_000_000;
         uint256 amountOut;
         if (amountIn > 0) {
             // cache balance before swap
             uint256 balanceBefore = currencyOut.balanceOfSelf();
 
-            uint128 amountOutMin = uint128(zeroForOne ? params.amount1Min : params.amount0Min);
+            uint128 amountOutMin = uint128(zeroForOne ? mintParams.amount1Min : mintParams.amount0Min);
 
             // approve token transfer via permit2
             IERC20(Currency.unwrap(currencyIn)).safeIncreaseAllowance(address(permit2), amountIn);
@@ -97,13 +98,8 @@ abstract contract V4Settler is IV4Settler, Settler {
             amountOut = currencyOut.balanceOfSelf() - balanceBefore;
         }
 
-        return _settleDual(
-            Currency.unwrap(currencyIn),
-            Currency.unwrap(currencyOut),
-            zeroForOne ? params.amount0Min : params.amount1Min,
-            amountOut,
-            data
-        );
+        return
+            _settleDual(Currency.unwrap(currencyIn), Currency.unwrap(currencyOut), amount - amountIn, amountOut, data);
     }
 
     function _settleDual(address tokenA, address tokenB, uint256 amountA, uint256 amountB, bytes memory data)
@@ -122,32 +118,33 @@ abstract contract V4Settler is IV4Settler, Settler {
         }
 
         // decode settlement params
-        SettlementParams memory params = abi.decode(data, (SettlementParams));
+        SettlementParams memory settlementParams = abi.decode(data, (SettlementParams));
+        V4MintParams memory mintParams = abi.decode(settlementParams.mintParams, (V4MintParams));
 
-        if (tokenA != params.token0 && tokenA != params.token1) revert TokenNotUsed(tokenA);
-        if (tokenB != params.token0 && tokenB != params.token1) revert TokenNotUsed(tokenB);
+        if (tokenA != mintParams.token0 && tokenA != mintParams.token1) revert TokenNotUsed(tokenA);
+        if (tokenB != mintParams.token0 && tokenB != mintParams.token1) revert TokenNotUsed(tokenB);
 
         // create pool key
         PoolKey memory poolKey = PoolKey(
-            Currency.wrap(params.token0),
-            Currency.wrap(params.token1),
-            params.fee,
-            params.tickSpacing,
-            IHooks(params.hooks)
+            Currency.wrap(mintParams.token0),
+            Currency.wrap(mintParams.token1),
+            mintParams.fee,
+            mintParams.tickSpacing,
+            IHooks(mintParams.hooks)
         );
 
         // align amounts to settlement tokens
-        (uint256 amount0, uint256 amount1) = tokenA == params.token0 ? (amountA, amountB) : (amountB, amountA);
+        (uint256 amount0, uint256 amount1) = tokenA == mintParams.token0 ? (amountA, amountB) : (amountB, amountA);
 
         // cache balance before mint
         uint256 balance0Before = poolKey.currency0.balanceOfSelf();
         uint256 balance1Before = poolKey.currency1.balanceOfSelf();
 
         // approve token transfers via permit2
-        IERC20(params.token0).safeIncreaseAllowance(address(permit2), amount0);
-        permit2.approve(params.token0, address(positionManager), uint160(amount0), 0);
-        IERC20(params.token0).safeIncreaseAllowance(address(permit2), amount1);
-        permit2.approve(params.token0, address(positionManager), uint160(amount1), 0);
+        IERC20(mintParams.token0).safeIncreaseAllowance(address(permit2), amount0);
+        permit2.approve(mintParams.token0, address(positionManager), uint160(amount0), 0);
+        IERC20(mintParams.token0).safeIncreaseAllowance(address(permit2), amount1);
+        permit2.approve(mintParams.token0, address(positionManager), uint160(amount1), 0);
 
         // get position id
         uint256 positionId = positionManager.nextTokenId();
@@ -156,8 +153,8 @@ abstract contract V4Settler is IV4Settler, Settler {
         (uint160 sqrtPriceX96,,,) = positionManager.poolManager().getSlot0(poolKey.toId());
         uint128 liquidity = LiquidityAmounts.getLiquidityForAmounts(
             sqrtPriceX96,
-            TickMath.getSqrtPriceAtTick(params.tickLower),
-            TickMath.getSqrtPriceAtTick(params.tickUpper),
+            TickMath.getSqrtPriceAtTick(mintParams.tickLower),
+            TickMath.getSqrtPriceAtTick(mintParams.tickUpper),
             amount0,
             amount1
         );
@@ -167,7 +164,14 @@ abstract contract V4Settler is IV4Settler, Settler {
             abi.encodePacked(bytes1(uint8(Actions.MINT_POSITION)), bytes1(uint8(Actions.SETTLE_PAIR)));
         bytes[] memory _params = new bytes[](2);
         _params[0] = abi.encode(
-            poolKey, params.tickLower, params.tickUpper, liquidity, amount0, amount1, params.baseParams.recipient, ""
+            poolKey,
+            mintParams.tickLower,
+            mintParams.tickUpper,
+            liquidity,
+            amount0,
+            amount1,
+            settlementParams.recipient,
+            ""
         );
         _params[1] = abi.encode(poolKey.currency0, poolKey.currency1);
         positionManager.modifyLiquidities(abi.encode(actions, _params), block.timestamp);
@@ -176,12 +180,14 @@ abstract contract V4Settler is IV4Settler, Settler {
         uint256 balance0After = poolKey.currency0.balanceOfSelf();
         uint256 balance1After = poolKey.currency1.balanceOfSelf();
         if (balance0After + amount0 > balance0Before) {
-            poolKey.currency0.transfer(params.baseParams.recipient, balance0After + amount0 - balance0Before);
+            poolKey.currency0.transfer(settlementParams.recipient, balance0After + amount0 - balance0Before);
         }
         if (balance1After + amount1 > balance1Before) {
-            poolKey.currency1.transfer(params.baseParams.recipient, balance1After + amount1 - balance1Before);
+            poolKey.currency1.transfer(settlementParams.recipient, balance1After + amount1 - balance1Before);
         }
 
         return positionId;
     }
+
+    receive() external payable {}
 }

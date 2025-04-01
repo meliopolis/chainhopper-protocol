@@ -8,7 +8,7 @@ type MigrationId is bytes32;
 using MigrationIdLibrary for MigrationId global;
 
 library MigrationIdLibrary {
-    function from(uint32 _chainId, address _migrator, MigrationMode _mode, uint56 _nounce)
+    function from(uint32 _chainId, address _migrator, MigrationMode _mode, uint56 _nonce)
         internal
         pure
         returns (MigrationId migrationId)
@@ -17,9 +17,9 @@ library MigrationIdLibrary {
             _chainId := and(_chainId, 0xFFFFFFFF)
             _migrator := and(_migrator, 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF)
             _mode := and(_mode, 0xFF)
-            _nounce := and(_nounce, 0xFFFFFFFFFFFFFF)
+            _nonce := and(_nonce, 0xFFFFFFFFFFFFFF)
 
-            migrationId := or(shl(224, _chainId), or(shl(64, _migrator), or(shl(56, _mode), _nounce)))
+            migrationId := or(shl(224, _chainId), or(shl(64, _migrator), or(shl(56, _mode), _nonce)))
         }
     }
 

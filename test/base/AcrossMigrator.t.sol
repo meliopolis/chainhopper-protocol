@@ -23,7 +23,7 @@ contract AcrossMigratorTest is Test {
 
     function test_bridge_Succeeds() public {
         IAcrossMigrator.Route memory route =
-            IAcrossMigrator.Route(address(0), 0, uint32(block.timestamp), 0, address(0), 0);
+            IAcrossMigrator.Route(address(0), 0, 0, uint32(block.timestamp), 0, address(0), 0);
         IMigrator.TokenRoute memory tokenRoute = IMigrator.TokenRoute(token, abi.encode(route));
 
         vm.expectEmit(true, false, true, true);

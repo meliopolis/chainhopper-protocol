@@ -26,8 +26,8 @@ abstract contract Settler is ISettler, Ownable2Step {
         bytes data;
     }
 
-    uint16 private constant MAX_BPS = 100;
-    uint8 private constant MAX_PCT = 50;
+    uint16 private constant MAX_FEE_IN_BPS = 200;
+    uint8 private constant MAX_PROTOCOL_SHARE_OF_SENDER_FEE_PCT = 50;
 
     uint16 public protocolShareBps;
     uint8 public protocolShareOfSenderFeePct;
@@ -37,7 +37,7 @@ abstract contract Settler is ISettler, Ownable2Step {
     constructor(address initialOwner) Ownable(initialOwner) {}
 
     function setProtocolShareBps(uint16 _protocolShareBps) external onlyOwner {
-        if (_protocolShareBps > MAX_BPS) revert InvalidProtocolShareBps(_protocolShareBps);
+        if (_protocolShareBps > MAX_FEE_IN_BPS) revert InvalidProtocolShareBps(_protocolShareBps);
 
         protocolShareBps = _protocolShareBps;
 
@@ -45,7 +45,7 @@ abstract contract Settler is ISettler, Ownable2Step {
     }
 
     function setProtocolShareOfSenderFeePct(uint8 _protocolShareOfSenderFeePct) external onlyOwner {
-        if (_protocolShareOfSenderFeePct > MAX_PCT) {
+        if (_protocolShareOfSenderFeePct > MAX_PROTOCOL_SHARE_OF_SENDER_FEE_PCT) {
             revert InvalidProtocolShareOfSenderFeePct(_protocolShareOfSenderFeePct);
         }
 
@@ -67,37 +67,38 @@ abstract contract Settler is ISettler, Ownable2Step {
         if (msg.sender != address(this)) revert NotSelf();
         if (amount == 0) revert TokenAmountMissing(token);
 
-        BaseSettlementParams memory baseParams = abi.decode(data, (BaseSettlementParams));
-        if (baseParams.senderShareBps > MAX_BPS) revert InvalidSenderShareBps(baseParams.senderShareBps);
+        (MigrationId migrationId, SettlementParams memory settlementParams) =
+            abi.decode(data, (MigrationId, SettlementParams));
+        if (settlementParams.senderFeeBps > MAX_FEE_IN_BPS) revert InvalidSenderFeeBps(settlementParams.senderFeeBps);
 
-        emit Migrated(baseParams.migrationId, baseParams.recipient, token, amount);
+        emit Migrated(migrationId, settlementParams.recipient, token, amount);
 
-        if (baseParams.migrationId.mode() == MigrationModes.SINGLE) {
+        if (migrationId.mode() == MigrationModes.SINGLE) {
             // calculate fees
-            (uint256 protocolFee, uint256 senderFee) = _calculateFees(amount, baseParams.senderShareBps);
+            (uint256 protocolFee, uint256 senderFee) = _calculateFees(amount, settlementParams.senderFeeBps);
 
             // settle using single token
-            uint256 positionId = _settleSingle(token, amount - protocolFee - senderFee, data);
+            uint256 positionId = _settleSingle(token, amount - protocolFee - senderFee, abi.encode(settlementParams));
 
             // transfer fees after settlement to prevent reentrancy
-            _payFees(baseParams.migrationId, token, protocolFee, senderFee, baseParams.senderFeeRecipient);
+            _payFees(migrationId, token, protocolFee, senderFee, settlementParams.senderFeeRecipient);
 
-            emit Settlement(baseParams.migrationId, baseParams.recipient, positionId);
+            emit Settlement(migrationId, settlementParams.recipient, positionId);
         } else {
-            SettlementCache memory settlementCache = settlementCaches[baseParams.migrationId];
+            SettlementCache memory settlementCache = settlementCaches[migrationId];
             if (settlementCache.amount == 0) {
                 // cache settlement to wait for the other half
-                settlementCaches[baseParams.migrationId] = SettlementCache(token, baseParams.recipient, amount, data);
+                settlementCaches[migrationId] = SettlementCache(token, settlementParams.recipient, amount, data);
             } else {
                 if (keccak256(data) != keccak256(settlementCache.data)) revert SettlementDataMismatch();
 
                 // delete settlement cache to prevent reentrancy
-                delete settlementCaches[baseParams.migrationId];
+                delete settlementCaches[migrationId];
 
                 // calculate fees
-                (uint256 protocolFeeA, uint256 senderFeeA) = _calculateFees(amount, baseParams.senderShareBps);
+                (uint256 protocolFeeA, uint256 senderFeeA) = _calculateFees(amount, settlementParams.senderFeeBps);
                 (uint256 protocolFeeB, uint256 senderFeeB) =
-                    _calculateFees(settlementCache.amount, baseParams.senderShareBps);
+                    _calculateFees(settlementCache.amount, settlementParams.senderFeeBps);
 
                 // settle using dual tokens
                 uint256 positionId = _settleDual(
@@ -105,20 +106,16 @@ abstract contract Settler is ISettler, Ownable2Step {
                     settlementCache.token,
                     amount - protocolFeeA - senderFeeA,
                     settlementCache.amount - protocolFeeB - senderFeeB,
-                    data
+                    abi.encode(settlementParams)
                 );
 
                 // transfer fees after settlement to prevent reentrancy
-                _payFees(baseParams.migrationId, token, protocolFeeA, senderFeeA, baseParams.senderFeeRecipient);
+                _payFees(migrationId, token, protocolFeeA, senderFeeA, settlementParams.senderFeeRecipient);
                 _payFees(
-                    baseParams.migrationId,
-                    settlementCache.token,
-                    protocolFeeB,
-                    senderFeeB,
-                    baseParams.senderFeeRecipient
+                    migrationId, settlementCache.token, protocolFeeB, senderFeeB, settlementParams.senderFeeRecipient
                 );
 
-                emit Settlement(baseParams.migrationId, baseParams.recipient, positionId);
+                emit Settlement(migrationId, settlementParams.recipient, positionId);
             }
         }
     }
@@ -127,15 +124,15 @@ abstract contract Settler is ISettler, Ownable2Step {
         _refund(migrationId, true);
     }
 
-    function _calculateFees(uint256 amount, uint16 senderShareBps)
+    function _calculateFees(uint256 amount, uint16 senderFeeBps)
         internal
         view
         returns (uint256 protocolFee, uint256 senderFee)
     {
-        if (protocolShareBps + senderShareBps > MAX_BPS) revert MaxFeeExceeded(protocolShareBps, senderShareBps);
+        if (protocolShareBps + senderFeeBps > MAX_FEE_IN_BPS) revert MaxFeeExceeded(protocolShareBps, senderFeeBps);
 
         protocolFee = (amount * protocolShareBps) / 10000;
-        senderFee = (amount * senderShareBps) / 10000;
+        senderFee = (amount * senderFeeBps) / 10000;
 
         if (protocolShareOfSenderFeePct > 0) {
             uint256 additionalProtocolFee = (senderFee * protocolShareOfSenderFeePct) / 100;

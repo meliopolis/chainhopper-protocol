@@ -27,16 +27,16 @@ contract MigratorTest is BaseTest {
         if (count > 2) tokenRoutes[2] = IMigrator.TokenRoute(usdt, "");
     }
 
-    function _mockMigratioinParams(uint256 tokeRouteCount)
+    function _mockMigrationParams(uint256 tokeRouteCount)
         private
         view
         returns (IMigrator.MigrationParams memory params)
     {
-        params = IMigrator.MigrationParams(chainIds[0], settlers[0], 0, 0, 0, _mockTokenRoutes(tokeRouteCount), "");
+        params = IMigrator.MigrationParams(chainIds[0], settlers[0], _mockTokenRoutes(tokeRouteCount), "");
     }
 
     function _mockNextMigrationId(MigrationMode mode) private view returns (MigrationId migrationId) {
-        migrationId = MigrationIdLibrary.from(uint32(block.chainid), address(migrator), mode, migrator.lastNounce() + 1);
+        migrationId = MigrationIdLibrary.from(uint32(block.chainid), address(migrator), mode, migrator.lastNonce() + 1);
     }
 
     // setChainSettlers()
@@ -74,21 +74,21 @@ contract MigratorTest is BaseTest {
     // _migrate(), other than single or dual routes
 
     function test__migrate_fails_ifDestinationProtocolNotFound() public {
-        bytes memory data = abi.encode(IMigrator.MigrationParams(0, address(0), 0, 0, 0, _mockTokenRoutes(0), ""));
+        bytes memory data = abi.encode(IMigrator.MigrationParams(0, address(0), _mockTokenRoutes(0), ""));
 
         vm.expectRevert(abi.encodeWithSelector(IMigrator.ChainSettlerNotFound.selector, 0, 0), address(migrator));
         migrator.migrate(USER, 0, data);
     }
 
     function test__migrate_fails_ifTokenRoutesMissing() public {
-        bytes memory data = abi.encode(_mockMigratioinParams(0));
+        bytes memory data = abi.encode(_mockMigrationParams(0));
 
         vm.expectRevert(abi.encodeWithSelector(IMigrator.TokenRoutesMissing.selector), address(migrator));
         migrator.migrate(USER, 0, data);
     }
 
     function test__migrate_fails_ifTokenRoutesTooMany() public {
-        bytes memory data = abi.encode(_mockMigratioinParams(3));
+        bytes memory data = abi.encode(_mockMigrationParams(3));
 
         vm.expectRevert(abi.encodeWithSelector(IMigrator.TokenRoutesTooMany.selector), address(migrator));
         migrator.migrate(USER, 0, data);
@@ -98,7 +98,7 @@ contract MigratorTest is BaseTest {
 
     function test__migrate_fails_ifTokkensNotRouted() public {
         migrator.setLiquidity(usdc, usdt, 0, 0);
-        bytes memory data = abi.encode(_mockMigratioinParams(1));
+        bytes memory data = abi.encode(_mockMigrationParams(1));
 
         vm.expectRevert(abi.encodeWithSelector(IMigrator.TokensNotRouted.selector, usdc, usdt), address(migrator));
         migrator.migrate(USER, 0, data);
@@ -106,7 +106,7 @@ contract MigratorTest is BaseTest {
 
     function test__migrate_fails_ifTokenAmountMissing() public {
         migrator.setLiquidity(weth, usdc, 0, 0);
-        bytes memory data = abi.encode(_mockMigratioinParams(1));
+        bytes memory data = abi.encode(_mockMigrationParams(1));
 
         vm.expectRevert(abi.encodeWithSelector(IMigrator.TokenAmountMissing.selector, weth), address(migrator));
         migrator.migrate(USER, 0, data);
@@ -114,7 +114,7 @@ contract MigratorTest is BaseTest {
 
     function test__migrate_succeeds_token0ViaToken0() public {
         migrator.setLiquidity(weth, usdc, 100, 0);
-        bytes memory data = abi.encode(_mockMigratioinParams(1));
+        bytes memory data = abi.encode(_mockMigrationParams(1));
 
         vm.expectEmit(true, true, true, true);
         emit IMigrator.Migration(_mockNextMigrationId(MigrationModes.SINGLE), 0, weth, USER, 100);
@@ -123,7 +123,7 @@ contract MigratorTest is BaseTest {
 
     function test__migrate_succeeds_token1ViaToken0() public {
         migrator.setLiquidity(weth, usdc, 0, 100);
-        bytes memory data = abi.encode(_mockMigratioinParams(1));
+        bytes memory data = abi.encode(_mockMigrationParams(1));
 
         vm.expectEmit(true, true, true, true);
         emit IMigrator.Migration(_mockNextMigrationId(MigrationModes.SINGLE), 0, weth, USER, 100);
@@ -132,7 +132,7 @@ contract MigratorTest is BaseTest {
 
     function test__migrate_succeeds_token0ViaToken1() public {
         migrator.setLiquidity(usdc, weth, 100, 0);
-        bytes memory data = abi.encode(_mockMigratioinParams(1));
+        bytes memory data = abi.encode(_mockMigrationParams(1));
 
         vm.expectEmit(true, true, true, true);
         emit IMigrator.Migration(_mockNextMigrationId(MigrationModes.SINGLE), 0, weth, USER, 100);
@@ -141,7 +141,7 @@ contract MigratorTest is BaseTest {
 
     function test__migrate_succeeds_token1ViaToken1() public {
         migrator.setLiquidity(usdc, weth, 0, 100);
-        bytes memory data = abi.encode(_mockMigratioinParams(1));
+        bytes memory data = abi.encode(_mockMigrationParams(1));
 
         vm.expectEmit(true, true, true, true);
         emit IMigrator.Migration(_mockNextMigrationId(MigrationModes.SINGLE), 0, weth, USER, 100);
@@ -152,7 +152,7 @@ contract MigratorTest is BaseTest {
 
     function test__migrate_fails_token0NotRouted() public {
         migrator.setLiquidity(usdt, usdc, 0, 0);
-        bytes memory data = abi.encode(_mockMigratioinParams(2));
+        bytes memory data = abi.encode(_mockMigrationParams(2));
 
         vm.expectRevert(abi.encodeWithSelector(IMigrator.TokenNotRouted.selector, usdt), address(migrator));
         migrator.migrate(USER, 0, data);
@@ -160,7 +160,7 @@ contract MigratorTest is BaseTest {
 
     function test__migrate_fails_token1NotRouted() public {
         migrator.setLiquidity(weth, usdt, 0, 0);
-        bytes memory data = abi.encode(_mockMigratioinParams(2));
+        bytes memory data = abi.encode(_mockMigrationParams(2));
 
         vm.expectRevert(abi.encodeWithSelector(IMigrator.TokenNotRouted.selector, usdt), address(migrator));
         migrator.migrate(USER, 0, data);
@@ -168,7 +168,7 @@ contract MigratorTest is BaseTest {
 
     function test__migrate_fails_token0AmountMissing() public {
         migrator.setLiquidity(weth, usdc, 0, 100);
-        bytes memory data = abi.encode(_mockMigratioinParams(2));
+        bytes memory data = abi.encode(_mockMigrationParams(2));
 
         vm.expectRevert(abi.encodeWithSelector(IMigrator.TokenAmountMissing.selector, weth), address(migrator));
         migrator.migrate(USER, 0, data);
@@ -176,7 +176,7 @@ contract MigratorTest is BaseTest {
 
     function test__migrate_fails_token1AmountMissing() public {
         migrator.setLiquidity(weth, usdc, 100, 0);
-        bytes memory data = abi.encode(_mockMigratioinParams(2));
+        bytes memory data = abi.encode(_mockMigrationParams(2));
 
         vm.expectRevert(abi.encodeWithSelector(IMigrator.TokenAmountMissing.selector, usdc), address(migrator));
         migrator.migrate(USER, 0, data);
@@ -184,7 +184,7 @@ contract MigratorTest is BaseTest {
 
     function test__migrate_succeeds_bothTokens() public {
         migrator.setLiquidity(weth, usdc, 100, 200);
-        bytes memory data = abi.encode(_mockMigratioinParams(2));
+        bytes memory data = abi.encode(_mockMigrationParams(2));
 
         vm.expectEmit(true, true, true, true);
         emit IMigrator.Migration(_mockNextMigrationId(MigrationModes.DUAL), 0, weth, USER, 100);
@@ -196,7 +196,7 @@ contract MigratorTest is BaseTest {
 
     function test__migrate_succeeds_flippedTokens() public {
         migrator.setLiquidity(usdc, weth, 200, 100);
-        bytes memory data = abi.encode(_mockMigratioinParams(2));
+        bytes memory data = abi.encode(_mockMigrationParams(2));
 
         vm.expectEmit(true, true, true, true);
         emit IMigrator.Migration(_mockNextMigrationId(MigrationModes.DUAL), 0, weth, USER, 100);

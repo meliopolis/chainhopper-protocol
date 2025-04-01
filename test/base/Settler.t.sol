@@ -9,17 +9,19 @@ import {MigrationMode, MigrationModes} from "../../src/types/MigrationMode.sol";
 import {BaseTest} from "../utils/BaseTest.sol";
 
 contract SettlerTest is BaseTest {
+    uint16 private constant MAX_FEE_IN_BPS = 200;
+    uint8 private constant MAX_PROTOCOL_SHARE_OF_SENDER_FEE_PCT = 50;
+
     function setUp() public override {
         super.setUp();
     }
 
-    function _mockBaseSettlementParams(MigrationMode mode, address recipient)
+    function _mockSettlementParams(MigrationMode mode, address recipient)
         private
         pure
-        returns (ISettler.BaseSettlementParams memory params)
+        returns (ISettler.SettlementParams memory params)
     {
-        params =
-            ISettler.BaseSettlementParams(MigrationIdLibrary.from(0, address(0), mode, 0), recipient, 0, address(0));
+        params = ISettler.SettlementParams(recipient, 0, address(0), "0x");
     }
 
     // fee functions
@@ -32,7 +34,7 @@ contract SettlerTest is BaseTest {
     }
 
     function test_fuzz_setProtocolShareBps(uint16 protocolShareBps) public {
-        if (protocolShareBps > 100) {
+        if (protocolShareBps > MAX_FEE_IN_BPS) {
             vm.expectRevert(abi.encodeWithSelector(Settler.InvalidProtocolShareBps.selector, protocolShareBps));
 
             vm.prank(OWNER);
@@ -56,7 +58,7 @@ contract SettlerTest is BaseTest {
     }
 
     function test_fuzz_setProtocolShareOfSenderFeePct(uint8 protocolShareOfSenderFeePct) public {
-        if (protocolShareOfSenderFeePct > 50) {
+        if (protocolShareOfSenderFeePct > MAX_PROTOCOL_SHARE_OF_SENDER_FEE_PCT) {
             vm.expectRevert(
                 abi.encodeWithSelector(Settler.InvalidProtocolShareOfSenderFeePct.selector, protocolShareOfSenderFeePct)
             );
@@ -114,8 +116,7 @@ contract SettlerTest is BaseTest {
     }
 
     function test_settle_fails_ifInvalidSenderShareBps() public {
-        bytes memory data =
-            abi.encode(ISettler.BaseSettlementParams(MigrationId.wrap(0), address(0), 10_001, address(0)));
+        bytes memory data = abi.encode(ISettler.SettlementParams(MigrationId.wrap(0), address(0), 10_001, address(0)));
 
         vm.expectRevert(abi.encodeWithSelector(ISettler.InvalidSenderShareBps.selector, 10_001), address(settler));
         settler.wrappedSettle(address(0), 100, data);
@@ -123,7 +124,7 @@ contract SettlerTest is BaseTest {
 
     // settle(), single & dual routes
     function test_settle_succeeds_singleRoute() public {
-        ISettler.BaseSettlementParams memory params = _mockBaseSettlementParams(MigrationModes.SINGLE, USER);
+        ISettler.SettlementParams memory params = _mockSettlementParams(MigrationModes.SINGLE, USER);
 
         vm.expectEmit(true, true, true, true);
         emit ISettler.Migrated(params.migrationId, USER, weth, 100);
@@ -134,8 +135,8 @@ contract SettlerTest is BaseTest {
     }
 
     function test_settle_fails_ifSettlementDataMismatch() public {
-        ISettler.BaseSettlementParams memory params1 = _mockBaseSettlementParams(MigrationModes.DUAL, USER);
-        ISettler.BaseSettlementParams memory params2 = _mockBaseSettlementParams(MigrationModes.DUAL, OWNER);
+        ISettler.SettlementParams memory params1 = _mockSettlementParams(MigrationModes.DUAL, USER);
+        ISettler.SettlementParams memory params2 = _mockSettlementParams(MigrationModes.DUAL, OWNER);
 
         vm.expectEmit(true, true, true, true);
         emit ISettler.Migrated(params1.migrationId, USER, weth, 100);
@@ -150,7 +151,7 @@ contract SettlerTest is BaseTest {
     }
 
     function test_settle_succeeds_dualRoute() public {
-        ISettler.BaseSettlementParams memory params = _mockBaseSettlementParams(MigrationModes.DUAL, USER);
+        ISettler.SettlementParams memory params = _mockSettlementParams(MigrationModes.DUAL, USER);
 
         vm.expectEmit(true, true, true, true);
         emit ISettler.Migrated(params.migrationId, USER, weth, 100);
@@ -212,8 +213,8 @@ contract SettlerTest is BaseTest {
     // _calculateFees() & _payFees()
 
     function test__calculateFees_fails_ifMaxFeeExceeded() public {
-        uint16 protocolShareBps = 100;
-        uint16 senderShareBps = 50;
+        uint16 protocolShareBps = MAX_FEE_IN_BPS;
+        uint16 senderShareBps = MAX_PROTOCOL_SHARE_OF_SENDER_FEE_PCT;
         vm.prank(OWNER);
         settler.setProtocolShareBps(protocolShareBps);
 
@@ -225,8 +226,8 @@ contract SettlerTest is BaseTest {
     function test_fuzz__calculateFees(uint16 protocolShareBps, uint8 protocolShareOfSenderFeePct, uint16 senderShareBps)
         public
     {
-        vm.assume(protocolShareBps + uint256(senderShareBps) <= 100);
-        vm.assume(protocolShareOfSenderFeePct <= 50);
+        vm.assume(protocolShareBps + uint256(senderShareBps) <= MAX_FEE_IN_BPS);
+        vm.assume(protocolShareOfSenderFeePct <= MAX_PROTOCOL_SHARE_OF_SENDER_FEE_PCT);
 
         vm.startPrank(OWNER);
         settler.setProtocolShareBps(protocolShareBps);

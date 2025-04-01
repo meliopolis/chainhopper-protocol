@@ -11,7 +11,7 @@ abstract contract Migrator is IMigrator, Ownable2Step {
 
     event ChainSettlerUpdated(uint32 indexed chainId, address indexed settler, bool value);
 
-    uint40 public lastNounce;
+    uint40 public lastNonce;
     address public weth;
     mapping(uint32 => mapping(address => bool)) public chainSettlers;
 
@@ -45,7 +45,7 @@ abstract contract Migrator is IMigrator, Ownable2Step {
             {
                 // liquidate the position
                 (address token0, address token1, uint256 amount0, uint256 amount1, bytes memory poolInfo) =
-                    _liquidate(positionId, params.amount0Min, params.amount1Min);
+                    _liquidate(positionId, 0, 0);
 
                 isToken0Native = token0 == address(0);
 
@@ -56,14 +56,14 @@ abstract contract Migrator is IMigrator, Ownable2Step {
 
                 // calculate amount
                 amount = (token0 == tokenRoute.token || isToken0Native)
-                    ? amount0 + (amount1 > 0 ? _swap(poolInfo, false, amount1, params.amountSwapOutMin) : 0)
-                    : amount1 + (amount0 > 0 ? _swap(poolInfo, true, amount0, params.amountSwapOutMin) : 0);
+                    ? amount0 + (amount1 > 0 ? _swap(poolInfo, false, amount1, 0) : 0)
+                    : amount1 + (amount0 > 0 ? _swap(poolInfo, true, amount0, 0) : 0);
                 if (amount == 0) revert TokenAmountMissing(tokenRoute.token);
             }
 
             // generate migration id and data (reusing the data variable)
             MigrationId migrationId =
-                MigrationIdLibrary.from(uint32(block.chainid), address(this), MigrationModes.SINGLE, ++lastNounce);
+                MigrationIdLibrary.from(uint32(block.chainid), address(this), MigrationModes.SINGLE, ++lastNonce);
             data = abi.encode(migrationId, params.settlementParams);
 
             // bridge token
@@ -83,7 +83,7 @@ abstract contract Migrator is IMigrator, Ownable2Step {
                 // liquidate the position
                 address token0;
                 address token1;
-                (token0, token1, amount0, amount1,) = _liquidate(positionId, params.amount0Min, params.amount1Min);
+                (token0, token1, amount0, amount1,) = _liquidate(positionId, 0, 0);
 
                 isToken0Native = token0 == address(0);
 
@@ -102,7 +102,7 @@ abstract contract Migrator is IMigrator, Ownable2Step {
 
             // generate migration id and data (reusing the data variable)
             MigrationId migrationId =
-                MigrationIdLibrary.from(uint32(block.chainid), address(this), MigrationModes.DUAL, ++lastNounce);
+                MigrationIdLibrary.from(uint32(block.chainid), address(this), MigrationModes.DUAL, ++lastNonce);
             data = abi.encode(migrationId, params.settlementParams);
 
             // bridge  tokens

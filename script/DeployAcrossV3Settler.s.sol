@@ -10,7 +10,7 @@ import {AcrossV3Settler} from "../src/AcrossV3Settler.sol";
     --etherscan-api-key <etherscan_api_key> \
     --broadcast \
     --verify \
-    --sig 'run(string,uint24,uint8,address)' <ENV> <initialOwner>
+    --sig 'run(string, address)' <ENV> <initialOwner>
 */
 
 contract DeployAcrossV3Settler is Script {

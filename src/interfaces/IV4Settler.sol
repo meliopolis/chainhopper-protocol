@@ -6,8 +6,7 @@ import {ISettler} from "./ISettler.sol";
 interface IV4Settler is ISettler {
     error TokenNotUsed(address token);
 
-    struct SettlementParams {
-        BaseSettlementParams baseParams; // must be first
+    struct V4MintParams {
         address token0;
         address token1;
         uint24 fee;
@@ -15,7 +14,7 @@ interface IV4Settler is ISettler {
         address hooks;
         int24 tickLower;
         int24 tickUpper;
-        uint256 amountSwapIn;
+        uint24 swapAmountInThousandBps;
         uint256 amount0Min;
         uint256 amount1Min;
     }

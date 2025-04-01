@@ -18,7 +18,7 @@ interface IMigrator {
         uint256 indexed positionId,
         address indexed token,
         address sender,
-        uint256 amout
+        uint256 amount
     );
 
     struct TokenRoute {
@@ -29,9 +29,6 @@ interface IMigrator {
     struct MigrationParams {
         uint32 chainId;
         address settler;
-        uint256 amount0Min;
-        uint256 amount1Min;
-        uint256 amountSwapOutMin;
         TokenRoute[] tokenRoutes;
         bytes settlementParams;
     }

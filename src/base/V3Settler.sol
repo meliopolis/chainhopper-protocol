@@ -10,6 +10,7 @@ import {Commands} from "@uniswap-universal-router/libraries/Commands.sol";
 import {INonfungiblePositionManager as IPositionManager} from "../interfaces/external/INonfungiblePositionManager.sol";
 import {IV3Settler} from "../interfaces/IV3Settler.sol";
 import {Settler} from "./Settler.sol";
+import {MigrationId} from "../types/MigrationId.sol";
 
 abstract contract V3Settler is IV3Settler, Settler {
     using SafeERC20 for IERC20;
@@ -26,16 +27,17 @@ abstract contract V3Settler is IV3Settler, Settler {
 
     function _settleSingle(address token, uint256 amount, bytes memory data) internal override returns (uint256) {
         // decode settlement params
-        SettlementParams memory params = abi.decode(data, (SettlementParams));
+        SettlementParams memory settlementParams = abi.decode(data, (SettlementParams));
+        V3MintParams memory mintParams = abi.decode(settlementParams.mintParams, (V3MintParams));
 
-        if (token != params.token0 && token != params.token1) revert TokenNotUsed(token);
+        if (token != mintParams.token0 && token != mintParams.token1) revert TokenNotUsed(token);
 
         // calculate swap direction
-        bool zeroForOne = token == params.token0;
-        (address tokenIn, address tokenOut) = zeroForOne ? (token, params.token1) : (params.token0, token);
+        bool zeroForOne = token == mintParams.token0;
+        (address tokenIn, address tokenOut) = zeroForOne ? (token, mintParams.token1) : (mintParams.token0, token);
 
         // calculate amount in and out
-        uint256 amountIn = amount - (zeroForOne ? params.amount0Min : params.amount1Min);
+        uint256 amountIn = amount * mintParams.swapAmountInThousandBps / 10_000_000;
         uint256 amountOut;
         if (amountIn > 0) {
             // cache balance before swap
@@ -48,14 +50,15 @@ abstract contract V3Settler is IV3Settler, Settler {
             // execute swap via universal router
             bytes memory commands = abi.encodePacked(bytes1(uint8(Commands.V3_SWAP_EXACT_IN)));
             bytes[] memory inputs = new bytes[](1);
-            inputs[0] = abi.encode(address(this), amountIn, 0, abi.encodePacked(tokenIn, params.fee, tokenOut), true);
+            inputs[0] =
+                abi.encode(address(this), amountIn, 0, abi.encodePacked(tokenIn, mintParams.fee, tokenOut), true);
             universalRouter.execute(commands, inputs, block.timestamp);
 
             // calculate amount out
             amountOut = IERC20(tokenOut).balanceOf(address(this)) - balanceBefore;
         }
 
-        return _settleDual(tokenIn, tokenOut, zeroForOne ? params.amount0Min : params.amount1Min, amountOut, data);
+        return _settleDual(tokenIn, tokenOut, amount - amountIn, amountOut, data);
     }
 
     function _settleDual(address tokenA, address tokenB, uint256 amountA, uint256 amountB, bytes memory data)
@@ -64,41 +67,42 @@ abstract contract V3Settler is IV3Settler, Settler {
         returns (uint256)
     {
         // decode settlement params
-        SettlementParams memory params = abi.decode(data, (SettlementParams));
+        SettlementParams memory settlementParams = abi.decode(data, (SettlementParams));
+        V3MintParams memory mintParams = abi.decode(settlementParams.mintParams, (V3MintParams));
 
-        if (tokenA != params.token0 && tokenA != params.token1) revert TokenNotUsed(tokenA);
-        if (tokenB != params.token0 && tokenB != params.token1) revert TokenNotUsed(tokenB);
+        if (tokenA != mintParams.token0 && tokenA != mintParams.token1) revert TokenNotUsed(tokenA);
+        if (tokenB != mintParams.token0 && tokenB != mintParams.token1) revert TokenNotUsed(tokenB);
 
         // align amounts to settlement tokens
-        (uint256 amount0, uint256 amount1) = tokenA == params.token0 ? (amountA, amountB) : (amountB, amountA);
+        (uint256 amount0, uint256 amount1) = tokenA == mintParams.token0 ? (amountA, amountB) : (amountB, amountA);
 
         // approve token transfers
-        if (amount0 > 0) IERC20(params.token0).safeIncreaseAllowance(address(positionManager), amount0);
-        if (amount1 > 0) IERC20(params.token1).safeIncreaseAllowance(address(positionManager), amount1);
+        if (amount0 > 0) IERC20(mintParams.token0).safeIncreaseAllowance(address(positionManager), amount0);
+        if (amount1 > 0) IERC20(mintParams.token1).safeIncreaseAllowance(address(positionManager), amount1);
 
         // mint position
         (uint256 positionId,, uint256 amount0Used, uint256 amount1Used) = positionManager.mint(
             IPositionManager.MintParams(
-                params.token0,
-                params.token1,
-                params.fee,
-                params.tickLower,
-                params.tickUpper,
+                mintParams.token0,
+                mintParams.token1,
+                mintParams.fee,
+                mintParams.tickLower,
+                mintParams.tickUpper,
                 amount0,
                 amount1,
-                params.amount0Min,
-                params.amount1Min,
-                params.baseParams.recipient,
+                mintParams.amount0Min,
+                mintParams.amount1Min,
+                settlementParams.recipient,
                 block.timestamp
             )
         );
 
         // refund unused tokens
         if (amount0 > amount0Used) {
-            IERC20(params.token0).safeTransfer(params.baseParams.recipient, amount0 - amount0Used);
+            IERC20(mintParams.token0).safeTransfer(settlementParams.recipient, amount0 - amount0Used);
         }
         if (amount1 > amount1Used) {
-            IERC20(params.token1).safeTransfer(params.baseParams.recipient, amount1 - amount1Used);
+            IERC20(mintParams.token1).safeTransfer(settlementParams.recipient, amount1 - amount1Used);
         }
 
         return positionId;

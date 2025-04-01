@@ -27,6 +27,10 @@ abstract contract AcrossMigrator is IAcrossMigrator, Migrator {
         bytes memory data
     ) internal override {
         Route memory _route = abi.decode(route, (Route));
+
+        if (amount - _route.maxFees < _route.minAmountOut) revert TokenAmountInsufficient();
+
+        // this appears to be needed even if sending native token
         IERC20(token).safeIncreaseAllowance(address(spokePool), amount);
         uint256 value = isTokenNative ? amount : 0;
 

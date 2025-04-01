@@ -7,9 +7,10 @@ import {AcrossV4Settler} from "../src/AcrossV4Settler.sol";
 /*
     forge script script/DeployAcrossV4Settler.s.sol:DeployAcrossV4Settler \
     --rpc-url <rpc_endpoints> \
+    --etherscan-api-key <etherscan_api_key> \
     --broadcast \
     --verify \
-    --sig 'run(string,uint24,uint8,address)' <ENV> <initialOwner>
+    --sig 'run(string,address)' <ENV> <initialOwner>
 */
 
 contract DeployAcrossV4Settler is Script {
