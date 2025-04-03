@@ -51,7 +51,8 @@ library UniswapV4Library {
         uint256 amount1Desired,
         uint256 amount0Min,
         uint256 amount1Min,
-        address recipient
+        address recipient,
+        address owner
     ) internal returns (uint256 positionId, uint128 liquidity, uint256 amount0, uint256 amount1) {
         // cache balances before mint
         uint256 balance0Before = poolKey.currency0.balanceOf(recipient);
@@ -82,13 +83,13 @@ library UniswapV4Library {
         bytes memory actions =
             abi.encodePacked(bytes1(uint8(Actions.MINT_POSITION)), bytes1(uint8(Actions.SETTLE_PAIR)));
         bytes[] memory params = new bytes[](2);
-        params[0] = abi.encode(poolKey, tickLower, tickUpper, liquidity, amount0Desired, amount1Desired, recipient, "");
+        params[0] = abi.encode(poolKey, tickLower, tickUpper, liquidity, amount0Desired, amount1Desired, owner, "");
         params[1] = abi.encode(poolKey.currency0, poolKey.currency1);
         self.positionManager.modifyLiquidities{value: value}(abi.encode(actions, params), block.timestamp);
 
         // calculate amounts
-        amount0 = poolKey.currency0.balanceOf(recipient) - balance0Before;
-        amount1 = poolKey.currency1.balanceOf(recipient) - balance1Before;
+        amount0 = balance0Before - poolKey.currency0.balanceOf(recipient);
+        amount1 = balance1Before - poolKey.currency1.balanceOf(recipient);
 
         if (amount0 < amount0Min || amount1 < amount1Min) revert TooMuchSlippage();
     }

@@ -18,19 +18,42 @@ abstract contract UniswapV4Settler is IUniswapV4Settler, Settler {
         weth = IWETH9(_weth);
     }
 
+    /*
+    assumptions:
+    - token can't be native
+
+    Cases to handle:
+    - token is erc20; token0 and token1 are erc20; token can be either token0 or token1
+    - token is WETH; token0 is native, token1 is erc20; token must be unwrapped for token0
+    - all other cases should fail
+    */
+
     function _mintPosition(address token, uint256 amount, address recipient, bytes memory data)
         internal
         override
         returns (uint256 positionId)
     {
-        // convert weth to native eth first if needed
-        token = _unwrapIfWeth(token, amount);
-
         MintParams memory mintParams = abi.decode(data, (MintParams));
-        if (token != mintParams.token0 && token != mintParams.token1) revert UnusedToken(token);
+        if (
+            (token != mintParams.token0 && token != mintParams.token1)
+                && (mintParams.token0 != address(0) || token != address(weth))
+        ) {
+            revert UnusedToken(token);
+        }
+
+        // convert weth to native eth first if needed
+        if (mintParams.token0 == address(0)) {
+            token = _unwrapIfWeth(token, amount);
+        }
 
         // compute pool key, swap direction, and amount in
-        PoolKey memory poolKey = _computePoolKey(mintParams);
+        PoolKey memory poolKey = PoolKey(
+            Currency.wrap(mintParams.token0),
+            Currency.wrap(mintParams.token1),
+            mintParams.fee,
+            mintParams.tickSpacing,
+            IHooks(mintParams.hooks)
+        );
         bool zeroForOne = token == Currency.unwrap(poolKey.currency0);
         uint256 amountIn = (amount * mintParams.swapAmountInMilliBps) / 10_000_000;
 
@@ -42,6 +65,29 @@ abstract contract UniswapV4Settler is IUniswapV4Settler, Settler {
         return _mintPosition(token, tokenOut, amount - amountIn, amountOut, recipient, data);
     }
 
+    /*
+        can be called from _settleSingle or from settle()
+
+        assumptions:
+        - mintParams.token0 and mintParams.token1 ARE sorted
+        - tokenA and tokenB may not be sorted
+        - tokenB can't be native (because _mintPosition above will always have tokenOut as erc20 and onlySelfSettle doesn't unwrap any tokens)
+        - mintParams.token1 can't be native (v4 only allows native tokens as currency0)
+
+        Cases to handle:
+        1. tokenA and tokenB are erc20; token0 and token1 are erc20
+        2. tokenA is WETH and tokenB is erc20; token0 is native, token1 is erc20
+        3. tokenA is erc20 and tokenB is WETH; token0 is native, token1 is erc20
+        4. tokenA is native, tokenB is erc20; token0 is native and token1 is erc20
+        5. all other cases should fail
+
+        when called from _mintPosition() above:
+        - only cases 1 and 4 are possible (case 2 is not possible because _mintPosition() above will unwrap to swap and send tokenA as native)
+
+        when called from onlySelfSettle():
+        - only cases 1, 2 and 3 are possible (case 4 is not possible because onlySelfSettle() won't unwrap tokenA)
+    */
+
     function _mintPosition(
         address tokenA,
         address tokenB,
@@ -50,19 +96,53 @@ abstract contract UniswapV4Settler is IUniswapV4Settler, Settler {
         address recipient,
         bytes memory data
     ) internal override returns (uint256 positionId) {
-        // convert weth to native eth first if needed
-        tokenA = _unwrapIfWeth(tokenA, amountA);
-        tokenB = _unwrapIfWeth(tokenB, amountB);
-
         MintParams memory mintParams = abi.decode(data, (MintParams));
+
+        // determine if we pool has a native token
+        bool isToken0Native = mintParams.token0 == address(0);
+
+        // if token0 is not native, must be case 1
+        if (!isToken0Native && (tokenA != mintParams.token0 && tokenA != mintParams.token1)) {
+            revert UnusedToken(tokenA);
+        }
+        if (!isToken0Native && (tokenB != mintParams.token0 && tokenB != mintParams.token1)) {
+            revert UnusedToken(tokenB);
+        }
+
+        // if token0 is native, must be one of case 2, 3, or 4
+        if (
+            (isToken0Native)
+                && (
+                    (
+                        (tokenA != address(weth) || tokenB != mintParams.token1)
+                            && (tokenB != address(weth) || tokenA != mintParams.token1)
+                    ) // case 2 and 3
+                        && (tokenA != mintParams.token0 || tokenB != mintParams.token1)
+                ) // case 4
+        ) {
+            revert UnusedTokens(tokenA, tokenB);
+        }
+        
+        // unwrap WETH if needed
+        if (isToken0Native && tokenA != address(0)) {
+            if (tokenA == address(weth)) {
+                tokenA = _unwrapIfWeth(tokenA, amountA);
+            } else {
+                tokenB = _unwrapIfWeth(tokenB, amountB);
+            }
+        }
+
         if (tokenA != mintParams.token0 && tokenA != mintParams.token1) revert UnusedToken(tokenA);
         if (tokenB != mintParams.token0 && tokenB != mintParams.token1) revert UnusedToken(tokenB);
 
-        // compute pool key and ensure amounts are in the right order
-        PoolKey memory poolKey = _computePoolKey(mintParams);
-        if (mintParams.token0 > mintParams.token1) {
-            (mintParams.amount0Min, mintParams.amount1Min) = (mintParams.amount1Min, mintParams.amount0Min);
-        }
+        // compute pool key
+        PoolKey memory poolKey = PoolKey(
+            Currency.wrap(mintParams.token0),
+            Currency.wrap(mintParams.token1),
+            mintParams.fee,
+            mintParams.tickSpacing,
+            IHooks(mintParams.hooks)
+        );
         (uint256 amount0, uint256 amount1) =
             tokenA == Currency.unwrap(poolKey.currency0) ? (amountA, amountB) : (amountB, amountA);
 
@@ -82,6 +162,7 @@ abstract contract UniswapV4Settler is IUniswapV4Settler, Settler {
             amount1,
             mintParams.amount0Min,
             mintParams.amount1Min,
+            address(this),
             recipient
         );
 
@@ -97,15 +178,6 @@ abstract contract UniswapV4Settler is IUniswapV4Settler, Settler {
         }
 
         return token;
-    }
-
-    function _computePoolKey(MintParams memory mintParams) internal pure returns (PoolKey memory) {
-        // ensure currencies are in the right order
-        (Currency currency0, Currency currency1) = mintParams.token0 < mintParams.token1
-            ? (Currency.wrap(mintParams.token0), Currency.wrap(mintParams.token1))
-            : (Currency.wrap(mintParams.token1), Currency.wrap(mintParams.token0));
-
-        return PoolKey(currency0, currency1, mintParams.fee, mintParams.tickSpacing, IHooks(mintParams.hooks));
     }
 
     receive() external payable {}

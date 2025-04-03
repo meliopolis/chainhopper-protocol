@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 interface IUniswapV4Settler {
     error UnusedToken(address token);
-
+    error UnusedTokens(address tokenA, address tokenB);
     struct MintParams {
         address token0;
         address token1;
