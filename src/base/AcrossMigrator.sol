@@ -11,9 +11,11 @@ abstract contract AcrossMigrator is IAcrossMigrator, Migrator {
     using SafeERC20 for IERC20;
 
     IAcrossSpokePool private immutable spokePool;
+    address private immutable weth;
 
-    constructor(address _spokePool) {
+    constructor(address _spokePool, address _weth) {
         spokePool = IAcrossSpokePool(_spokePool);
+        weth = _weth;
     }
 
     function _bridge(
@@ -22,32 +24,39 @@ abstract contract AcrossMigrator is IAcrossMigrator, Migrator {
         address settler,
         address token,
         uint256 amount,
-        bool isTokenNative,
-        bytes memory route,
+        bytes memory routeData,
         bytes memory data
     ) internal override {
-        Route memory _route = abi.decode(route, (Route));
-
-        if (amount - _route.maxFees < _route.minAmountOut) revert TokenAmountInsufficient();
+        Route memory route = abi.decode(routeData, (Route));
 
         // this appears to be needed even if sending native token
         IERC20(token).safeIncreaseAllowance(address(spokePool), amount);
-        uint256 value = isTokenNative ? amount : 0;
+        uint256 value = token == weth ? amount : 0;
 
         // initiate migration via the spoke pool
         spokePool.depositV3{value: value}(
             sender,
             settler,
             token,
-            _route.outputToken,
+            route.outputToken,
             amount,
-            amount - _route.maxFees,
+            amount - route.maxFees,
             chainId,
-            _route.exclusiveRelayer,
-            _route.quoteTimestamp,
-            uint32(block.timestamp) + _route.fillDeadlineOffset,
-            _route.exclusivityDeadline,
+            route.exclusiveRelayer,
+            route.quoteTimestamp,
+            uint32(block.timestamp) + route.fillDeadlineOffset,
+            route.exclusivityDeadline,
             data
         );
+    }
+
+    function _canBridgeToken(address token, TokenRoute memory tokenRoute) internal view override returns (bool) {
+        return token == tokenRoute.token || (token == address(0) && tokenRoute.token == weth);
+    }
+
+    function _canBridgeAmount(uint256 amount, TokenRoute memory tokenRoute) internal pure override returns (bool) {
+        Route memory route = abi.decode(tokenRoute.route, (Route));
+
+        return amount >= tokenRoute.amountMin + route.maxFees;
     }
 }

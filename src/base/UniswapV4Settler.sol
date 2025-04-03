@@ -1,0 +1,112 @@
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity ^0.8.24;
+
+import {IHooks} from "@uniswap-v4-core/interfaces/IHooks.sol";
+import {Currency} from "@uniswap-v4-core/types/Currency.sol";
+import {PoolKey} from "@uniswap-v4-core/types/PoolKey.sol";
+import {IWETH9} from "../interfaces/external/IWETH9.sol";
+import {IUniswapV4Settler} from "../interfaces/IUniswapV4Settler.sol";
+import {UniswapV4Proxy} from "../libraries/UniswapV4Proxy.sol";
+import {Settler} from "./Settler.sol";
+
+abstract contract UniswapV4Settler is IUniswapV4Settler, Settler {
+    UniswapV4Proxy private proxy;
+    IWETH9 private immutable weth;
+
+    constructor(address positionManager, address universalRouter, address permit2, address _weth) {
+        proxy.initialize(positionManager, universalRouter, permit2);
+        weth = IWETH9(_weth);
+    }
+
+    function _mintPosition(address token, uint256 amount, address recipient, bytes memory data)
+        internal
+        override
+        returns (uint256 positionId)
+    {
+        // convert weth to native eth first if needed
+        token = _unwrapIfWeth(token, amount);
+
+        MintParams memory mintParams = abi.decode(data, (MintParams));
+        if (token != mintParams.token0 && token != mintParams.token1) revert UnusedToken(token);
+
+        // compute pool key, swap direction, and amount in
+        PoolKey memory poolKey = _computePoolKey(mintParams);
+        bool zeroForOne = token == Currency.unwrap(poolKey.currency0);
+        uint256 amountIn = (amount * mintParams.swapAmountInMilliBps) / 10_000_000;
+
+        // swap tokens if needed
+        uint256 amountOut;
+        if (amountIn > 0) amountOut = proxy.swap(poolKey, zeroForOne, amountIn, 0, address(this));
+
+        address tokenOut = Currency.unwrap(zeroForOne ? poolKey.currency1 : poolKey.currency0);
+        return _mintPosition(token, tokenOut, amount - amountIn, amountOut, recipient, data);
+    }
+
+    function _mintPosition(
+        address tokenA,
+        address tokenB,
+        uint256 amountA,
+        uint256 amountB,
+        address recipient,
+        bytes memory data
+    ) internal override returns (uint256 positionId) {
+        // convert weth to native eth first if needed
+        tokenA = _unwrapIfWeth(tokenA, amountA);
+        tokenB = _unwrapIfWeth(tokenB, amountB);
+
+        MintParams memory mintParams = abi.decode(data, (MintParams));
+        if (tokenA != mintParams.token0 && tokenA != mintParams.token1) revert UnusedToken(tokenA);
+        if (tokenB != mintParams.token0 && tokenB != mintParams.token1) revert UnusedToken(tokenB);
+
+        // compute pool key and ensure amounts are in the right order
+        PoolKey memory poolKey = _computePoolKey(mintParams);
+        if (mintParams.token0 > mintParams.token1) {
+            (mintParams.amount0Min, mintParams.amount1Min) = (mintParams.amount1Min, mintParams.amount0Min);
+        }
+        (uint256 amount0, uint256 amount1) =
+            tokenA == Currency.unwrap(poolKey.currency0) ? (amountA, amountB) : (amountB, amountA);
+
+        // initialize pool if haven't already
+        if (proxy.getPoolSqrtPriceX96(poolKey) == 0) {
+            proxy.initializePool(poolKey, mintParams.sqrtPriceX96);
+        }
+
+        // mint position
+        uint256 amount0Used;
+        uint256 amount1Used;
+        (positionId,, amount0Used, amount1Used) = proxy.mintPosition(
+            poolKey,
+            mintParams.tickLower,
+            mintParams.tickUpper,
+            amount0,
+            amount1,
+            mintParams.amount0Min,
+            mintParams.amount1Min,
+            recipient
+        );
+
+        // refund surplus tokens
+        if (amount0 > amount0Used) poolKey.currency0.transfer(recipient, amount0 - amount0Used);
+        if (amount1 > amount1Used) poolKey.currency1.transfer(recipient, amount1 - amount1Used);
+    }
+
+    function _unwrapIfWeth(address token, uint256 amount) internal returns (address) {
+        if (token == address(weth)) {
+            weth.withdraw(amount);
+            return address(0);
+        }
+
+        return token;
+    }
+
+    function _computePoolKey(MintParams memory mintParams) internal pure returns (PoolKey memory) {
+        // ensure currencies are in the right order
+        (Currency currency0, Currency currency1) = mintParams.token0 < mintParams.token1
+            ? (Currency.wrap(mintParams.token0), Currency.wrap(mintParams.token1))
+            : (Currency.wrap(mintParams.token1), Currency.wrap(mintParams.token0));
+
+        return PoolKey(currency0, currency1, mintParams.fee, mintParams.tickSpacing, IHooks(mintParams.hooks));
+    }
+
+    receive() external payable {}
+}

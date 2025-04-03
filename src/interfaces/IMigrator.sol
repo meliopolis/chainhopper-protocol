@@ -4,14 +4,11 @@ pragma solidity ^0.8.0;
 import {MigrationId} from "../types/MigrationId.sol";
 
 interface IMigrator {
-    error NotPositionManager();
-    error ChainSettlerNotFound(uint32 chainId, address settler);
-    error TokenRoutesMissing();
-    error TokenRoutesTooMany();
-    error TokenAmountInsufficient();
-    error TokenAmountMissing(address token);
-    error TokenNotRouted(address token);
-    error TokensNotRouted(address token0, address token1);
+    error MissingTokenRoutes();
+    error TooManyTokenRoutes();
+    error CannotBridgeToken(address token);
+    error CannotBridgeTokens(address token0, address token1);
+    error CannotBridgeAmount(uint256 amount, uint256 amountMin);
 
     event Migration(
         MigrationId indexed migrationId,
@@ -23,6 +20,7 @@ interface IMigrator {
 
     struct TokenRoute {
         address token;
+        uint256 amountMin;
         bytes route;
     }
 

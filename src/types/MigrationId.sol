@@ -41,9 +41,9 @@ library MigrationIdLibrary {
         }
     }
 
-    function nounce(MigrationId self) internal pure returns (uint56 _nounce) {
+    function nonce(MigrationId self) internal pure returns (uint56 _nonce) {
         assembly {
-            _nounce := and(self, 0xFFFFFFFFFFFFFF)
+            _nonce := and(self, 0xFFFFFFFFFFFFFF)
         }
     }
 }

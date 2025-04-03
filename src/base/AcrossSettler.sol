@@ -5,8 +5,8 @@ import {AcrossMessageHandler as IAcrossMessageHandler} from "@across/interfaces/
 import {IERC20} from "@openzeppelin/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/token/ERC20/utils/SafeERC20.sol";
 import {IAcrossSettler} from "../interfaces/IAcrossSettler.sol";
-import {MigrationModes} from "../types/MigrationMode.sol";
 import {MigrationId} from "../types/MigrationId.sol";
+import {MigrationModes} from "../types/MigrationMode.sol";
 import {Settler} from "./Settler.sol";
 
 abstract contract AcrossSettler is IAcrossSettler, IAcrossMessageHandler, Settler {
@@ -21,12 +21,12 @@ abstract contract AcrossSettler is IAcrossSettler, IAcrossMessageHandler, Settle
     function handleV3AcrossMessage(address token, uint256 amount, address, bytes memory message) external {
         if (msg.sender != spokePool) revert NotSpokePool();
 
-        try this.settle(token, amount, message) {}
+        try this.onlySelfSettle(token, amount, message) {}
         catch {
             (MigrationId migrationId, SettlementParams memory settlementParams) =
                 abi.decode(message, (MigrationId, SettlementParams));
 
-            // refund this and partially settled token if settlement fails
+            // refund this and cached settlement if applicable (Across only receive ERC20 tokens)
             IERC20(token).safeTransfer(settlementParams.recipient, amount);
             if (migrationId.mode() == MigrationModes.DUAL) {
                 _refund(migrationId, false);
