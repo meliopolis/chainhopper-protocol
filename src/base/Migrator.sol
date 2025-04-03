@@ -20,7 +20,7 @@ abstract contract Migrator is IMigrator {
         } else if (params.tokenRoutes.length == 1) {
             TokenRoute memory tokenRoute = params.tokenRoutes[0];
 
-            if (!_checkToken(token0, tokenRoute) && !_checkToken(token1, tokenRoute)) {
+            if (!_checkToken(token0, tokenRoute) && token1 != tokenRoute.token) {
                 revert CannotBridgeTokens(token0, token1);
             }
 
@@ -43,12 +43,12 @@ abstract contract Migrator is IMigrator {
             TokenRoute memory tokenRoute0 = params.tokenRoutes[0];
             TokenRoute memory tokenRoute1 = params.tokenRoutes[1];
 
-            if (_checkToken(token0, tokenRoute1) && _checkToken(token1, tokenRoute0)) {
+            if (_checkToken(token0, tokenRoute1) && token1 == tokenRoute0) {
                 // flip amounts to match token routes
                 (amount0, amount1) = (amount1, amount0);
             } else if (!_checkToken(token0, tokenRoute0)) {
                 revert CannotBridgeToken(token0);
-            } else if (!_checkToken(token1, tokenRoute1)) {
+            } else if (token1 != tokenRoute1) {
                 revert CannotBridgeToken(token1);
             }
 
