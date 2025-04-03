@@ -20,7 +20,7 @@ interface IMigrator {
 
     struct TokenRoute {
         address token;
-        uint256 amountMin;
+        uint256 amountOutMin;
         bytes route;
     }
 

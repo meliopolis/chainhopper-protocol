@@ -20,15 +20,15 @@ abstract contract Migrator is IMigrator {
         } else if (params.tokenRoutes.length == 1) {
             TokenRoute memory tokenRoute = params.tokenRoutes[0];
 
-            if (!_canBridgeToken(token0, tokenRoute) && !_canBridgeToken(token1, tokenRoute)) {
+            if (!_checkToken(token0, tokenRoute) && !_checkToken(token1, tokenRoute)) {
                 revert CannotBridgeTokens(token0, token1);
             }
 
             // calculate amount, swap if needed
-            uint256 amount = _canBridgeToken(token0, tokenRoute)
+            uint256 amount = _checkToken(token0, tokenRoute)
                 ? amount0 + (amount1 > 0 ? _swap(poolInfo, false, amount1) : 0)
                 : amount1 + (amount0 > 0 ? _swap(poolInfo, true, amount0) : 0);
-            if (!_canBridgeAmount(amount, tokenRoute)) revert CannotBridgeAmount(amount, tokenRoute.amountMin);
+            if (!_checkAmount(amount, tokenRoute)) revert CannotBridgeAmount(amount, tokenRoute.amountOutMin);
 
             // generate migration id and data (reusing the data variable)
             MigrationId migrationId =
@@ -43,17 +43,17 @@ abstract contract Migrator is IMigrator {
             TokenRoute memory tokenRoute0 = params.tokenRoutes[0];
             TokenRoute memory tokenRoute1 = params.tokenRoutes[1];
 
-            if (_canBridgeToken(token0, tokenRoute1) && _canBridgeToken(token1, tokenRoute0)) {
+            if (_checkToken(token0, tokenRoute1) && _checkToken(token1, tokenRoute0)) {
                 // flip amounts to match token routes
                 (amount0, amount1) = (amount1, amount0);
-            } else if (!_canBridgeToken(token0, tokenRoute0)) {
+            } else if (!_checkToken(token0, tokenRoute0)) {
                 revert CannotBridgeToken(token0);
-            } else if (!_canBridgeToken(token1, tokenRoute1)) {
+            } else if (!_checkToken(token1, tokenRoute1)) {
                 revert CannotBridgeToken(token1);
             }
 
-            if (!_canBridgeAmount(amount0, tokenRoute0)) revert CannotBridgeAmount(amount0, tokenRoute0.amountMin);
-            if (!_canBridgeAmount(amount1, tokenRoute1)) revert CannotBridgeAmount(amount1, tokenRoute1.amountMin);
+            if (!_checkAmount(amount0, tokenRoute0)) revert CannotBridgeAmount(amount0, tokenRoute0.amountOutMin);
+            if (!_checkAmount(amount1, tokenRoute1)) revert CannotBridgeAmount(amount1, tokenRoute1.amountOutMin);
 
             // generate migration id and data (reusing the data variable)
             MigrationId migrationId =
@@ -91,7 +91,7 @@ abstract contract Migrator is IMigrator {
         virtual
         returns (uint256 amountOut);
 
-    function _canBridgeToken(address token, TokenRoute memory tokenRoute) internal view virtual returns (bool);
+    function _checkToken(address token, TokenRoute memory tokenRoute) internal view virtual returns (bool);
 
-    function _canBridgeAmount(uint256 amount, TokenRoute memory tokenRoute) internal view virtual returns (bool);
+    function _checkAmount(uint256 amount, TokenRoute memory tokenRoute) internal view virtual returns (bool);
 }

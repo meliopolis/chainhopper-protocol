@@ -31,7 +31,7 @@ abstract contract AcrossMigrator is IAcrossMigrator, Migrator {
 
         // this appears to be needed even if sending native token
         IERC20(token).safeIncreaseAllowance(address(spokePool), amount);
-        uint256 value = token == weth ? amount : 0;
+        uint256 value = token == address(0) ? amount : 0;
 
         // initiate migration via the spoke pool
         spokePool.depositV3{value: value}(
@@ -50,13 +50,13 @@ abstract contract AcrossMigrator is IAcrossMigrator, Migrator {
         );
     }
 
-    function _canBridgeToken(address token, TokenRoute memory tokenRoute) internal view override returns (bool) {
+    function _checkToken(address token, TokenRoute memory tokenRoute) internal view override returns (bool) {
         return token == tokenRoute.token || (token == address(0) && tokenRoute.token == weth);
     }
 
-    function _canBridgeAmount(uint256 amount, TokenRoute memory tokenRoute) internal pure override returns (bool) {
+    function _checkAmount(uint256 amount, TokenRoute memory tokenRoute) internal pure override returns (bool) {
         Route memory route = abi.decode(tokenRoute.route, (Route));
 
-        return amount >= tokenRoute.amountMin + route.maxFees;
+        return amount >= tokenRoute.amountOutMin + route.maxFees;
     }
 }
