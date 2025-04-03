@@ -6,9 +6,9 @@ import {MigrationId} from "../types/MigrationId.sol";
 interface IMigrator {
     error MissingTokenRoutes();
     error TooManyTokenRoutes();
-    error CannotBridgeToken(address token);
-    error CannotBridgeTokens(address token0, address token1);
-    error CannotBridgeAmount(uint256 amount, uint256 amountMin);
+    error TokenAndRouteMismatch(address token);
+    error TokensAndRoutesMismatch(address token0, address token1);
+    error AmountTooLow(uint256 amount, uint256 amountMin);
 
     event Migration(
         MigrationId indexed migrationId,

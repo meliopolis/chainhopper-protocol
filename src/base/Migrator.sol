@@ -1,15 +1,38 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.24;
 
+import {Ownable2Step, Ownable} from "@openzeppelin/access/Ownable2Step.sol";
 import {IMigrator} from "../interfaces/IMigrator.sol";
 import {MigrationId, MigrationIdLibrary} from "../types/MigrationId.sol";
 import {MigrationModes} from "../types/MigrationMode.sol";
 
-abstract contract Migrator is IMigrator {
+abstract contract Migrator is IMigrator, Ownable2Step {
+    error ParamsLengthMismatch();
+    error ChainSettlerNotFound(uint32 chainId, address settler);
+
     uint56 public migrationCounter;
+
+    mapping(uint32 => mapping(address => bool)) public chainSettlers;
+
+    event ChainSettlerUpdated(uint32 indexed chainId, address indexed settler, bool value);
+
+    constructor(address initialOwner) Ownable(initialOwner) {}
+
+    function setChainSettlers(uint32[] calldata chainIds, address[] calldata settlers, bool[] calldata values)
+        external
+        onlyOwner
+    {
+        if (chainIds.length != values.length || settlers.length != values.length) revert ParamsLengthMismatch();
+
+        for (uint256 i = 0; i < values.length; i++) {
+            chainSettlers[chainIds[i]][settlers[i]] = values[i];
+            emit ChainSettlerUpdated(chainIds[i], settlers[i], values[i]);
+        }
+    }
 
     function _migrate(address sender, uint256 positionId, bytes memory data) internal {
         MigrationParams memory params = abi.decode(data, (MigrationParams));
+        if (!chainSettlers[params.chainId][params.settler]) revert ChainSettlerNotFound(params.chainId, params.settler);
 
         // liquidate the position
         (address token0, address token1, uint256 amount0, uint256 amount1, bytes memory poolInfo) =
@@ -20,15 +43,15 @@ abstract contract Migrator is IMigrator {
         } else if (params.tokenRoutes.length == 1) {
             TokenRoute memory tokenRoute = params.tokenRoutes[0];
 
-            if (!_checkToken(token0, tokenRoute) && token1 != tokenRoute.token) {
-                revert CannotBridgeTokens(token0, token1);
+            if (!_matchTokenWithRoute(token0, tokenRoute) && token1 != tokenRoute.token) {
+                revert TokensAndRoutesMismatch(token0, token1);
             }
 
             // calculate amount, swap if needed
-            uint256 amount = _checkToken(token0, tokenRoute)
+            uint256 amount = _matchTokenWithRoute(token0, tokenRoute)
                 ? amount0 + (amount1 > 0 ? _swap(poolInfo, false, amount1) : 0)
                 : amount1 + (amount0 > 0 ? _swap(poolInfo, true, amount0) : 0);
-            if (!_checkAmount(amount, tokenRoute)) revert CannotBridgeAmount(amount, tokenRoute.amountOutMin);
+            if (!_isAmountSufficient(amount, tokenRoute)) revert AmountTooLow(amount, tokenRoute.amountOutMin);
 
             // generate migration id and data (reusing the data variable)
             MigrationId migrationId =
@@ -36,24 +59,33 @@ abstract contract Migrator is IMigrator {
             data = abi.encode(migrationId, params.settlementParams);
 
             // bridge token
-            _bridge(sender, params.chainId, params.settler, tokenRoute.token, amount, tokenRoute.route, data);
+            _bridge(
+                sender,
+                params.chainId,
+                params.settler,
+                tokenRoute.token,
+                amount,
+                token0 == address(0),
+                tokenRoute.route,
+                data
+            );
 
             emit Migration(migrationId, positionId, tokenRoute.token, sender, amount);
         } else if (params.tokenRoutes.length == 2) {
             TokenRoute memory tokenRoute0 = params.tokenRoutes[0];
             TokenRoute memory tokenRoute1 = params.tokenRoutes[1];
 
-            if (_checkToken(token0, tokenRoute1) && token1 == tokenRoute0) {
+            if (_matchTokenWithRoute(token0, tokenRoute1) && token1 == tokenRoute0.token) {
                 // flip amounts to match token routes
                 (amount0, amount1) = (amount1, amount0);
-            } else if (!_checkToken(token0, tokenRoute0)) {
-                revert CannotBridgeToken(token0);
-            } else if (token1 != tokenRoute1) {
-                revert CannotBridgeToken(token1);
+            } else if (!_matchTokenWithRoute(token0, tokenRoute0)) {
+                revert TokenAndRouteMismatch(token0);
+            } else if (token1 != tokenRoute1.token) {
+                revert TokenAndRouteMismatch(token1);
             }
 
-            if (!_checkAmount(amount0, tokenRoute0)) revert CannotBridgeAmount(amount0, tokenRoute0.amountOutMin);
-            if (!_checkAmount(amount1, tokenRoute1)) revert CannotBridgeAmount(amount1, tokenRoute1.amountOutMin);
+            if (!_isAmountSufficient(amount0, tokenRoute0)) revert AmountTooLow(amount0, tokenRoute0.amountOutMin);
+            if (!_isAmountSufficient(amount1, tokenRoute1)) revert AmountTooLow(amount1, tokenRoute1.amountOutMin);
 
             // generate migration id and data (reusing the data variable)
             MigrationId migrationId =
@@ -61,8 +93,17 @@ abstract contract Migrator is IMigrator {
             data = abi.encode(migrationId, params.settlementParams);
 
             // bridge tokens
-            _bridge(sender, params.chainId, params.settler, tokenRoute0.token, amount0, tokenRoute0.route, data);
-            _bridge(sender, params.chainId, params.settler, tokenRoute1.token, amount1, tokenRoute1.route, data);
+            _bridge(
+                sender,
+                params.chainId,
+                params.settler,
+                tokenRoute0.token,
+                amount0,
+                token0 == address(0),
+                tokenRoute0.route,
+                data
+            );
+            _bridge(sender, params.chainId, params.settler, tokenRoute1.token, amount1, false, tokenRoute1.route, data);
 
             emit Migration(migrationId, positionId, tokenRoute0.token, sender, amount0);
             emit Migration(migrationId, positionId, tokenRoute1.token, sender, amount1);
@@ -77,6 +118,7 @@ abstract contract Migrator is IMigrator {
         address settler,
         address token,
         uint256 amount,
+        bool isNativeTransfer,
         bytes memory route,
         bytes memory data
     ) internal virtual;
@@ -91,7 +133,7 @@ abstract contract Migrator is IMigrator {
         virtual
         returns (uint256 amountOut);
 
-    function _checkToken(address token, TokenRoute memory tokenRoute) internal view virtual returns (bool);
+    function _matchTokenWithRoute(address token, TokenRoute memory tokenRoute) internal view virtual returns (bool);
 
-    function _checkAmount(uint256 amount, TokenRoute memory tokenRoute) internal view virtual returns (bool);
+    function _isAmountSufficient(uint256 amount, TokenRoute memory tokenRoute) internal view virtual returns (bool);
 }
