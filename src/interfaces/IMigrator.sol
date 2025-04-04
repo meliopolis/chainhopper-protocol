@@ -9,6 +9,7 @@ interface IMigrator {
     error TokenAndRouteMismatch(address token);
     error TokensAndRoutesMismatch(address token0, address token1);
     error AmountTooLow(uint256 amount, uint256 amountMin);
+    error ChainSettlerNotSupported(uint32 chainId, address settler);
 
     event Migration(
         MigrationId indexed migrationId,

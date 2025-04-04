@@ -7,7 +7,6 @@ contract ProtocolFees is Ownable2Step {
     error InvalidProtocolShareBps(uint16 protocolShareBps);
     error InvalidProtocolShareOfSenderFeePct(uint8 protocolShareOfSenderFeePct);
     error InvalidProtocolFeeRecipient(address protocolFeeRecipient);
-    error MaxFeeExceeded(uint16 protocolShareBps, uint16 senderShareBps);
 
     event ProtocolShareBpsUpdated(uint16 protocolShareBps);
     event ProtocolShareOfSenderFeePctUpdated(uint8 protocolShareOfSenderFeePct);
@@ -47,22 +46,5 @@ contract ProtocolFees is Ownable2Step {
         protocolFeeRecipient = _protocolFeeRecipient;
 
         emit ProtocolFeeRecipientUpdated(_protocolFeeRecipient);
-    }
-
-    function _calculateFees(uint256 amount, uint16 senderShareBps)
-        internal
-        view
-        returns (uint256 protocolFee, uint256 senderFee)
-    {
-        if (protocolShareBps + senderShareBps > MAX_SHARE_BPS) revert MaxFeeExceeded(protocolShareBps, senderShareBps);
-
-        protocolFee = (amount * protocolShareBps) / 10000;
-        senderFee = (amount * senderShareBps) / 10000;
-
-        if (protocolShareOfSenderFeePct > 0) {
-            uint256 protocolFeeFromSenderFee = (senderFee * protocolShareOfSenderFeePct) / 100;
-            protocolFee += protocolFeeFromSenderFee;
-            senderFee -= protocolFeeFromSenderFee;
-        }
     }
 }

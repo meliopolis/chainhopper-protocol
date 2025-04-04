@@ -5,7 +5,6 @@ import {Ownable2Step, Ownable} from "@openzeppelin/access/Ownable2Step.sol";
 
 contract ChainSettlers is Ownable2Step {
     error ChainSettlersParamsLengthMismatch();
-    error ChainSettlerNotFound(uint32 chainId, address settler);
 
     event ChainSettlerUpdated(uint32 indexed chainId, address indexed settler, bool value);
 
@@ -25,9 +24,5 @@ contract ChainSettlers is Ownable2Step {
             chainSettlers[chainIds[i]][settlers[i]] = values[i];
             emit ChainSettlerUpdated(chainIds[i], settlers[i], values[i]);
         }
-    }
-
-    function _validateChainSettler(uint32 chainId, address settler) internal view {
-        if (!chainSettlers[chainId][settler]) revert ChainSettlerNotFound(chainId, settler);
     }
 }

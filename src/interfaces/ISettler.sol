@@ -11,6 +11,7 @@ interface ISettler {
     error MissingAmount(address token);
     error UnsupportedMode(MigrationMode mode);
     error NativeTokenTransferFailed(address recipient, uint256 amount);
+    error MaxFeeExceeded(uint16 protocolShareBps, uint16 senderShareBps);
 
     event Receipt(MigrationId indexed migrationId, address indexed recipient, address indexed token, uint256 amount);
     event Settlement(MigrationId indexed migrationId, address indexed recipient, uint256 positionId);

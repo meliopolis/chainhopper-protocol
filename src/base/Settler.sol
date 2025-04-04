@@ -84,6 +84,23 @@ abstract contract Settler is ISettler, ProtocolFees {
         }
     }
 
+    function _calculateFees(uint256 amount, uint16 senderShareBps)
+        internal
+        view
+        returns (uint256 protocolFee, uint256 senderFee)
+    {
+        if (protocolShareBps + senderShareBps > MAX_SHARE_BPS) revert MaxFeeExceeded(protocolShareBps, senderShareBps);
+
+        protocolFee = (amount * protocolShareBps) / 10000;
+        senderFee = (amount * senderShareBps) / 10000;
+
+        if (protocolShareOfSenderFeePct > 0) {
+            uint256 protocolFeeFromSenderFee = (senderFee * protocolShareOfSenderFeePct) / 100;
+            protocolFee += protocolFeeFromSenderFee;
+            senderFee -= protocolFeeFromSenderFee;
+        }
+    }
+
     function withdraw(MigrationId migrationId) external {
         _refund(migrationId, true);
     }
