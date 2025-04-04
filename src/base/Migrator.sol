@@ -1,38 +1,19 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.24;
 
-import {Ownable2Step, Ownable} from "@openzeppelin/access/Ownable2Step.sol";
 import {IMigrator} from "../interfaces/IMigrator.sol";
 import {MigrationId, MigrationIdLibrary} from "../types/MigrationId.sol";
 import {MigrationModes} from "../types/MigrationMode.sol";
+import {ChainSettlers} from "./ChainSettlers.sol";
 
-abstract contract Migrator is IMigrator, Ownable2Step {
-    error ParamsLengthMismatch();
-    error ChainSettlerNotFound(uint32 chainId, address settler);
-
+abstract contract Migrator is IMigrator, ChainSettlers {
     uint56 public migrationCounter;
 
-    mapping(uint32 => mapping(address => bool)) public chainSettlers;
-
-    event ChainSettlerUpdated(uint32 indexed chainId, address indexed settler, bool value);
-
-    constructor(address initialOwner) Ownable(initialOwner) {}
-
-    function setChainSettlers(uint32[] calldata chainIds, address[] calldata settlers, bool[] calldata values)
-        external
-        onlyOwner
-    {
-        if (chainIds.length != values.length || settlers.length != values.length) revert ParamsLengthMismatch();
-
-        for (uint256 i = 0; i < values.length; i++) {
-            chainSettlers[chainIds[i]][settlers[i]] = values[i];
-            emit ChainSettlerUpdated(chainIds[i], settlers[i], values[i]);
-        }
-    }
+    constructor(address initialOwner) ChainSettlers(initialOwner) {}
 
     function _migrate(address sender, uint256 positionId, bytes memory data) internal {
         MigrationParams memory params = abi.decode(data, (MigrationParams));
-        if (!chainSettlers[params.chainId][params.settler]) revert ChainSettlerNotFound(params.chainId, params.settler);
+        _checkChainSettler(params.chainId, params.settler);
 
         // liquidate the position
         (address token0, address token1, uint256 amount0, uint256 amount1, bytes memory poolInfo) =
@@ -59,16 +40,7 @@ abstract contract Migrator is IMigrator, Ownable2Step {
             data = abi.encode(migrationId, params.settlementParams);
 
             // bridge token
-            _bridge(
-                sender,
-                params.chainId,
-                params.settler,
-                tokenRoute.token,
-                amount,
-                token0 == address(0),
-                tokenRoute.route,
-                data
-            );
+            _bridge(sender, params.chainId, params.settler, token0, amount, tokenRoute.token, tokenRoute.route, data);
 
             emit Migration(migrationId, positionId, tokenRoute.token, sender, amount);
         } else if (params.tokenRoutes.length == 2) {
@@ -93,17 +65,8 @@ abstract contract Migrator is IMigrator, Ownable2Step {
             data = abi.encode(migrationId, params.settlementParams);
 
             // bridge tokens
-            _bridge(
-                sender,
-                params.chainId,
-                params.settler,
-                tokenRoute0.token,
-                amount0,
-                token0 == address(0),
-                tokenRoute0.route,
-                data
-            );
-            _bridge(sender, params.chainId, params.settler, tokenRoute1.token, amount1, false, tokenRoute1.route, data);
+            _bridge(sender, params.chainId, params.settler, token0, amount0, tokenRoute0.token, tokenRoute0.route, data);
+            _bridge(sender, params.chainId, params.settler, token1, amount1, tokenRoute1.token, tokenRoute1.route, data);
 
             emit Migration(migrationId, positionId, tokenRoute0.token, sender, amount0);
             emit Migration(migrationId, positionId, tokenRoute1.token, sender, amount1);
@@ -118,7 +81,7 @@ abstract contract Migrator is IMigrator, Ownable2Step {
         address settler,
         address token,
         uint256 amount,
-        bool isNativeTransfer,
+        address inputToken,
         bytes memory route,
         bytes memory data
     ) internal virtual;
