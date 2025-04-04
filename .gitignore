@@ -12,6 +12,3 @@ out/
 
 # Test coverage
 lcov.info
-
-# one-off scripts
-script/decoder.s.sol
