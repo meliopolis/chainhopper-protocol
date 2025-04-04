@@ -13,7 +13,7 @@ abstract contract Migrator is IMigrator, ChainSettlers {
 
     function _migrate(address sender, uint256 positionId, bytes memory data) internal {
         MigrationParams memory params = abi.decode(data, (MigrationParams));
-        _checkChainSettler(params.chainId, params.settler);
+        _validateChainSettler(params.chainId, params.settler);
 
         // liquidate the position
         (address token0, address token1, uint256 amount0, uint256 amount1, bytes memory poolInfo) =

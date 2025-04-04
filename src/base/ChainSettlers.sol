@@ -27,7 +27,7 @@ contract ChainSettlers is Ownable2Step {
         }
     }
 
-    function _checkChainSettler(uint32 chainId, address settler) internal view {
+    function _validateChainSettler(uint32 chainId, address settler) internal view {
         if (!chainSettlers[chainId][settler]) revert ChainSettlerNotFound(chainId, settler);
     }
 }
