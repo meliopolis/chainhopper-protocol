@@ -7,6 +7,7 @@ via-ir = true
 remappings = [
     "lib/uniswap-v3-periphery/:@openzeppelin/contracts/token/ERC721/=lib/openzeppelin/contracts/interfaces/",
     "lib/uniswap-v4-periphery/:@uniswap/v4-core/=lib/uniswap-v4-periphery/lib/v4-core/",
+    "@forge-std/=lib/forge-std/src/",
     "@across/=lib/across/contracts/",
     "@openzeppelin/=lib/openzeppelin/contracts/",
     "@uniswap-permit2/=lib/uniswap-permit2/src/",
