@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.24;
 
+import {IERC20} from "@openzeppelin/token/ERC20/IERC20.sol";
 import {ISettler} from "../../src/interfaces/ISettler.sol";
 import {MigrationId, MigrationIdLibrary} from "../../src/types/MigrationId.sol";
 import {MigrationMode, MigrationModes} from "../../src/types/MigrationMode.sol";
 import {MockSettler} from "../mocks/MockSettler.sol";
 import {TestContext} from "../utils/TestContext.sol";
+import {RejectingRecipient} from "../mocks/MockRejectingRecipient.sol";
 
 contract SettlerTest is TestContext {
     MockSettler settler;
@@ -39,9 +41,6 @@ contract SettlerTest is TestContext {
         MigrationId migrationId = MigrationIdLibrary.from(0, address(0), MigrationMode.wrap(type(uint8).max), 0);
         bytes memory data = abi.encode(migrationId, ISettler.SettlementParams(address(0), 0, address(0), ""));
 
-        vm.expectEmit(true, true, true, true);
-        emit ISettler.Receipt(migrationId, address(0), address(0), 100);
-
         vm.expectRevert(abi.encodeWithSelector(ISettler.UnsupportedMode.selector, type(uint8).max), address(settler));
         vm.prank(address(settler));
         settler.selfSettle(address(0), 100, data);
@@ -61,9 +60,48 @@ contract SettlerTest is TestContext {
 
         if (!isRecipient) {
             vm.expectRevert(abi.encodeWithSelector(ISettler.NotRecipient.selector), address(settler));
+        } else {
+            if (!isNative) {
+                vm.expectEmit(true, true, true, true);
+                emit IERC20.Transfer(address(settler), user, 100);
+            } else {
+                vm.expectEmit(true, true, true, true);
+                emit ISettler.Refund(migrationId, user, address(0), 100);
+            }
         }
+
         vm.prank(user);
         settler.withdraw(migrationId);
+    }
+
+    function test_fuzz_exposeTransfer(bool isNative, bool useRejectingRecipient) public {
+        address token;
+        if (isNative) {
+            deal(address(settler), 100);
+            token = address(0);
+        } else {
+            deal(weth, address(settler), 100);
+            token = weth;
+        }
+
+        address recipient;
+        if (useRejectingRecipient) {
+            recipient = address(new RejectingRecipient());
+        } else {
+            recipient = user;
+        }
+
+        if (isNative) {
+            if (useRejectingRecipient) {
+                vm.expectRevert(abi.encodeWithSelector(ISettler.NativeTokenTransferFailed.selector, recipient, 100));
+            }
+        } else {
+            vm.expectEmit(true, true, true, true);
+            emit IERC20.Transfer(address(settler), recipient, 100);
+        }
+
+        vm.prank(address(settler));
+        settler.exposeTransfer(token, recipient, 100);
     }
 
     // single token
@@ -80,9 +118,6 @@ contract SettlerTest is TestContext {
             token = weth;
             deal(token, address(settler), 100);
         }
-
-        vm.expectEmit(true, true, true, true);
-        emit ISettler.Receipt(migrationId, params.recipient, token, 100);
 
         if (params.senderShareBps + settler.protocolShareBps() > settler.MAX_SHARE_BPS()) {
             vm.expectRevert(
@@ -132,9 +167,6 @@ contract SettlerTest is TestContext {
         if (hasSettlementCache) {
             settler.setSettlementCache(migrationId, params.recipient, token1, 200, isDataMatching ? data : bytes(""));
         }
-
-        vm.expectEmit(true, true, true, true);
-        emit ISettler.Receipt(migrationId, params.recipient, token0, 100);
 
         if (hasSettlementCache) {
             if (!isDataMatching) {

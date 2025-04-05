@@ -3,7 +3,8 @@ pragma solidity ^0.8.24;
 
 import {AcrossSettler} from "../../src/base/AcrossSettler.sol";
 import {Settler} from "../../src/base/Settler.sol";
-import {MigrationId} from "../../src/types/MigrationId.sol";
+import {MigrationId, MigrationIdLibrary} from "../../src/types/MigrationId.sol";
+import {MigrationModes} from "../../src/types/MigrationMode.sol";
 
 contract MockAcrossSettler is AcrossSettler {
     bool private shouldSettleRevert;
@@ -18,8 +19,9 @@ contract MockAcrossSettler is AcrossSettler {
         shouldSettleRevert = shouldRevert;
     }
 
-    function selfSettle(address, uint256, bytes memory) external view override {
+    function selfSettle(address, uint256, bytes memory) external view override returns (MigrationId, address) {
         if (shouldSettleRevert) revert();
+        return (MigrationIdLibrary.from(uint32(block.chainid), address(2), MigrationModes.DUAL, 1), address(2));
     }
 
     function _mintPosition(address token, uint256 amount, address recipient, bytes memory data)

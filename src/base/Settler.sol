@@ -22,14 +22,17 @@ abstract contract Settler is ISettler, ProtocolFees {
 
     constructor(address initialOwner) ProtocolFees(initialOwner) {}
 
-    function selfSettle(address token, uint256 amount, bytes memory data) external virtual {
+    function selfSettle(address token, uint256 amount, bytes memory data)
+        external
+        virtual
+        returns (MigrationId, address)
+    {
         // must be called by the contract itself, for wrapping in a try/catch
         if (msg.sender != address(this)) revert NotSelf();
         if (amount == 0) revert MissingAmount(token);
 
         (MigrationId migrationId, SettlementParams memory settlementParams) =
             abi.decode(data, (MigrationId, SettlementParams));
-        emit Receipt(migrationId, settlementParams.recipient, token, amount);
 
         if (migrationId.mode() == MigrationModes.SINGLE) {
             // calculate fees
@@ -82,6 +85,8 @@ abstract contract Settler is ISettler, ProtocolFees {
         } else {
             revert UnsupportedMode(migrationId.mode());
         }
+
+        return (migrationId, settlementParams.recipient);
     }
 
     function _calculateFees(uint256 amount, uint16 senderShareBps)

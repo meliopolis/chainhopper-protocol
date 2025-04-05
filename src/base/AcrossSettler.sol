@@ -21,8 +21,9 @@ abstract contract AcrossSettler is IAcrossSettler, IAcrossMessageHandler, Settle
     function handleV3AcrossMessage(address token, uint256 amount, address, bytes memory message) external {
         if (msg.sender != spokePool) revert NotSpokePool();
 
-        try this.selfSettle(token, amount, message) {}
-        catch {
+        try this.selfSettle(token, amount, message) returns (MigrationId migrationId, address recipient) {
+            emit Receipt(migrationId, recipient, token, amount);
+        } catch {
             (MigrationId migrationId, SettlementParams memory settlementParams) =
                 abi.decode(message, (MigrationId, SettlementParams));
 

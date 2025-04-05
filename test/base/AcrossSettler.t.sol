@@ -30,12 +30,12 @@ contract AcrossSettlerTest is TestContext {
 
     function test_fuzz_handleV3AcrossMessage(bool hasSettlementCache, bool shouldSettleRevert) public {
         bytes memory data = "";
+        MigrationId migrationId = MigrationIdLibrary.from(uint32(block.chainid), address(2), MigrationModes.DUAL, 1);
 
         if (shouldSettleRevert) {
             settler.setShouldSettleRevert(shouldSettleRevert);
             deal(weth, address(settler), 100);
 
-            MigrationId migrationId = MigrationIdLibrary.from(0, address(0), MigrationModes.DUAL, 0);
             data = abi.encode(migrationId, ISettler.SettlementParams(user, 0, address(0), ""));
 
             if (hasSettlementCache) {
@@ -50,6 +50,9 @@ contract AcrossSettlerTest is TestContext {
                 vm.expectEmit(true, true, true, true, usdc);
                 emit IERC20.Transfer(address(settler), user, 200);
             }
+        } else {
+            vm.expectEmit(true, false, false, false);
+            emit ISettler.Receipt(migrationId, address(2), weth, 100);
         }
 
         vm.prank(acrossSpokePool);

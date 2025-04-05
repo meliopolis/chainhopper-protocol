@@ -14,6 +14,8 @@ contract MockMigrator is Migrator {
     uint256 private isAmountSufficientCounter;
     bool[2] private isAmountSufficient;
 
+    event Log(string message);
+
     constructor(address initialOwner) Migrator(initialOwner) {}
 
     function setLiquidity(address _token0, address _token1, uint256 _amount0, uint256 _amount1) external {
@@ -35,16 +37,12 @@ contract MockMigrator is Migrator {
         _migrate(sender, positionId, data);
     }
 
-    function _bridge(
-        address sender,
-        uint32 chainId,
-        address settler,
-        address token,
-        uint256 amount,
-        address inputToken,
-        bytes memory route,
-        bytes memory data
-    ) internal override {}
+    function _bridge(address, uint32, address, address, uint256, address, bytes memory, bytes memory)
+        internal
+        override
+    {
+        emit Log("bridge");
+    }
 
     function _liquidate(uint256) internal view override returns (address, address, uint256, uint256, bytes memory) {
         return (token0, token1, amount0, amount1, "");

@@ -32,6 +32,10 @@ contract MockSettler is Settler {
         bytes memory data
     ) internal override returns (uint256 positionId) {}
 
+    function exposeTransfer(address token, address recipient, uint256 amount) external {
+        _transfer(token, recipient, amount);
+    }
     // add this to be excluded from coverage report
+
     function test() public {}
 }

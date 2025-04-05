@@ -12,3 +12,6 @@ out/
 
 # Test coverage
 lcov.info
+
+# temporary files
+tmp/
