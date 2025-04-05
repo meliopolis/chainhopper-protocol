@@ -9,6 +9,7 @@ contract TestContext is Test {
 
     address weth;
     address usdc;
+    address usdt;
 
     address acrossSpokePool;
 
@@ -17,6 +18,7 @@ contract TestContext is Test {
 
         weth = vm.envAddress(string(abi.encodePacked(chainName, "_WETH")));
         usdc = vm.envAddress(string(abi.encodePacked(chainName, "_USDC")));
+        usdt = vm.envAddress(string(abi.encodePacked(chainName, "_USDT")));
 
         acrossSpokePool = vm.envAddress(string(abi.encodePacked(chainName, "_ACROSS_SPOKE_POOL")));
     }

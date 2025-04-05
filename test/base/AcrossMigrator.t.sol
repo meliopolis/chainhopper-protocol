@@ -59,7 +59,7 @@ contract AcrossMigratorTest is TestContext {
         bool isTokenNative,
         bool isRouteTokenWeth,
         bool areTokensEqual
-    ) public {
+    ) public view {
         vm.assume(!(isTokenNative && isRouteTokenWeth && areTokensEqual));
         address token = isTokenNative ? address(0) : address(1);
         tokenRoute.token = isRouteTokenWeth ? weth : usdc;
@@ -75,7 +75,7 @@ contract AcrossMigratorTest is TestContext {
         uint256 amount,
         IMigrator.TokenRoute memory tokenRoute,
         IAcrossMigrator.Route memory route
-    ) public {
+    ) public view {
         vm.assume(tokenRoute.amountOutMin < type(uint256).max - route.maxFees);
         tokenRoute.route = abi.encode(route);
 

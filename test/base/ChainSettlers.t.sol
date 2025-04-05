@@ -36,7 +36,7 @@ contract ChainSettlersTest is Test {
         vm.expectRevert(abi.encodeWithSelector(ChainSettlers.ChainSettlersParamsLengthMismatch.selector));
         chainSettlers.setChainSettlers(new uint32[](0), new address[](0), new bool[](1));
 
-        vm.startPrank(owner);
+        vm.stopPrank();
     }
 
     function test_fuzz_setChainSettlers(uint32[3] memory chainIds, address[3] memory settlers, bool[3] memory values)

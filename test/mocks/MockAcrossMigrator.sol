@@ -28,7 +28,7 @@ contract MockAcrossMigrator is AcrossMigrator {
         return _matchTokenWithRoute(token, route);
     }
 
-    function isAmountSufficient(uint256 amount, IMigrator.TokenRoute memory route) external view returns (bool) {
+    function isAmountSufficient(uint256 amount, IMigrator.TokenRoute memory route) external pure returns (bool) {
         return _isAmountSufficient(amount, route);
     }
 
