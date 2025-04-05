@@ -3,12 +3,34 @@ pragma solidity ^0.8.24;
 
 import {AcrossMigrator} from "../../src/base/AcrossMigrator.sol";
 import {Migrator} from "../../src/base/Migrator.sol";
+import {IMigrator} from "../../src/interfaces/IMigrator.sol";
 
 contract MockAcrossMigrator is AcrossMigrator {
     constructor(address initialOwner, address spokePool, address weth)
         Migrator(initialOwner)
         AcrossMigrator(spokePool, weth)
     {}
+
+    function bridge(
+        address sender,
+        uint32 chainId,
+        address settler,
+        address token,
+        uint256 amount,
+        address inputToken,
+        bytes memory routeData,
+        bytes memory data
+    ) external {
+        _bridge(sender, chainId, settler, token, amount, inputToken, routeData, data);
+    }
+
+    function matchTokenWithRoute(address token, IMigrator.TokenRoute memory route) external view returns (bool) {
+        return _matchTokenWithRoute(token, route);
+    }
+
+    function isAmountSufficient(uint256 amount, IMigrator.TokenRoute memory route) external view returns (bool) {
+        return _isAmountSufficient(amount, route);
+    }
 
     function _liquidate(uint256 positionId)
         internal
