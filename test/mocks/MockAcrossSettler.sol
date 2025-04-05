@@ -18,7 +18,7 @@ contract MockAcrossSettler is AcrossSettler {
         shouldSettleRevert = shouldRevert;
     }
 
-    function onlySelfSettle(address, uint256, bytes memory) external view override {
+    function selfSettle(address, uint256, bytes memory) external view override {
         if (shouldSettleRevert) revert();
     }
 

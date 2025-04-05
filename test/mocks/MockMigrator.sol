@@ -4,7 +4,36 @@ pragma solidity ^0.8.24;
 import {Migrator} from "../../src/base/Migrator.sol";
 
 contract MockMigrator is Migrator {
+    address private token0;
+    address private token1;
+    uint256 private amount0;
+    uint256 private amount1;
+
+    uint256 private tokenRouteMatchCounter;
+    bool[2] private doTokenAndRouteMatch;
+    uint256 private isAmountSufficientCounter;
+    bool[2] private isAmountSufficient;
+
     constructor(address initialOwner) Migrator(initialOwner) {}
+
+    function setLiquidity(address _token0, address _token1, uint256 _amount0, uint256 _amount1) external {
+        token0 = _token0;
+        token1 = _token1;
+        amount0 = _amount0;
+        amount1 = _amount1;
+    }
+
+    function setDoTokenAndRouteMatch(bool[2] memory matches) external {
+        doTokenAndRouteMatch = matches;
+    }
+
+    function setIsAmountSufficient(bool[2] memory amounts) external {
+        isAmountSufficient = amounts;
+    }
+
+    function migrate(address sender, uint256 positionId, bytes memory data) public {
+        _migrate(sender, positionId, data);
+    }
 
     function _bridge(
         address sender,
@@ -17,21 +46,21 @@ contract MockMigrator is Migrator {
         bytes memory data
     ) internal override {}
 
-    function _liquidate(uint256 positionId)
-        internal
-        override
-        returns (address token0, address token1, uint256 amount0, uint256 amount1, bytes memory poolInfo)
-    {}
+    function _liquidate(uint256) internal view override returns (address, address, uint256, uint256, bytes memory) {
+        return (token0, token1, amount0, amount1, "");
+    }
 
-    function _swap(bytes memory poolInfo, bool zeroForOne, uint256 amountIn)
-        internal
-        override
-        returns (uint256 amountOut)
-    {}
+    function _swap(bytes memory, bool, uint256 amountIn) internal pure override returns (uint256) {
+        return amountIn;
+    }
 
-    function _matchTokenWithRoute(address token, TokenRoute memory tokenRoute) internal view override returns (bool) {}
+    function _matchTokenWithRoute(address, TokenRoute memory) internal override returns (bool) {
+        return doTokenAndRouteMatch[tokenRouteMatchCounter++];
+    }
 
-    function _isAmountSufficient(uint256 amount, TokenRoute memory tokenRoute) internal view override returns (bool) {}
+    function _isAmountSufficient(uint256, TokenRoute memory) internal override returns (bool) {
+        return isAmountSufficient[isAmountSufficientCounter++];
+    }
 
     // add this to be excluded from coverage report
     function test() public {}

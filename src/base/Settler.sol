@@ -22,7 +22,7 @@ abstract contract Settler is ISettler, ProtocolFees {
 
     constructor(address initialOwner) ProtocolFees(initialOwner) {}
 
-    function onlySelfSettle(address token, uint256 amount, bytes memory data) external virtual {
+    function selfSettle(address token, uint256 amount, bytes memory data) external virtual {
         // must be called by the contract itself, for wrapping in a try/catch
         if (msg.sender != address(this)) revert NotSelf();
         if (amount == 0) revert MissingAmount(token);

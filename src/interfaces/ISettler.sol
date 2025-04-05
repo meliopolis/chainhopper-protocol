@@ -25,6 +25,6 @@ interface ISettler {
         bytes mintParams;
     }
 
-    function onlySelfSettle(address token, uint256 amount, bytes memory data) external;
+    function selfSettle(address token, uint256 amount, bytes memory data) external;
     function withdraw(MigrationId migrationId) external;
 }

@@ -98,7 +98,7 @@ abstract contract Migrator is IMigrator, ChainSettlers {
         virtual
         returns (uint256 amountOut);
 
-    function _matchTokenWithRoute(address token, TokenRoute memory tokenRoute) internal view virtual returns (bool);
+    function _matchTokenWithRoute(address token, TokenRoute memory tokenRoute) internal virtual returns (bool);
 
-    function _isAmountSufficient(uint256 amount, TokenRoute memory tokenRoute) internal view virtual returns (bool);
+    function _isAmountSufficient(uint256 amount, TokenRoute memory tokenRoute) internal virtual returns (bool);
 }
