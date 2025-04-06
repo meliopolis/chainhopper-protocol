@@ -13,7 +13,6 @@ interface ISettler {
     error NativeTokenTransferFailed(address recipient, uint256 amount);
     error MaxFeeExceeded(uint16 protocolShareBps, uint16 senderShareBps);
 
-    event Receipt(MigrationId indexed migrationId, address indexed recipient, address indexed token, uint256 amount);
     event Settlement(MigrationId indexed migrationId, address indexed recipient, uint256 positionId);
     event FeePayment(MigrationId indexed migrationId, address indexed token, uint256 protocolFee, uint256 senderFee);
     event Refund(MigrationId indexed migrationId, address indexed recipient, address indexed token, uint256 amount);

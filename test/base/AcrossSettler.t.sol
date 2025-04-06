@@ -52,7 +52,7 @@ contract AcrossSettlerTest is TestContext {
             }
         } else {
             vm.expectEmit(true, false, false, false);
-            emit ISettler.Receipt(migrationId, address(2), weth, 100);
+            emit IAcrossSettler.Receipt(migrationId, address(2), weth, 100);
         }
 
         vm.prank(acrossSpokePool);
