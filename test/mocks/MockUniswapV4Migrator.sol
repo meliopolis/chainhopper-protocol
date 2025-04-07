@@ -25,6 +25,14 @@ contract MockUniswapV4Migrator is UniswapV4Migrator {
 
     function _isAmountSufficient(uint256 amount, TokenRoute memory tokenRoute) internal view override returns (bool) {}
 
+    function liquidate(uint256 positionId) public returns (address, address, uint256, uint256, bytes memory) {
+        return _liquidate(positionId);
+    }
+
+    function swap(bytes memory poolInfo, bool zeroForOne, uint256 amountIn) public returns (uint256) {
+        return _swap(poolInfo, zeroForOne, amountIn);
+    }
     // add this to be excluded from coverage report
+
     function test() public {}
 }

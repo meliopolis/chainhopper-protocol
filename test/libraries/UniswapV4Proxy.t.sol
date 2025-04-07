@@ -35,6 +35,9 @@ contract UniswapV4ProxyTest is TestContext {
     }
 
     function test_fuzz_initializePool(PoolKey memory poolKey, uint160 sqrtPriceX96) public {
+        vm.assume(Currency.unwrap(poolKey.currency0) != Currency.unwrap(poolKey.currency1));
+        vm.assume(Currency.unwrap(poolKey.currency1) != address(0));
+        vm.assume(poolKey.tickSpacing > 0);
         sqrtPriceX96 = uint160(bound(sqrtPriceX96, TickMath.MIN_SQRT_PRICE, TickMath.MAX_SQRT_PRICE));
         poolKey.fee = uint24(bound(poolKey.fee, 1, LPFeeLibrary.MAX_LP_FEE));
         poolKey.tickSpacing = int24(bound(poolKey.tickSpacing, TickMath.MIN_TICK_SPACING, TickMath.MAX_TICK_SPACING));

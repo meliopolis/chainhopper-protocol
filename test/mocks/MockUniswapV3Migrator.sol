@@ -29,7 +29,7 @@ contract MockUniswapV3Migrator is UniswapV3Migrator {
         return _liquidate(positionId);
     }
 
-    function swap(bytes memory poolInfo, bool zeroForOne, uint256 amountIn) internal returns (uint256) {
+    function swap(bytes memory poolInfo, bool zeroForOne, uint256 amountIn) public returns (uint256) {
         return _swap(poolInfo, zeroForOne, amountIn);
     }
     // add this to be excluded from coverage report

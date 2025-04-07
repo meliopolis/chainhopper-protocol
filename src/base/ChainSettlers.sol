@@ -5,6 +5,7 @@ import {Ownable2Step, Ownable} from "@openzeppelin/access/Ownable2Step.sol";
 
 contract ChainSettlers is Ownable2Step {
     error ChainSettlersParamsLengthMismatch();
+    error ChainSettlerNotSupported(uint32 chainId, address settler);
 
     event ChainSettlerUpdated(uint32 indexed chainId, address indexed settler, bool value);
 

@@ -6,6 +6,7 @@ import {MigrationId, MigrationIdLibrary} from "../../src/types/MigrationId.sol";
 import {MigrationModes} from "../../src/types/MigrationMode.sol";
 import {MockMigrator} from "../mocks/MockMigrator.sol";
 import {TestContext} from "../utils/TestContext.sol";
+import {ChainSettlers} from "../../src/base/ChainSettlers.sol";
 
 contract MigratorTest is TestContext {
     string constant CHAIN_NAME = "BASE";
@@ -45,7 +46,9 @@ contract MigratorTest is TestContext {
     function test__migrate_fails_ifChainSettlerNotSupported() public {
         bytes memory data = abi.encode(IMigrator.MigrationParams(0, address(0), _mockTokenRoutes(0), ""));
 
-        vm.expectRevert(abi.encodeWithSelector(IMigrator.ChainSettlerNotSupported.selector, 0, 0), address(migrator));
+        vm.expectRevert(
+            abi.encodeWithSelector(ChainSettlers.ChainSettlerNotSupported.selector, 0, 0), address(migrator)
+        );
         migrator.migrate(user, 0, data);
     }
 
