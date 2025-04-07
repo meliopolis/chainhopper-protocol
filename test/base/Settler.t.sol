@@ -10,10 +10,12 @@ import {TestContext} from "../utils/TestContext.sol";
 import {RejectingRecipient} from "../mocks/MockRejectingRecipient.sol";
 
 contract SettlerTest is TestContext {
+    string constant CHAIN_NAME = "BASE";
+
     MockSettler settler;
 
     function setUp() public {
-        _loadChain("BASE");
+        _loadChain(CHAIN_NAME);
 
         settler = new MockSettler(owner);
 

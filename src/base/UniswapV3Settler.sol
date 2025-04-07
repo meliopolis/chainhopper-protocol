@@ -47,11 +47,7 @@ abstract contract UniswapV3Settler is IUniswapV3Settler, Settler {
         if (tokenA != mintParams.token0 && tokenA != mintParams.token1) revert UnusedToken(tokenA);
         if (tokenB != mintParams.token0 && tokenB != mintParams.token1) revert UnusedToken(tokenB);
 
-        // ensure tokens and amounts are in the right order
-        if (mintParams.token0 > mintParams.token1) {
-            (mintParams.token0, mintParams.token1) = (mintParams.token1, mintParams.token0);
-            (mintParams.amount0Min, mintParams.amount1Min) = (mintParams.amount1Min, mintParams.amount0Min);
-        }
+        // align amounts to tokens
         (uint256 amount0, uint256 amount1) = tokenA == mintParams.token0 ? (amountA, amountB) : (amountB, amountA);
 
         // create and initialize pool if necessary

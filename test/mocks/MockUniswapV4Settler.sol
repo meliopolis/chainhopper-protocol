@@ -10,6 +10,24 @@ contract MockUniswapV4Settler is UniswapV4Settler {
         UniswapV4Settler(positionManager, universalRouter, permit2, weth)
     {}
 
+    function mintPosition(address token, uint256 amount, address recipient, bytes memory data)
+        external
+        returns (uint256)
+    {
+        return _mintPosition(token, amount, recipient, data);
+    }
+
+    function mintPosition(
+        address tokenA,
+        address tokenB,
+        uint256 amountA,
+        uint256 amountB,
+        address recipient,
+        bytes memory data
+    ) external returns (uint256) {
+        return _mintPosition(tokenA, tokenB, amountA, amountB, recipient, data);
+    }
+
     // add this to be excluded from coverage report
     function test() public {}
 }

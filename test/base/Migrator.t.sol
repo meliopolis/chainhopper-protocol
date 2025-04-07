@@ -8,6 +8,8 @@ import {MockMigrator} from "../mocks/MockMigrator.sol";
 import {TestContext} from "../utils/TestContext.sol";
 
 contract MigratorTest is TestContext {
+    string constant CHAIN_NAME = "BASE";
+
     uint32[] private chainIds = [123, 456, 789];
     address[] private settlers = [address(0x123), address(0x456), address(0x789)];
     bool[] private values = [true, true, true];
@@ -15,7 +17,7 @@ contract MigratorTest is TestContext {
     MockMigrator migrator;
 
     function setUp() public {
-        _loadChain("BASE");
+        _loadChain(CHAIN_NAME);
 
         migrator = new MockMigrator(owner);
 

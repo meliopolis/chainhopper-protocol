@@ -15,6 +15,7 @@ remappings = [
     "@openzeppelin/=lib/openzeppelin/contracts/",
     "@uniswap-permit2/=lib/uniswap-permit2/src/",
     "@uniswap-universal-router/=lib/uniswap-universal-router/contracts/",
+    "@uniswap-v3-core/=lib/uniswap-v3-core/contracts",
     "@uniswap-v3-periphery/=lib/uniswap-v3-periphery/contracts/",
     "@uniswap-v4-core/=lib/uniswap-v4-periphery/lib/v4-core/src/",
     "@uniswap-v4-periphery/=lib/uniswap-v4-periphery/src/"
