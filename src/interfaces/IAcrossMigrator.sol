@@ -1,7 +1,10 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.0;
 
+/// @title IAcrossMigrator
+/// @notice Interface for the AcrossMigrator contract
 interface IAcrossMigrator {
+    /// @notice Struct for a route specifically on Across
     struct Route {
         address outputToken;
         uint256 maxFees;

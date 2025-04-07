@@ -7,7 +7,15 @@ type MigrationId is bytes32;
 
 using MigrationIdLibrary for MigrationId global;
 
+/// @title MigrationIdLibrary
+/// @notice Library for MigrationId
 library MigrationIdLibrary {
+    /// @notice Function to create a MigrationId
+    /// @param _chainId The chain id
+    /// @param _migrator The migrator
+    /// @param _mode The mode
+    /// @param _nonce The nonce
+    /// @return migrationId The migration id
     function from(uint32 _chainId, address _migrator, MigrationMode _mode, uint56 _nonce)
         internal
         pure
@@ -23,24 +31,36 @@ library MigrationIdLibrary {
         }
     }
 
+    /// @notice Function to get the chain id
+    /// @param self The migration id
+    /// @return _chainId The chain id
     function chainId(MigrationId self) internal pure returns (uint32 _chainId) {
         assembly {
             _chainId := and(shr(224, self), 0xFFFFFFFF)
         }
     }
 
+    /// @notice Function to get the migrator
+    /// @param self The migration id
+    /// @return _migrator The migrator
     function migrator(MigrationId self) internal pure returns (address _migrator) {
         assembly {
             _migrator := and(shr(64, self), 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF)
         }
     }
 
+    /// @notice Function to get the mode
+    /// @param self The migration id
+    /// @return _mode The mode
     function mode(MigrationId self) internal pure returns (MigrationMode _mode) {
         assembly {
             _mode := and(shr(56, self), 0xFF)
         }
     }
 
+    /// @notice Function to get the nonce
+    /// @param self The migration id
+    /// @return _nonce The nonce
     function nonce(MigrationId self) internal pure returns (uint56 _nonce) {
         assembly {
             _nonce := and(self, 0xFFFFFFFFFFFFFF)

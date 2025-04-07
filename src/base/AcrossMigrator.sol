@@ -7,17 +7,33 @@ import {V3SpokePoolInterface as IAcrossSpokePool} from "@across/interfaces/V3Spo
 import {IAcrossMigrator} from "../interfaces/IAcrossMigrator.sol";
 import {Migrator} from "./Migrator.sol";
 
+/// @title AcrossMigrator
+/// @notice Abstract contract for migrating positions between chains using Across
 abstract contract AcrossMigrator is IAcrossMigrator, Migrator {
     using SafeERC20 for IERC20;
 
+    /// @notice The Across Spokepool address
     IAcrossSpokePool private immutable spokePool;
+    /// @notice The WETH address
     address private immutable weth;
 
+    /// @notice Constructor for the AcrossMigrator contract
+    /// @param _spokePool The Across Spokepool address
+    /// @param _weth The WETH address
     constructor(address _spokePool, address _weth) {
         spokePool = IAcrossSpokePool(_spokePool);
         weth = _weth;
     }
 
+    /// @notice Internal function to bridge tokens
+    /// @param sender The sender of the migration
+    /// @param chainId The destination chain id
+    /// @param settler The settler address on destination chain
+    /// @param token The token needed on destination chain (ex: WETH or native token)
+    /// @param amount The amount to bridge
+    /// @param inputToken The input token sent into the bridge
+    /// @param routeData The route data
+    /// @param data The data to bridge
     function _bridge(
         address sender,
         uint32 chainId,
@@ -54,10 +70,15 @@ abstract contract AcrossMigrator is IAcrossMigrator, Migrator {
         IERC20(inputToken).forceApprove(address(spokePool), 0);
     }
 
+    /// @notice Internal function to match a token with a route
+    /// @param token The token to match
+    /// @param tokenRoute The route to match
+    /// @return isMatch True if the token matches the route, false otherwise
     function _matchTokenWithRoute(address token, TokenRoute memory tokenRoute) internal view override returns (bool) {
         return token == tokenRoute.token || (token == address(0) && tokenRoute.token == weth);
     }
 
+    /// @notice Internal function to check if an amount is sufficient
     function _isAmountSufficient(uint256 amount, TokenRoute memory tokenRoute) internal pure override returns (bool) {
         return amount >= tokenRoute.amountOutMin + abi.decode(tokenRoute.route, (Route)).maxFees;
     }

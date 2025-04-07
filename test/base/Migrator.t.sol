@@ -101,7 +101,7 @@ contract MigratorTest is TestContext {
             emit MockMigrator.Log("bridge");
 
             vm.expectEmit(true, true, true, true);
-            emit IMigrator.Migration(migrationId, 0, weth, user, amount0 + amount1);
+            emit IMigrator.MigrationStarted(migrationId, 0, weth, user, amount0 + amount1);
         }
 
         bytes memory data = abi.encode(_mockMigrationParams(1));
@@ -151,9 +151,9 @@ contract MigratorTest is TestContext {
                     MigrationIdLibrary.from(uint32(block.chainid), address(migrator), MigrationModes.DUAL, 1);
 
                 vm.expectEmit(true, true, true, true);
-                emit IMigrator.Migration(migrationId, 0, weth, user, amount0);
+                emit IMigrator.MigrationStarted(migrationId, 0, weth, user, amount0);
                 vm.expectEmit(true, true, true, true);
-                emit IMigrator.Migration(migrationId, 0, usdc, user, amount1);
+                emit IMigrator.MigrationStarted(migrationId, 0, usdc, user, amount1);
             }
         } else {
             if (!isAmount0Sufficient) {
@@ -169,9 +169,9 @@ contract MigratorTest is TestContext {
                     MigrationIdLibrary.from(uint32(block.chainid), address(migrator), MigrationModes.DUAL, 1);
 
                 vm.expectEmit(true, true, true, true);
-                emit IMigrator.Migration(migrationId, 0, weth, user, amount1);
+                emit IMigrator.MigrationStarted(migrationId, 0, weth, user, amount1);
                 vm.expectEmit(true, true, true, true);
-                emit IMigrator.Migration(migrationId, 0, usdc, user, amount0);
+                emit IMigrator.MigrationStarted(migrationId, 0, usdc, user, amount0);
             }
         }
 

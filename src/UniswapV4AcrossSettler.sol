@@ -5,7 +5,14 @@ import {AcrossSettler} from "./base/AcrossSettler.sol";
 import {Settler} from "./base/Settler.sol";
 import {UniswapV4Settler} from "./base/UniswapV4Settler.sol";
 
+/// @title UniswapV4AcrossSettler
+/// @notice A settler that settles migrations on Uniswap V4 and Across
 contract UniswapV4AcrossSettler is UniswapV4Settler, AcrossSettler {
+    /// @notice Constructor
+    /// @param initialOwner The initial owner of the settler
+    /// @param positionManager The position manager
+    /// @param universalRouter The universal router
+    /// @param permit2 The permit2 contract
     constructor(
         address initialOwner,
         address positionManager,

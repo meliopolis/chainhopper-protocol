@@ -15,20 +15,34 @@ import {IV4Router} from "@uniswap-v4-periphery/interfaces/IV4Router.sol";
 import {Actions} from "@uniswap-v4-periphery/libraries/Actions.sol";
 import {LiquidityAmounts} from "@uniswap-v4-periphery/libraries/LiquidityAmounts.sol";
 
+/// @title UniswapV4Proxy
+/// @notice Proxy for Uniswap V4
 struct UniswapV4Proxy {
+    /// @notice The position manager
     IPositionManager positionManager;
+    /// @notice The universal router
     IUniversalRouter universalRouter;
+    /// @notice The permit2
     IPermit2 permit2;
+    /// @notice Whether the permit2 is approved for the token
     mapping(Currency => bool) isPermit2Approved;
 }
 
 using UniswapV4Library for UniswapV4Proxy global;
 
+/// @title UniswapV4Library
+/// @notice Library for Uniswap V4
 library UniswapV4Library {
     using StateLibrary for IPoolManager;
 
+    /// @notice Error thrown when the slippage is too high
     error TooMuchSlippage();
 
+    /// @notice Initialize the proxy
+    /// @param self The proxy
+    /// @param positionManager The position manager
+    /// @param universalRouter The universal router
+    /// @param permit2 The permit2
     function initialize(UniswapV4Proxy storage self, address positionManager, address universalRouter, address permit2)
         internal
     {
@@ -37,11 +51,22 @@ library UniswapV4Library {
         self.permit2 = IPermit2(permit2);
     }
 
+    /// @notice Initialize a pool
+    /// @param self The proxy
+    /// @param poolKey The PoolKey
+    /// @param sqrtPriceX96 The sqrtPriceX96
     function initializePool(UniswapV4Proxy storage self, PoolKey memory poolKey, uint160 sqrtPriceX96) internal {
         // create and initialize pool
         self.positionManager.initializePool(poolKey, sqrtPriceX96);
     }
 
+    /// @notice Mint a position
+    /// @param self The proxy
+    /// @param poolKey The PoolKey
+    /// @param tickLower The tick lower
+    /// @param tickUpper The tick upper
+    /// @param amount0Desired The amount of token0 desired
+    /// @param amount1Desired The amount of token1 desired
     function mintPosition(
         UniswapV4Proxy storage self,
         PoolKey memory poolKey,
@@ -93,6 +118,12 @@ library UniswapV4Library {
         if (amount0 < amount0Min || amount1 < amount1Min) revert TooMuchSlippage();
     }
 
+    /// @notice Liquidate a position
+    /// @param self The proxy
+    /// @param positionId The position id
+    /// @param amount0Min The minimum amount of token0
+    /// @param amount1Min The minimum amount of token1
+    /// @param recipient The recipient
     function liquidatePosition(
         UniswapV4Proxy storage self,
         uint256 positionId,
@@ -119,6 +150,13 @@ library UniswapV4Library {
         amount1 = poolKey.currency1.balanceOf(recipient) - balance1Before;
     }
 
+    /// @notice Swap tokens
+    /// @param self The proxy
+    /// @param poolKey The PoolKey
+    /// @param zeroForOne The direction of the swap
+    /// @param amountIn The amount of input tokens
+    /// @param amountOutMin The minimum amount of output tokens
+    /// @param recipient The recipient
     function swap(
         UniswapV4Proxy storage self,
         PoolKey memory poolKey,
@@ -163,6 +201,10 @@ library UniswapV4Library {
         amountOut = currencyOut.balanceOf(recipient) - balanceBefore;
     }
 
+    /// @notice Get the sqrtPriceX96
+    /// @param self The proxy
+    /// @param poolKey The PoolKey
+    /// @return sqrtPriceX96 The sqrtPriceX96
     function getPoolSqrtPriceX96(UniswapV4Proxy storage self, PoolKey memory poolKey)
         internal
         view
@@ -171,6 +213,11 @@ library UniswapV4Library {
         (sqrtPriceX96,,,) = self.positionManager.poolManager().getSlot0(poolKey.toId());
     }
 
+    /// @notice Approve a currency
+    /// @param self The proxy
+    /// @param currency The currency
+    /// @param spender The spender
+    /// @param amount The amount
     function approve(UniswapV4Proxy storage self, Currency currency, address spender, uint256 amount) internal {
         if (!self.isPermit2Approved[currency]) {
             IERC20(Currency.unwrap(currency)).approve(address(self.permit2), type(uint256).max);

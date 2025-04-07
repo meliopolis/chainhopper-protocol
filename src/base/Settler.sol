@@ -8,9 +8,16 @@ import {MigrationId} from "../types/MigrationId.sol";
 import {MigrationModes} from "../types/MigrationMode.sol";
 import {ProtocolFees} from "./ProtocolFees.sol";
 
+/// @title Settler
+/// @notice Abstract contract for settling migrations
 abstract contract Settler is ISettler, ProtocolFees {
     using SafeERC20 for IERC20;
 
+    /// @notice Struct for settlement cache
+    /// @param recipient The recipient of the settlement
+    /// @param token The token to settle
+    /// @param amount The amount to settle
+    /// @param data keccak256 hash of the data to settle
     struct SettlementCache {
         address recipient;
         address token;
@@ -18,10 +25,19 @@ abstract contract Settler is ISettler, ProtocolFees {
         bytes data;
     }
 
+    /// @notice Mapping of migration ids to settlement caches
     mapping(MigrationId => SettlementCache) internal settlementCaches;
 
+    /// @notice Constructor for the Settler contract
+    /// @param initialOwner The initial owner of the contract
     constructor(address initialOwner) ProtocolFees(initialOwner) {}
 
+    /// @notice Function to settle a migration
+    /// @param token The token to settle
+    /// @param amount The amount received from the migration
+    /// @param data The data to settle
+    /// @return migrationId The migration id
+    /// @return recipient The recipient of the settlement
     function selfSettle(address token, uint256 amount, bytes memory data)
         external
         virtual
@@ -89,6 +105,11 @@ abstract contract Settler is ISettler, ProtocolFees {
         return (migrationId, settlementParams.recipient);
     }
 
+    /// @notice Internal function to calculate fees
+    /// @param amount The amount to calculate fees for
+    /// @param senderShareBps The sender share bps
+    /// @return protocolFee The protocol fee
+    /// @return senderFee The sender fee
     function _calculateFees(uint256 amount, uint16 senderShareBps)
         internal
         view
@@ -106,10 +127,18 @@ abstract contract Settler is ISettler, ProtocolFees {
         }
     }
 
+    /// @notice Function to withdraw a migration
+    /// @param migrationId The migration id
     function withdraw(MigrationId migrationId) external {
         _refund(migrationId, true);
     }
 
+    /// @notice Internal function to pay fees
+    /// @param migrationId The migration id
+    /// @param token The token to pay fees for
+    /// @param protocolFee The protocol fee
+    /// @param senderFee The sender fee
+    /// @param senderFeeRecipient The recipient of the sender fee
     function _payFees(
         MigrationId migrationId,
         address token,
@@ -123,6 +152,9 @@ abstract contract Settler is ISettler, ProtocolFees {
         emit FeePayment(migrationId, token, protocolFee, senderFee);
     }
 
+    /// @notice Internal function to refund a migration
+    /// @param migrationId The migration id
+    /// @param onlyRecipient Whether to only refund the recipient
     function _refund(MigrationId migrationId, bool onlyRecipient) internal {
         SettlementCache memory settlementCache = settlementCaches[migrationId];
 
@@ -137,6 +169,10 @@ abstract contract Settler is ISettler, ProtocolFees {
         }
     }
 
+    /// @notice Internal function to transfer a token
+    /// @param token The token to transfer
+    /// @param recipient The recipient of the transfer
+    /// @param amount The amount to transfer
     function _transfer(address token, address recipient, uint256 amount) internal {
         if (token == address(0)) {
             (bool success,) = recipient.call{value: amount}("");
@@ -146,6 +182,11 @@ abstract contract Settler is ISettler, ProtocolFees {
         }
     }
 
+    /// @notice Internal function to mint a position
+    /// @param token The token to mint
+    /// @param amount The amount to mint
+    /// @param recipient The recipient of the minted token
+    /// @param data mint params
     function _mintPosition(address token, uint256 amount, address recipient, bytes memory data)
         internal
         virtual

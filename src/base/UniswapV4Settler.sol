@@ -9,15 +9,25 @@ import {IUniswapV4Settler} from "../interfaces/IUniswapV4Settler.sol";
 import {UniswapV4Proxy} from "../libraries/UniswapV4Proxy.sol";
 import {Settler} from "./Settler.sol";
 
+/// @title UniswapV4Settler
+/// @notice Contract for settling migrations on Uniswap V4
 abstract contract UniswapV4Settler is IUniswapV4Settler, Settler {
+    /// @notice The Uniswap V4 proxy
     UniswapV4Proxy private proxy;
+    /// @notice The WETH address
     IWETH9 private immutable weth;
 
+    /// @notice Constructor for the UniswapV4Settler contract
+    /// @param positionManager The position manager address
+    /// @param universalRouter The universal router address
+    /// @param permit2 The permit2 address
+    /// @param _weth The WETH address
     constructor(address positionManager, address universalRouter, address permit2, address _weth) {
         proxy.initialize(positionManager, universalRouter, permit2);
         weth = IWETH9(_weth);
     }
 
+    /// @notice Function to mint a position
     function _mintPosition(address token, uint256 amount, address recipient, bytes memory data)
         internal
         override
@@ -51,6 +61,13 @@ abstract contract UniswapV4Settler is IUniswapV4Settler, Settler {
         return _mintPosition(token, tokenOut, amount - amountIn, amountOut, recipient, data);
     }
 
+    /// @notice Internal function to mint a position
+    /// @param tokenA The first token
+    /// @param tokenB The second token
+    /// @param amountA The amount of the first token
+    /// @param amountB The amount of the second token
+    /// @param recipient The recipient of the minted token
+    /// @param data mint params
     function _mintPosition(
         address tokenA,
         address tokenB,
@@ -107,6 +124,10 @@ abstract contract UniswapV4Settler is IUniswapV4Settler, Settler {
         if (amount1 > amount1Used) poolKey.currency1.transfer(recipient, amount1 - amount1Used);
     }
 
+    /// @notice Internal function to unwrap WETH to native token
+    /// @param token The token to unwrap
+    /// @param amount The amount of the token to unwrap
+    /// @return The address of the unwrapped token
     function _unwrapIfWeth(address token, uint256 amount) internal returns (address) {
         if (token == address(weth)) {
             weth.withdraw(amount);
