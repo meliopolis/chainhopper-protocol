@@ -40,8 +40,7 @@ Settlers handle the receiving end of migrations. They:
 
 Key Settler contracts:
 - `Settler.sol`: Base contract with common settlement logic
-- `AcrossV3Settler.sol`: Handles settlements into Uniswap V3 positions
-- `AcrossV4Settler.sol`: Handles settlements into Uniswap V4 positions
+- `AcrossSettler.sol`: Receives tokens from Across
 - `UniswapV3AcrossSettler.sol`: Deployed settler to create Uniswap **v3** Positions
 - `UniswapV4AcrossSettler.sol`: Deployed settler to create Uniswap **v4** Positions
 
