@@ -2,14 +2,35 @@
 src = "src"
 out = "out"
 libs = ["lib"]
-via-ir = true
 solc_version = "0.8.24"
-
-[profile.test]
-src = "test"
-out = "out"
-libs = ["lib"]
 via-ir = true
-solc_version = "0.8.24"
+remappings = [
+    "lib/uniswap-universal-router/:@uniswap/v3-core/contracts/=lib/uniswap-v3-core/contracts/",
+    "lib/uniswap-universal-router/:@uniswap/v4-periphery/src/=lib/uniswap-v4-periphery/src/",
+    "lib/uniswap-v3-periphery/:@openzeppelin/contracts/token/ERC721/=lib/openzeppelin/contracts/interfaces/",
+    "lib/uniswap-v4-periphery/:@openzeppelin/contracts/=lib/openzeppelin/contracts/",
+    "lib/uniswap-v4-periphery/:@uniswap/v4-core/=lib/uniswap-v4-periphery/lib/v4-core/",
+    "@forge-std/=lib/forge-std/src/",
+    "@across/=lib/across/contracts/",
+    "@openzeppelin/=lib/openzeppelin/contracts/",
+    "@uniswap-permit2/=lib/uniswap-permit2/src/",
+    "@uniswap-universal-router/=lib/uniswap-universal-router/contracts/",
+    "@uniswap-v3-core/=lib/uniswap-v3-core/contracts",
+    "@uniswap-v3-periphery/=lib/uniswap-v3-periphery/contracts/",
+    "@uniswap-v4-core/=lib/uniswap-v4-periphery/lib/v4-core/src/",
+    "@uniswap-v4-periphery/=lib/uniswap-v4-periphery/src/"
+]
 
-# See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
+[rpc_endpoints]
+mainnet = "${MAINNET_RPC_URL}"
+arbitrum = "${ARBITRUM_RPC_URL}"
+base = "${BASE_RPC_URL}"
+optimism = "${OPTIMISM_RPC_URL}"
+unichain = "${UNICHAIN_RPC_URL}"
+
+[etherscan]
+mainnet = { key = "${ETHERSCAN_API_KEY}", chain = 1 }
+arbitrum = { key = "${ETHERSCAN_API_KEY}", chain = 42161 }
+base = { key = "${ETHERSCAN_API_KEY}", chain = 8453 }
+optimism = { key = "${ETHERSCAN_API_KEY}", chain = 10 }
+unichain = { key = "${ETHERSCAN_API_KEY}", chain = 130 }
