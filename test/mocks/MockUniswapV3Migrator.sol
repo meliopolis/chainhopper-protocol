@@ -5,6 +5,8 @@ import {Migrator} from "../../src/base/Migrator.sol";
 import {UniswapV3Migrator} from "../../src/base/UniswapV3Migrator.sol";
 
 contract MockUniswapV3Migrator is UniswapV3Migrator {
+    event NoOp();
+
     constructor(address initialOwner, address positionManager, address universalRouter, address permit2)
         Migrator(initialOwner)
         UniswapV3Migrator(positionManager, universalRouter, permit2)
@@ -20,6 +22,10 @@ contract MockUniswapV3Migrator is UniswapV3Migrator {
         bytes memory route,
         bytes memory data
     ) internal override {}
+
+    function _migrate(address, uint256, bytes memory) internal override {
+        emit NoOp();
+    }
 
     function _matchTokenWithRoute(address token, TokenRoute memory tokenRoute) internal view override returns (bool) {}
 

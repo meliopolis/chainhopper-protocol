@@ -5,6 +5,8 @@ import {Migrator} from "../../src/base/Migrator.sol";
 import {UniswapV4Migrator} from "../../src/base/UniswapV4Migrator.sol";
 
 contract MockUniswapV4Migrator is UniswapV4Migrator {
+    event NoOp();
+
     constructor(address initialOwner, address positionManager, address universalRouter, address permit2)
         Migrator(initialOwner)
         UniswapV4Migrator(positionManager, universalRouter, permit2)
@@ -21,9 +23,13 @@ contract MockUniswapV4Migrator is UniswapV4Migrator {
         bytes memory data
     ) internal override {}
 
-    function _matchTokenWithRoute(address token, TokenRoute memory tokenRoute) internal view override returns (bool) {}
+    function _migrate(address, uint256, bytes memory) internal override {
+        emit NoOp();
+    }
 
-    function _isAmountSufficient(uint256 amount, TokenRoute memory tokenRoute) internal view override returns (bool) {}
+    function _matchTokenWithRoute(address, TokenRoute memory) internal view override returns (bool) {}
+
+    function _isAmountSufficient(uint256, TokenRoute memory) internal view override returns (bool) {}
 
     function liquidate(uint256 positionId) public returns (address, address, uint256, uint256, bytes memory) {
         return _liquidate(positionId);

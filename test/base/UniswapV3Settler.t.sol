@@ -7,7 +7,7 @@ import {IUniswapV3Settler} from "../../src/interfaces/IUniswapV3Settler.sol";
 import {MockUniswapV3Settler} from "../mocks/MockUniswapV3Settler.sol";
 import {TestContext} from "../utils/TestContext.sol";
 
-contract UniswapV4SettlerTest is TestContext {
+contract UniswapV3SettlerTest is TestContext {
     string constant CHAIN_NAME = "BASE";
 
     MockUniswapV3Settler settler;

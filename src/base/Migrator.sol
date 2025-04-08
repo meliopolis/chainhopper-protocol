@@ -19,7 +19,7 @@ abstract contract Migrator is IMigrator, ChainSettlers {
     /// @param sender The sender of the migration
     /// @param positionId The id of the position
     /// @param data The data containing the migration parameters
-    function _migrate(address sender, uint256 positionId, bytes memory data) internal {
+    function _migrate(address sender, uint256 positionId, bytes memory data) internal virtual {
         MigrationParams memory params = abi.decode(data, (MigrationParams));
         if (!chainSettlers[params.chainId][params.settler]) {
             revert ChainSettlerNotSupported(params.chainId, params.settler);
