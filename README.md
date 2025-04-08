@@ -64,6 +64,14 @@ Check `script/` for deployment instructions
 
 ## Testing
 
+Tests are run against a hard fork of `Base`. You'll need to add `BASE_RPC_URL` to `.env`. 
+
+```bash
+cp .env.example .env
+```
+
+and update `BASE_RPC_URL`.
+
 To run tests, you can use the following command:
 
 ```bash
