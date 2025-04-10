@@ -98,6 +98,11 @@ contract UniswapV3ProxyTest is TestContext {
         );
     }
 
+    function test_approve_fails_ifAmountExceedsMax() public {
+        vm.expectRevert(UniswapV3Library.AmountExceedsMax.selector);
+        this.approveWrapper(address(0), address(0), uint256(type(uint160).max) + 1);
+    }
+
     function initializeWrapper(address positionManager, address universalRouter, address permit2) public {
         uniswapV3Proxy.initialize(positionManager, universalRouter, permit2);
     }
@@ -135,5 +140,9 @@ contract UniswapV3ProxyTest is TestContext {
         address recipient
     ) public returns (uint256 amountOut) {
         return uniswapV3Proxy.swap(tokenIn, tokenOut, fee, amountIn, amountOutMinimum, recipient);
+    }
+
+    function approveWrapper(address token, address spender, uint256 amount) public {
+        uniswapV3Proxy.approve(token, spender, amount);
     }
 }

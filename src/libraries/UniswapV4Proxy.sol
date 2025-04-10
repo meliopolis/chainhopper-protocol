@@ -39,6 +39,8 @@ library UniswapV4Library {
     error AlreadyInitialized();
     /// @notice Error thrown when the slippage is too high
     error TooMuchSlippage();
+    /// @notice Error thrown when the amount exceeds the max
+    error AmountExceedsMax();
 
     /// @notice Initialize the proxy
     /// @param self The proxy
@@ -223,6 +225,8 @@ library UniswapV4Library {
     /// @param spender The spender
     /// @param amount The amount
     function approve(UniswapV4Proxy storage self, Currency currency, address spender, uint256 amount) internal {
+        if (amount > type(uint160).max) revert AmountExceedsMax();
+
         if (!self.isPermit2Approved[currency]) {
             IERC20(Currency.unwrap(currency)).approve(address(self.permit2), type(uint256).max);
             self.isPermit2Approved[currency] = true;

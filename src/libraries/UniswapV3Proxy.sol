@@ -31,6 +31,8 @@ library UniswapV3Library {
 
     /// @notice Error thrown when the proxy is already initialized
     error AlreadyInitialized();
+    /// @notice Error thrown when the amount exceeds the max
+    error AmountExceedsMax();
 
     /// @notice Initialize the proxy
     /// @param self The proxy
@@ -169,6 +171,8 @@ library UniswapV3Library {
     }
 
     function approve(UniswapV3Proxy storage self, address token, address spender, uint256 amount) internal {
+        if (amount > type(uint160).max) revert AmountExceedsMax();
+
         if (!self.isPermit2Approved[token]) {
             IERC20(token).approve(address(self.permit2), type(uint256).max);
             self.isPermit2Approved[token] = true;

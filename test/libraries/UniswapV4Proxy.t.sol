@@ -126,6 +126,11 @@ contract UniswapV4ProxyTest is TestContext {
         this.swapWrapper(v4TokenPoolKey, true, 100, hasMinAmount ? type(uint256).max : 0, address(this));
     }
 
+    function test_approve_fails_ifAmountExceedsMax() public {
+        vm.expectRevert(UniswapV4Library.AmountExceedsMax.selector);
+        this.approveWrapper(Currency.wrap(address(0)), address(0), uint256(type(uint160).max) + 1);
+    }
+
     function initializeWrapper(address positionManager, address universalRouter, address permit2) external {
         uniswapV4Proxy.initialize(positionManager, universalRouter, permit2);
     }
@@ -160,5 +165,9 @@ contract UniswapV4ProxyTest is TestContext {
         address recipient
     ) external returns (uint256 amountOut) {
         return uniswapV4Proxy.swap(poolKey, zeroForOne, amountIn, amountOutMin, recipient);
+    }
+
+    function approveWrapper(Currency currency, address spender, uint256 amount) external {
+        uniswapV4Proxy.approve(currency, spender, amount);
     }
 }
