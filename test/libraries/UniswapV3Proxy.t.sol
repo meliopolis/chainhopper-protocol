@@ -4,10 +4,12 @@ pragma solidity ^0.8.24;
 import {V3SwapRouter} from "@uniswap-universal-router/modules/uniswap/v3/V3SwapRouter.sol";
 // using v4 tick math as v3 contract has version conflict
 import {TickMath} from "@uniswap-v4-core/libraries/TickMath.sol";
+import {UniswapV3Proxy, UniswapV3Library} from "../../src/libraries/UniswapV3Proxy.sol";
 import {TestContext} from "../utils/TestContext.sol";
 
 contract UniswapV3ProxyTest is TestContext {
     string private constant CHAIN_NAME = "BASE";
+    UniswapV3Proxy private proxy;
 
     function setUp() public {
         _loadChain(CHAIN_NAME);
@@ -17,12 +19,17 @@ contract UniswapV3ProxyTest is TestContext {
         );
     }
 
-    function test_fuzz_initialize(address positionManager, address universalRouter, address permit2) public {
-        uniswapV3Proxy.initialize(positionManager, universalRouter, permit2);
+    function test_initialize_fails_if_already_initialized() public {
+        vm.expectRevert(UniswapV3Library.AlreadyInitialized.selector);
+        this.initializeWrapper(address(0), address(0), address(0));
+    }
 
-        assertEq(address(uniswapV3Proxy.positionManager), positionManager);
-        assertEq(address(uniswapV3Proxy.universalRouter), universalRouter);
-        assertEq(address(uniswapV3Proxy.permit2), permit2);
+    function test_fuzz_initialize(address positionManager, address universalRouter, address permit2) public {
+        proxy.initialize(positionManager, universalRouter, permit2);
+
+        assertEq(address(proxy.positionManager), positionManager);
+        assertEq(address(proxy.universalRouter), universalRouter);
+        assertEq(address(proxy.permit2), permit2);
     }
 
     function test_fuzz_createAndInitializePoolIfNecessary(address token0, address token1, uint160 sqrtPriceX96)
@@ -31,7 +38,7 @@ contract UniswapV3ProxyTest is TestContext {
         vm.assume(token0 > address(0));
         vm.assume(token0 < token1);
 
-        sqrtPriceX96 = uint160(bound(sqrtPriceX96, TickMath.MIN_SQRT_PRICE, TickMath.MAX_SQRT_PRICE));
+        sqrtPriceX96 = uint160(bound(sqrtPriceX96, TickMath.MIN_SQRT_PRICE + 1, TickMath.MAX_SQRT_PRICE - 1));
 
         uniswapV3Proxy.createAndInitializePoolIfNecessary(token0, token1, 100, sqrtPriceX96);
     }
@@ -91,6 +98,15 @@ contract UniswapV3ProxyTest is TestContext {
         );
     }
 
+    function test_approve_fails_ifAmountExceedsMax() public {
+        vm.expectRevert(UniswapV3Library.AmountExceedsMax.selector);
+        this.approveWrapper(address(0), address(0), uint256(type(uint160).max) + 1);
+    }
+
+    function initializeWrapper(address positionManager, address universalRouter, address permit2) public {
+        uniswapV3Proxy.initialize(positionManager, universalRouter, permit2);
+    }
+
     function mintPositionWrapper(
         address token0,
         address token1,
@@ -124,5 +140,9 @@ contract UniswapV3ProxyTest is TestContext {
         address recipient
     ) public returns (uint256 amountOut) {
         return uniswapV3Proxy.swap(tokenIn, tokenOut, fee, amountIn, amountOutMinimum, recipient);
+    }
+
+    function approveWrapper(address token, address spender, uint256 amount) public {
+        uniswapV3Proxy.approve(token, spender, amount);
     }
 }

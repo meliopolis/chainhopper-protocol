@@ -6,6 +6,7 @@ import {TestContext} from "../utils/TestContext.sol";
 import {MockUniswapV3Migrator} from "../mocks/MockUniswapV3Migrator.sol";
 import {UniswapV3Helpers} from "../utils/UniswapV3Helpers.sol";
 import {IERC721} from "@openzeppelin/token/ERC721/IERC721.sol";
+import {IERC721Receiver} from "@openzeppelin/token/ERC721/IERC721Receiver.sol";
 import {IERC20} from "@openzeppelin/token/ERC20/IERC20.sol";
 import {INonfungiblePositionManager} from "../../src/interfaces/external/INonfungiblePositionManager.sol";
 
@@ -23,6 +24,12 @@ contract UniswapV3MigratorTest is TestContext, UniswapV3Helpers {
 
         vm.prank(user);
         migrator.onERC721Received(address(0), address(0), 0, "");
+    }
+
+    function test_fuzz_onERC721Received(address from, uint256 tokenId, bytes memory data) public {
+        vm.prank(v3PositionManager);
+        bytes4 selector = migrator.onERC721Received(address(0), from, tokenId, data);
+        assertEq(selector, IERC721Receiver.onERC721Received.selector);
     }
 
     function test_liquidate() public {

@@ -35,8 +35,12 @@ using UniswapV4Library for UniswapV4Proxy global;
 library UniswapV4Library {
     using StateLibrary for IPoolManager;
 
+    /// @notice Error thrown when the proxy is already initialized
+    error AlreadyInitialized();
     /// @notice Error thrown when the slippage is too high
     error TooMuchSlippage();
+    /// @notice Error thrown when the amount exceeds the max
+    error AmountExceedsMax();
 
     /// @notice Initialize the proxy
     /// @param self The proxy
@@ -46,6 +50,8 @@ library UniswapV4Library {
     function initialize(UniswapV4Proxy storage self, address positionManager, address universalRouter, address permit2)
         internal
     {
+        if (address(self.positionManager) != address(0)) revert AlreadyInitialized();
+
         self.positionManager = IPositionManager(positionManager);
         self.universalRouter = IUniversalRouter(universalRouter);
         self.permit2 = IPermit2(permit2);
@@ -219,6 +225,8 @@ library UniswapV4Library {
     /// @param spender The spender
     /// @param amount The amount
     function approve(UniswapV4Proxy storage self, Currency currency, address spender, uint256 amount) internal {
+        if (amount > type(uint160).max) revert AmountExceedsMax();
+
         if (!self.isPermit2Approved[currency]) {
             IERC20(Currency.unwrap(currency)).approve(address(self.permit2), type(uint256).max);
             self.isPermit2Approved[currency] = true;
