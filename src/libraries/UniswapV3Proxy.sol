@@ -29,6 +29,9 @@ using UniswapV3Library for UniswapV3Proxy global;
 library UniswapV3Library {
     using SafeERC20 for IERC20;
 
+    /// @notice Error thrown when the proxy is already initialized
+    error AlreadyInitialized();
+
     /// @notice Initialize the proxy
     /// @param self The proxy
     /// @param positionManager The position manager
@@ -37,6 +40,8 @@ library UniswapV3Library {
     function initialize(UniswapV3Proxy storage self, address positionManager, address universalRouter, address permit2)
         internal
     {
+        if (address(self.positionManager) != address(0)) revert AlreadyInitialized();
+
         self.positionManager = IPositionManager(positionManager);
         self.universalRouter = IUniversalRouter(universalRouter);
         self.permit2 = IPermit2(permit2);

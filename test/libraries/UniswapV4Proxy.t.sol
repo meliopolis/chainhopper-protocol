@@ -9,11 +9,12 @@ import {Currency} from "@uniswap-v4-core/types/Currency.sol";
 import {PoolKey} from "@uniswap-v4-core/types/PoolKey.sol";
 import {IV4Router} from "@uniswap-v4-periphery/interfaces/IV4Router.sol";
 import {SlippageCheck} from "@uniswap-v4-periphery/libraries/SlippageCheck.sol";
-import {UniswapV4Library} from "../../src/libraries/UniswapV4Proxy.sol";
+import {UniswapV4Proxy, UniswapV4Library} from "../../src/libraries/UniswapV4Proxy.sol";
 import {TestContext} from "../utils/TestContext.sol";
 
 contract UniswapV4ProxyTest is TestContext {
     string private constant CHAIN_NAME = "BASE";
+    UniswapV4Proxy private proxy;
 
     function setUp() public {
         _loadChain(CHAIN_NAME);
@@ -26,12 +27,17 @@ contract UniswapV4ProxyTest is TestContext {
         }
     }
 
-    function test_fuzz_initialize(address positionManager, address universalRouter, address permit2) public {
-        uniswapV4Proxy.initialize(positionManager, universalRouter, permit2);
+    function test_initialize_fails_if_already_initialized() public {
+        vm.expectRevert(UniswapV4Library.AlreadyInitialized.selector);
+        this.initializeWrapper(address(0), address(0), address(0));
+    }
 
-        assertEq(address(uniswapV4Proxy.positionManager), positionManager);
-        assertEq(address(uniswapV4Proxy.universalRouter), universalRouter);
-        assertEq(address(uniswapV4Proxy.permit2), permit2);
+    function test_fuzz_initialize(address positionManager, address universalRouter, address permit2) public {
+        proxy.initialize(positionManager, universalRouter, permit2);
+
+        assertEq(address(proxy.positionManager), positionManager);
+        assertEq(address(proxy.universalRouter), universalRouter);
+        assertEq(address(proxy.permit2), permit2);
     }
 
     function test_fuzz_initializePool(PoolKey memory poolKey, uint160 sqrtPriceX96) public {
@@ -118,6 +124,10 @@ contract UniswapV4ProxyTest is TestContext {
         }
 
         this.swapWrapper(v4TokenPoolKey, true, 100, hasMinAmount ? type(uint256).max : 0, address(this));
+    }
+
+    function initializeWrapper(address positionManager, address universalRouter, address permit2) external {
+        uniswapV4Proxy.initialize(positionManager, universalRouter, permit2);
     }
 
     function mintPositionWrapper(

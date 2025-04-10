@@ -35,6 +35,8 @@ using UniswapV4Library for UniswapV4Proxy global;
 library UniswapV4Library {
     using StateLibrary for IPoolManager;
 
+    /// @notice Error thrown when the proxy is already initialized
+    error AlreadyInitialized();
     /// @notice Error thrown when the slippage is too high
     error TooMuchSlippage();
 
@@ -46,6 +48,8 @@ library UniswapV4Library {
     function initialize(UniswapV4Proxy storage self, address positionManager, address universalRouter, address permit2)
         internal
     {
+        if (address(self.positionManager) != address(0)) revert AlreadyInitialized();
+
         self.positionManager = IPositionManager(positionManager);
         self.universalRouter = IUniversalRouter(universalRouter);
         self.permit2 = IPermit2(permit2);
