@@ -41,7 +41,8 @@ contract SettlerTest is TestContext {
 
     function test_selfSettle_fails_ifUnsupportedMode() public {
         MigrationId migrationId = MigrationIdLibrary.from(0, address(0), MigrationMode.wrap(type(uint8).max), 0);
-        bytes memory data = abi.encode(migrationId, ISettler.SettlementParams(address(0), 0, address(0), ""));
+        bytes memory data =
+            abi.encode(migrationId, abi.encode(ISettler.SettlementParams(address(0), 0, address(0), "")));
 
         vm.expectRevert(abi.encodeWithSelector(ISettler.UnsupportedMode.selector, type(uint8).max), address(settler));
         vm.prank(address(settler));
@@ -111,7 +112,7 @@ contract SettlerTest is TestContext {
     function test_fuzz_selfSettle_singleRoute(ISettler.SettlementParams memory params, bool isTokenNative) public {
         vm.assume(params.senderShareBps < type(uint16).max - settler.protocolShareBps());
         MigrationId migrationId = MigrationIdLibrary.from(0, address(0), MigrationModes.SINGLE, 0);
-        bytes memory data = abi.encode(migrationId, params);
+        bytes memory data = abi.encode(migrationId, abi.encode(params));
 
         address token;
         if (isTokenNative) {
@@ -148,7 +149,7 @@ contract SettlerTest is TestContext {
     ) public {
         vm.assume(params.senderShareBps < type(uint16).max - settler.protocolShareBps());
         MigrationId migrationId = MigrationIdLibrary.from(0, address(0), MigrationModes.DUAL, 0);
-        bytes memory data = abi.encode(migrationId, params);
+        bytes memory data = abi.encode(migrationId, abi.encode(params));
 
         address token0;
         if (isToken0Native) {

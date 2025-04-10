@@ -31,7 +31,7 @@ contract UniswapV3ProxyTest is TestContext {
         vm.assume(token0 > address(0));
         vm.assume(token0 < token1);
 
-        sqrtPriceX96 = uint160(bound(sqrtPriceX96, TickMath.MIN_SQRT_PRICE, TickMath.MAX_SQRT_PRICE));
+        sqrtPriceX96 = uint160(bound(sqrtPriceX96, TickMath.MIN_SQRT_PRICE + 1, TickMath.MAX_SQRT_PRICE - 1));
 
         uniswapV3Proxy.createAndInitializePoolIfNecessary(token0, token1, 100, sqrtPriceX96);
     }

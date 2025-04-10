@@ -47,10 +47,9 @@ abstract contract Settler is ISettler, ProtocolFees {
         if (msg.sender != address(this)) revert NotSelf();
         if (amount == 0) revert MissingAmount(token);
 
-        (MigrationId migrationId, bytes memory settlementParamsBytes) =
-            abi.decode(data, (MigrationId, bytes));
-
-        (ISettler.SettlementParams memory settlementParams) = abi.decode(settlementParamsBytes, (ISettler.SettlementParams));
+        (MigrationId migrationId, bytes memory settlementParamsBytes) = abi.decode(data, (MigrationId, bytes));
+        (ISettler.SettlementParams memory settlementParams) =
+            abi.decode(settlementParamsBytes, (ISettler.SettlementParams));
 
         if (migrationId.mode() == MigrationModes.SINGLE) {
             // calculate fees
