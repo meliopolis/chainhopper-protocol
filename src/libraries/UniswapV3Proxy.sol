@@ -3,6 +3,7 @@ pragma solidity ^0.8.24;
 
 import {IERC20} from "@openzeppelin/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/token/ERC20/utils/SafeERC20.sol";
+import {SafeCast} from "@openzeppelin/utils/math/SafeCast.sol";
 import {IPermit2} from "@uniswap-permit2/interfaces/IPermit2.sol";
 import {IUniversalRouter} from "@uniswap-universal-router/interfaces/IUniversalRouter.sol";
 import {Commands} from "@uniswap-universal-router/libraries/Commands.sol";
@@ -28,11 +29,10 @@ using UniswapV3Library for UniswapV3Proxy global;
 /// @notice Library for Uniswap V3
 library UniswapV3Library {
     using SafeERC20 for IERC20;
+    using SafeCast for uint256;
 
     /// @notice Error thrown when the proxy is already initialized
     error AlreadyInitialized();
-    /// @notice Error thrown when the amount exceeds the max
-    error AmountExceedsMax();
 
     /// @notice Initialize the proxy
     /// @param self The proxy
@@ -171,12 +171,10 @@ library UniswapV3Library {
     }
 
     function approve(UniswapV3Proxy storage self, address token, address spender, uint256 amount) internal {
-        if (amount > type(uint160).max) revert AmountExceedsMax();
-
         if (!self.isPermit2Approved[token]) {
             IERC20(token).approve(address(self.permit2), type(uint256).max);
             self.isPermit2Approved[token] = true;
         }
-        self.permit2.approve(token, spender, uint160(amount), uint48(block.timestamp));
+        self.permit2.approve(token, spender, amount.toUint160(), uint48(block.timestamp));
     }
 }

@@ -2,6 +2,7 @@
 pragma solidity ^0.8.24;
 
 import {IERC20} from "@openzeppelin/token/ERC20/IERC20.sol";
+import {SafeCast} from "@openzeppelin/utils/math/SafeCast.sol";
 import {IPermit2} from "@uniswap-permit2/interfaces/IPermit2.sol";
 import {IUniversalRouter} from "@uniswap-universal-router/interfaces/IUniversalRouter.sol";
 import {Commands} from "@uniswap-universal-router/libraries/Commands.sol";
@@ -34,13 +35,12 @@ using UniswapV4Library for UniswapV4Proxy global;
 /// @notice Library for Uniswap V4
 library UniswapV4Library {
     using StateLibrary for IPoolManager;
+    using SafeCast for uint256;
 
     /// @notice Error thrown when the proxy is already initialized
     error AlreadyInitialized();
     /// @notice Error thrown when the slippage is too high
     error TooMuchSlippage();
-    /// @notice Error thrown when the amount exceeds the max
-    error AmountExceedsMax();
 
     /// @notice Initialize the proxy
     /// @param self The proxy
@@ -192,7 +192,7 @@ library UniswapV4Library {
         );
         bytes[] memory params = new bytes[](3);
         params[0] = abi.encode(
-            IV4Router.ExactInputSingleParams(poolKey, zeroForOne, uint128(amountIn), uint128(amountOutMin), "")
+            IV4Router.ExactInputSingleParams(poolKey, zeroForOne, amountIn.toUint128(), amountOutMin.toUint128(), "")
         );
         params[1] = abi.encode(currencyOut, 0);
         params[2] = abi.encode(currencyIn, amountIn);
@@ -225,12 +225,10 @@ library UniswapV4Library {
     /// @param spender The spender
     /// @param amount The amount
     function approve(UniswapV4Proxy storage self, Currency currency, address spender, uint256 amount) internal {
-        if (amount > type(uint160).max) revert AmountExceedsMax();
-
         if (!self.isPermit2Approved[currency]) {
             IERC20(Currency.unwrap(currency)).approve(address(self.permit2), type(uint256).max);
             self.isPermit2Approved[currency] = true;
         }
-        self.permit2.approve(Currency.unwrap(currency), spender, uint160(amount), uint48(block.timestamp));
+        self.permit2.approve(Currency.unwrap(currency), spender, amount.toUint160(), uint48(block.timestamp));
     }
 }

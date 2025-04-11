@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.24;
 
+import {SafeCast} from "@openzeppelin/utils/math/SafeCast.sol";
 import {V3SwapRouter} from "@uniswap-universal-router/modules/uniswap/v3/V3SwapRouter.sol";
 // using v4 tick math as v3 contract has version conflict
 import {TickMath} from "@uniswap-v4-core/libraries/TickMath.sol";
@@ -99,8 +100,9 @@ contract UniswapV3ProxyTest is TestContext {
     }
 
     function test_approve_fails_ifAmountExceedsMax() public {
-        vm.expectRevert(UniswapV3Library.AmountExceedsMax.selector);
-        this.approveWrapper(address(0), address(0), uint256(type(uint160).max) + 1);
+        uint256 amount = uint256(type(uint160).max) + 1;
+        vm.expectRevert(abi.encodeWithSelector(SafeCast.SafeCastOverflowedUintDowncast.selector, 160, amount));
+        this.approveWrapper(usdc, user, amount);
     }
 
     function initializeWrapper(address positionManager, address universalRouter, address permit2) public {

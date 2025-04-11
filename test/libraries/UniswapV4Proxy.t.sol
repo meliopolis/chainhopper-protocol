@@ -2,6 +2,7 @@
 pragma solidity ^0.8.24;
 
 import {console} from "@forge-std/console.sol";
+import {SafeCast} from "@openzeppelin/utils/math/SafeCast.sol";
 import {IHooks} from "@uniswap-v4-core/interfaces/IHooks.sol";
 import {LPFeeLibrary} from "@uniswap-v4-core/libraries/LPFeeLibrary.sol";
 import {TickMath} from "@uniswap-v4-core/libraries/TickMath.sol";
@@ -110,25 +111,26 @@ contract UniswapV4ProxyTest is TestContext {
         deal(address(this), 100);
         deal(Currency.unwrap(v4NativePoolKey.currency1), address(this), 200);
 
-        if (hasMinAmount) {
+        if (!hasMinAmount) {
             vm.expectPartialRevert(IV4Router.V4TooLittleReceived.selector);
         }
 
-        this.swapWrapper(v4NativePoolKey, true, 100, hasMinAmount ? type(uint256).max : 0, address(this));
+        this.swapWrapper(v4NativePoolKey, true, 100, !hasMinAmount ? type(uint128).max : 0, address(this));
 
         deal(Currency.unwrap(v4TokenPoolKey.currency0), address(this), 100);
         deal(Currency.unwrap(v4TokenPoolKey.currency1), address(this), 200);
 
-        if (hasMinAmount) {
+        if (!hasMinAmount) {
             vm.expectPartialRevert(IV4Router.V4TooLittleReceived.selector);
         }
 
-        this.swapWrapper(v4TokenPoolKey, true, 100, hasMinAmount ? type(uint256).max : 0, address(this));
+        this.swapWrapper(v4TokenPoolKey, true, 100, !hasMinAmount ? type(uint128).max : 0, address(this));
     }
 
     function test_approve_fails_ifAmountExceedsMax() public {
-        vm.expectRevert(UniswapV4Library.AmountExceedsMax.selector);
-        this.approveWrapper(Currency.wrap(address(0)), address(0), uint256(type(uint160).max) + 1);
+        uint256 amount = uint256(type(uint160).max) + 1;
+        vm.expectRevert(abi.encodeWithSelector(SafeCast.SafeCastOverflowedUintDowncast.selector, 160, amount));
+        this.approveWrapper(Currency.wrap(usdc), user, amount);
     }
 
     function initializeWrapper(address positionManager, address universalRouter, address permit2) external {
