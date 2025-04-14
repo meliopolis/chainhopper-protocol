@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.24;
 
-import {Script, console} from "forge-std/Script.sol";
+import {Script, console} from "@forge-std/Script.sol";
 import {UniswapV4AcrossSettler} from "../src/UniswapV4AcrossSettler.sol";
 
 /*
@@ -10,12 +10,12 @@ import {UniswapV4AcrossSettler} from "../src/UniswapV4AcrossSettler.sol";
     --etherscan-api-key <etherscan_api_key> \
     --broadcast \
     --verify \
-    --sig 'run(string,address)' <ENV> <initialOwner>
+    --sig 'run(string,address,string)' <ENV> <initialOwner> <file>
 */
 
 contract DeployUniswapV4AcrossSettler is Script {
-    function run(string memory env, address initialOwner) public {
-        vm.broadcast(vm.envUint("PRIVATE_KEY"));
+    function run(string memory env, address initialOwner, string memory file) public {
+        vm.startBroadcast(vm.envUint("PRIVATE_KEY"));
 
         UniswapV4AcrossSettler settler = new UniswapV4AcrossSettler(
             initialOwner,
@@ -26,7 +26,17 @@ contract DeployUniswapV4AcrossSettler is Script {
             vm.envAddress(string(abi.encodePacked(env, "_WETH")))
         );
 
+        settler.setProtocolShareBps(uint16(vm.envUint("DEPLOY_PROTOCOL_SHARE_BPS")));
+        settler.setProtocolShareOfSenderFeePct(uint8(vm.envUint("DEPLOY_PROTOCOL_SHARE_OF_SENDER_FEE_PCT")));
+        settler.setProtocolFeeRecipient(vm.envAddress("DEPLOY_PROTOCOL_FEE_RECIPIENT"));
+
+        bytes memory fileContent = vm.readFileBinary(file);
+        bytes memory newContent = abi.encode(block.chainid, address(settler));
+        vm.writeFileBinary(file, bytes.concat(fileContent, newContent));
+
         console.log("UniswapV4AcrossSettler deployed at:", address(settler));
+
+        vm.stopBroadcast();
     }
 
     // add this to be excluded from coverage report
