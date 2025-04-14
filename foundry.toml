@@ -20,17 +20,4 @@ remappings = [
     "@uniswap-v4-core/=lib/uniswap-v4-periphery/lib/v4-core/src/",
     "@uniswap-v4-periphery/=lib/uniswap-v4-periphery/src/"
 ]
-
-[rpc_endpoints]
-mainnet = "${MAINNET_RPC_URL}"
-arbitrum = "${ARBITRUM_RPC_URL}"
-base = "${BASE_RPC_URL}"
-optimism = "${OPTIMISM_RPC_URL}"
-unichain = "${UNICHAIN_RPC_URL}"
-
-[etherscan]
-mainnet = { key = "${ETHERSCAN_API_KEY}", chain = 1 }
-arbitrum = { key = "${ETHERSCAN_API_KEY}", chain = 42161 }
-base = { key = "${ETHERSCAN_API_KEY}", chain = 8453 }
-optimism = { key = "${ETHERSCAN_API_KEY}", chain = 10 }
-unichain = { key = "${ETHERSCAN_API_KEY}", chain = 130 }
+fs_permissions = [{ access = "read-write", path = "./script"}]
