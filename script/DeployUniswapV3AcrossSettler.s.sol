@@ -10,11 +10,11 @@ import {UniswapV3AcrossSettler} from "../src/UniswapV3AcrossSettler.sol";
     --etherscan-api-key <etherscan_api_key> \
     --broadcast \
     --verify \
-    --sig 'run(string,address,string)' <ENV> <initialOwner> <file>
+    --sig 'run(string,address)' <ENV> <initialOwner>
 */
 
 contract DeployUniswapV3AcrossSettler is Script {
-    function run(string memory env, address initialOwner, string memory file) public {
+    function run(string memory env, address initialOwner) public {
         vm.startBroadcast(vm.envUint("PRIVATE_KEY"));
 
         UniswapV3AcrossSettler settler = new UniswapV3AcrossSettler(
@@ -25,13 +25,27 @@ contract DeployUniswapV3AcrossSettler is Script {
             vm.envAddress(string(abi.encodePacked(env, "_ACROSS_SPOKE_POOL")))
         );
 
-        settler.setProtocolShareBps(uint16(vm.envUint("DEPLOY_PROTOCOL_SHARE_BPS")));
-        settler.setProtocolShareOfSenderFeePct(uint8(vm.envUint("DEPLOY_PROTOCOL_SHARE_OF_SENDER_FEE_PCT")));
-        settler.setProtocolFeeRecipient(vm.envAddress("DEPLOY_PROTOCOL_FEE_RECIPIENT"));
+        // set protocol share bps
+        uint16 protocolShareBps = uint16(vm.envUint("DEPLOY_PROTOCOL_SHARE_BPS"));
+        if (protocolShareBps > 0) {
+            settler.setProtocolShareBps(protocolShareBps);
+        }
+        // set protocol share of sender fee pct
+        uint8 protocolShareOfSenderFeePct = uint8(vm.envUint("DEPLOY_PROTOCOL_SHARE_OF_SENDER_FEE_PCT"));
+        if (protocolShareOfSenderFeePct > 0) {
+            settler.setProtocolShareOfSenderFeePct(protocolShareOfSenderFeePct);
+        }
+        // set protocol fee recipient
+        address protocolFeeRecipient = vm.envAddress("DEPLOY_PROTOCOL_FEE_RECIPIENT");
+        if (protocolFeeRecipient != address(0) && protocolFeeRecipient != initialOwner) {
+            settler.setProtocolFeeRecipient(protocolFeeRecipient);
+        }
 
-        bytes memory fileContent = vm.readFileBinary(file);
-        bytes memory newContent = abi.encode(block.chainid, address(settler));
-        vm.writeFileBinary(file, bytes.concat(fileContent, newContent));
+        // set a new owner if needed
+        address finalOwner = vm.envAddress("DEPLOY_FINAL_OWNER");
+        if (finalOwner != address(0) && finalOwner != initialOwner) {
+            settler.transferOwnership(finalOwner);
+        }
 
         console.log("UniswapV3AcrossSettler deployed at:", address(settler));
 

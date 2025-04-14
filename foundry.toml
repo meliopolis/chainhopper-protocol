@@ -20,4 +20,4 @@ remappings = [
     "@uniswap-v4-core/=lib/uniswap-v4-periphery/lib/v4-core/src/",
     "@uniswap-v4-periphery/=lib/uniswap-v4-periphery/src/"
 ]
-fs_permissions = [{ access = "read-write", path = "./script"}]
+fs_permissions = [{ access = "read", path = "./broadcast" }]
