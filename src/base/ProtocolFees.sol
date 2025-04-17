@@ -36,7 +36,9 @@ contract ProtocolFees is Ownable2Step {
 
     /// @notice Constructor for the ProtocolFees contract
     /// @param initialOwner The initial owner of the contract
-    constructor(address initialOwner) Ownable(initialOwner) {}
+    constructor(address initialOwner) Ownable(initialOwner) {
+        protocolFeeRecipient = initialOwner;
+    }
 
     /// @notice Function to set the protocol share bps
     /// @param _protocolShareBps The new protocol share bps

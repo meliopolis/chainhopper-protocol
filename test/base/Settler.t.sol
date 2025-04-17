@@ -20,9 +20,9 @@ contract SettlerTest is TestContext {
         settler = new MockSettler(owner);
 
         vm.startPrank(owner);
+        settler.setProtocolFeeRecipient(owner);
         settler.setProtocolShareBps(100);
         settler.setProtocolShareOfSenderFeePct(10);
-        settler.setProtocolFeeRecipient(owner);
         vm.stopPrank();
     }
 

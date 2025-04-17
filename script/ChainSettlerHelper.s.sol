@@ -11,6 +11,9 @@ contract ChainSettlerHelper is Script {
         string memory root = vm.projectRoot();
         string memory path = string.concat(root, "/broadcast/", contractName, ".s.sol/", chainId, "/run-latest.json");
         string memory json = vm.readFile(path);
+        if (bytes(json).length == 0) {
+            return address(0);
+        }
         bytes memory parsedAddress = json.parseRaw(".transactions[0].contractAddress");
         address contractAddress = abi.decode(parsedAddress, (address));
         if (contractAddress == address(0)) {

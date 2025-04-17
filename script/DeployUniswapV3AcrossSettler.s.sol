@@ -25,6 +25,12 @@ contract DeployUniswapV3AcrossSettler is Script {
             vm.envAddress(string(abi.encodePacked(env, "_ACROSS_SPOKE_POOL")))
         );
 
+        // set protocol fee recipient
+        address protocolFeeRecipient = vm.envAddress("DEPLOY_PROTOCOL_FEE_RECIPIENT");
+        if (protocolFeeRecipient != address(0) && protocolFeeRecipient != initialOwner) {
+            settler.setProtocolFeeRecipient(protocolFeeRecipient);
+        }
+
         // set protocol share bps
         uint16 protocolShareBps = uint16(vm.envUint("DEPLOY_PROTOCOL_SHARE_BPS"));
         if (protocolShareBps > 0) {
@@ -34,11 +40,6 @@ contract DeployUniswapV3AcrossSettler is Script {
         uint8 protocolShareOfSenderFeePct = uint8(vm.envUint("DEPLOY_PROTOCOL_SHARE_OF_SENDER_FEE_PCT"));
         if (protocolShareOfSenderFeePct > 0) {
             settler.setProtocolShareOfSenderFeePct(protocolShareOfSenderFeePct);
-        }
-        // set protocol fee recipient
-        address protocolFeeRecipient = vm.envAddress("DEPLOY_PROTOCOL_FEE_RECIPIENT");
-        if (protocolFeeRecipient != address(0) && protocolFeeRecipient != initialOwner) {
-            settler.setProtocolFeeRecipient(protocolFeeRecipient);
         }
 
         // set a new owner if needed

@@ -18,12 +18,10 @@ done
 # deploy settlers
 for chain in $(echo $DEPLOY_CHAINS | tr ',' ' '); do
     rpc_var="${chain}_RPC_URL"
-    etherscan_var="${chain}_ETHERSCAN_API_KEY"
 
     echo "Deploying UniswapV3AcrossSettler on chain ${chain}..."
     if ! forge script script/DeployUniswapV3AcrossSettler.s.sol:DeployUniswapV3AcrossSettler \
     --rpc-url "${!rpc_var}" \
-    --etherscan-api-key "${!etherscan_var}" \
     --broadcast \
     --verify \
     --sig 'run(string,address)' "${chain}" "${DEPLOY_INITIAL_OWNER}"; then
