@@ -3,6 +3,7 @@ pragma solidity ^0.8.24;
 
 import {IERC20} from "@openzeppelin/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/token/ERC20/utils/SafeERC20.sol";
+import {ReentrancyGuard} from "@openzeppelin/utils/ReentrancyGuard.sol";
 import {ISettler} from "../interfaces/ISettler.sol";
 import {MigrationId} from "../types/MigrationId.sol";
 import {MigrationModes} from "../types/MigrationMode.sol";
@@ -10,7 +11,7 @@ import {ProtocolFees} from "./ProtocolFees.sol";
 
 /// @title Settler
 /// @notice Abstract contract for settling migrations
-abstract contract Settler is ISettler, ProtocolFees {
+abstract contract Settler is ISettler, ProtocolFees, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     /// @notice Struct for settlement cache
@@ -41,6 +42,7 @@ abstract contract Settler is ISettler, ProtocolFees {
     function selfSettle(address token, uint256 amount, bytes memory data)
         external
         virtual
+        nonReentrant
         returns (MigrationId, address)
     {
         // must be called by the contract itself, for wrapping in a try/catch
@@ -130,7 +132,7 @@ abstract contract Settler is ISettler, ProtocolFees {
 
     /// @notice Function to withdraw a migration
     /// @param migrationId The migration id
-    function withdraw(MigrationId migrationId) external {
+    function withdraw(MigrationId migrationId) external nonReentrant {
         _refund(migrationId, true);
     }
 
