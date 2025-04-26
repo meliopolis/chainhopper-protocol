@@ -225,6 +225,7 @@ library UniswapV4Library {
     /// @param spender The spender
     /// @param amount The amount
     function approve(UniswapV4Proxy storage self, Currency currency, address spender, uint256 amount) internal {
+        if (currency.isAddressZero()) return;
         if (!self.isPermit2Approved[currency]) {
             IERC20(Currency.unwrap(currency)).approve(address(self.permit2), type(uint256).max);
             self.isPermit2Approved[currency] = true;
