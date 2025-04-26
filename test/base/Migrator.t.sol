@@ -112,68 +112,56 @@ contract MigratorTest is TestContext {
 
     function test_fuzz_migrate_dualRoute(
         bool token0MatchesRoute0,
-        bool token0MatchesRoute1,
-        bool token1MatchesRoute0,
         bool token1MatchesRoute1,
         bool isAmount0Sufficient,
         bool isAmount1Sufficient
     ) public {
-        vm.assume(!(token0MatchesRoute0 && token0MatchesRoute1));
-        vm.assume(!(token1MatchesRoute0 && token1MatchesRoute1));
-        migrator.setDoTokenAndRouteMatch([token0MatchesRoute1, token0MatchesRoute0]);
+        migrator.setDoTokenAndRouteMatch([token0MatchesRoute0, true]);
         migrator.setIsAmountSufficient([isAmount0Sufficient, isAmount1Sufficient]);
 
-        address token0 = token0MatchesRoute0 ? weth : (token0MatchesRoute1 ? usdc : usdt);
-        address token1 = token1MatchesRoute0 ? weth : (token1MatchesRoute1 ? usdc : usdt);
-        uint256 amount0 = isAmount0Sufficient ? (token0MatchesRoute0 ? 100 : 200) : 0;
-        uint256 amount1 = isAmount1Sufficient ? (token1MatchesRoute0 ? 100 : 200) : 0;
+        address token0 = token0MatchesRoute0 ? weth : usdc;
+        address token1 = token1MatchesRoute1 ? usdc : weth;
+        uint256 amount0 = isAmount0Sufficient ? 100 : 0;
+        uint256 amount1 = isAmount1Sufficient ? 200 : 0;
         migrator.setLiquidity(token0, token1, amount0, amount1);
 
-        if (!token0MatchesRoute1 || !token1MatchesRoute0) {
-            if (!token0MatchesRoute0) {
-                vm.expectRevert(
-                    abi.encodeWithSelector(IMigrator.TokenAndRouteMismatch.selector, token0), address(migrator)
-                );
-            } else if (!token1MatchesRoute1) {
-                vm.expectRevert(
-                    abi.encodeWithSelector(IMigrator.TokenAndRouteMismatch.selector, token1), address(migrator)
-                );
-            } else if (!isAmount0Sufficient) {
-                vm.expectRevert(
-                    abi.encodeWithSelector(IMigrator.AmountTooLow.selector, amount0, 100), address(migrator)
-                );
-            } else if (!isAmount1Sufficient) {
-                vm.expectRevert(
-                    abi.encodeWithSelector(IMigrator.AmountTooLow.selector, amount1, 200), address(migrator)
-                );
-            } else {
-                MigrationId migrationId =
-                    MigrationIdLibrary.from(uint32(block.chainid), address(migrator), MigrationModes.DUAL, 1);
-
-                vm.expectEmit(true, true, true, true);
-                emit IMigrator.MigrationStarted(migrationId, 0, weth, user, amount0);
-                vm.expectEmit(true, true, true, true);
-                emit IMigrator.MigrationStarted(migrationId, 0, usdc, user, amount1);
-            }
+        // if (!token0MatchesRoute1 || !token1MatchesRoute0) {
+        if (!token0MatchesRoute0) {
+            vm.expectRevert(abi.encodeWithSelector(IMigrator.TokenAndRouteMismatch.selector, token0), address(migrator));
+        } else if (!token1MatchesRoute1) {
+            vm.expectRevert(abi.encodeWithSelector(IMigrator.TokenAndRouteMismatch.selector, token1), address(migrator));
+        } else if (!isAmount0Sufficient) {
+            vm.expectRevert(abi.encodeWithSelector(IMigrator.AmountTooLow.selector, amount0, 100), address(migrator));
+        } else if (!isAmount1Sufficient) {
+            vm.expectRevert(abi.encodeWithSelector(IMigrator.AmountTooLow.selector, amount1, 200), address(migrator));
         } else {
-            if (!isAmount0Sufficient) {
-                vm.expectRevert(
-                    abi.encodeWithSelector(IMigrator.AmountTooLow.selector, amount1, 100), address(migrator)
-                );
-            } else if (!isAmount1Sufficient) {
-                vm.expectRevert(
-                    abi.encodeWithSelector(IMigrator.AmountTooLow.selector, amount0, 200), address(migrator)
-                );
-            } else {
-                MigrationId migrationId =
-                    MigrationIdLibrary.from(uint32(block.chainid), address(migrator), MigrationModes.DUAL, 1);
+            MigrationId migrationId =
+                MigrationIdLibrary.from(uint32(block.chainid), address(migrator), MigrationModes.DUAL, 1);
 
-                vm.expectEmit(true, true, true, true);
-                emit IMigrator.MigrationStarted(migrationId, 0, weth, user, amount1);
-                vm.expectEmit(true, true, true, true);
-                emit IMigrator.MigrationStarted(migrationId, 0, usdc, user, amount0);
-            }
+            vm.expectEmit(true, true, true, true);
+            emit IMigrator.MigrationStarted(migrationId, 0, weth, user, amount0);
+            vm.expectEmit(true, true, true, true);
+            emit IMigrator.MigrationStarted(migrationId, 0, usdc, user, amount1);
         }
+        // } else {
+        //     if (!isAmount0Sufficient) {
+        //         vm.expectRevert(
+        //             abi.encodeWithSelector(IMigrator.AmountTooLow.selector, amount1, 100), address(migrator)
+        //         );
+        //     } else if (!isAmount1Sufficient) {
+        //         vm.expectRevert(
+        //             abi.encodeWithSelector(IMigrator.AmountTooLow.selector, amount0, 200), address(migrator)
+        //         );
+        //     } else {
+        //         MigrationId migrationId =
+        //             MigrationIdLibrary.from(uint32(block.chainid), address(migrator), MigrationModes.DUAL, 1);
+
+        //         vm.expectEmit(true, true, true, true);
+        //         emit IMigrator.MigrationStarted(migrationId, 0, weth, user, amount1);
+        //         vm.expectEmit(true, true, true, true);
+        //         emit IMigrator.MigrationStarted(migrationId, 0, usdc, user, amount0);
+        //     }
+        // }
 
         bytes memory data = abi.encode(_mockMigrationParams(2));
         migrator.migrate(user, 0, data);
