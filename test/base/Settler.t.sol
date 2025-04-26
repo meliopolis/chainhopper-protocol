@@ -109,7 +109,12 @@ contract SettlerTest is TestContext {
 
     // single token
 
-    function test_fuzz_selfSettle_singleRoute(ISettler.SettlementParams memory params, bool isTokenNative) public {
+    function test_fuzz_selfSettle_singleRoute(
+        ISettler.SettlementParams memory params,
+        bool isTokenNative,
+        bool hasSenderShare
+    ) public {
+        params.senderShareBps = hasSenderShare ? 100 : 0;
         vm.assume(params.senderShareBps < type(uint16).max - settler.protocolShareBps());
         MigrationId migrationId = MigrationIdLibrary.from(0, address(0), MigrationModes.SINGLE, 0);
         bytes memory data = abi.encode(migrationId, abi.encode(params));
@@ -172,7 +177,9 @@ contract SettlerTest is TestContext {
         }
 
         if (hasSettlementCache) {
-            if (!isDataMatching) {
+            if (token0 == token1) {
+                vm.expectRevert(abi.encodeWithSelector(ISettler.SameToken.selector), address(settler));
+            } else if (!isDataMatching) {
                 vm.expectRevert(abi.encodeWithSelector(ISettler.MismatchingData.selector), address(settler));
             } else if (params.senderShareBps + settler.protocolShareBps() > settler.MAX_SHARE_BPS()) {
                 vm.expectRevert(
