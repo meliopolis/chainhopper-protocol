@@ -3,6 +3,7 @@ pragma solidity ^0.8.24;
 
 import {IERC20} from "@openzeppelin/token/ERC20/IERC20.sol";
 import {SafeCast} from "@openzeppelin/utils/math/SafeCast.sol";
+import {SafeERC20} from "@openzeppelin/token/ERC20/utils/SafeERC20.sol";
 import {IPermit2} from "@uniswap-permit2/interfaces/IPermit2.sol";
 import {IUniversalRouter} from "@uniswap-universal-router/interfaces/IUniversalRouter.sol";
 import {Commands} from "@uniswap-universal-router/libraries/Commands.sol";
@@ -21,6 +22,7 @@ import {LiquidityAmounts} from "@uniswap-v4-periphery/libraries/LiquidityAmounts
 library UniswapV4Library {
     using StateLibrary for IPoolManager;
     using SafeCast for uint256;
+    using SafeERC20 for IERC20;
 
     /// @notice Error thrown when the slippage is too high
     error TooMuchSlippage();
@@ -209,7 +211,7 @@ library UniswapV4Library {
         uint256 amount
     ) internal {
         if (!isPermit2Approved[currency]) {
-            IERC20(Currency.unwrap(currency)).approve(address(permit2), type(uint256).max);
+            IERC20(Currency.unwrap(currency)).forceApprove(address(permit2), type(uint256).max);
             isPermit2Approved[currency] = true;
         }
         permit2.approve(Currency.unwrap(currency), spender, amount.toUint160(), uint48(block.timestamp));

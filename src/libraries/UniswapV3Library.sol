@@ -149,7 +149,7 @@ library UniswapV3Library {
         uint256 amount
     ) internal {
         if (!isPermit2Approved[token]) {
-            IERC20(token).approve(address(permit2), type(uint256).max);
+            IERC20(token).forceApprove(address(permit2), type(uint256).max);
             isPermit2Approved[token] = true;
         }
         permit2.approve(token, spender, amount.toUint160(), uint48(block.timestamp));
