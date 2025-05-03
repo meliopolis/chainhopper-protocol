@@ -227,6 +227,7 @@ library UniswapV4Library {
         address spender,
         uint256 amount
     ) internal {
+        if (currency.isAddressZero()) return;
         if (!isPermit2Approved[currency]) {
             IERC20(Currency.unwrap(currency)).forceApprove(address(permit2), type(uint256).max);
             isPermit2Approved[currency] = true;
