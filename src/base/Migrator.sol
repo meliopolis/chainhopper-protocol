@@ -121,7 +121,7 @@ abstract contract Migrator is IMigrator, ChainSettlers {
     /// @param amount The amount to bridge
     function _bridge(
         address sender,
-        uint32 chainId,
+        uint256 chainId,
         address settler,
         address token,
         uint256 amount,

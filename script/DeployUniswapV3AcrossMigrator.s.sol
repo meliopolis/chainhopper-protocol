@@ -28,7 +28,7 @@ contract DeployUniswapV3AcrossMigrator is Script, ChainSettlerHelper {
             vm.envAddress(string(abi.encodePacked(env, "_WETH")))
         );
 
-        (uint32[] memory chainIds, address[] memory chainSettlers, bool[] memory values) =
+        (uint256[] memory chainIds, address[] memory chainSettlers, bool[] memory values) =
             ChainSettlerHelper.getChainSettlersArrays("DEPLOY_CHAIN_IDS");
         if (chainIds.length > 0) {
             migrator.setChainSettlers(chainIds, chainSettlers, values);

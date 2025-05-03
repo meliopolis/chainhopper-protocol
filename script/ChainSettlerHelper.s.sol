@@ -25,16 +25,16 @@ contract ChainSettlerHelper is Script {
     function getChainSettlersArrays(string memory env)
         public
         view
-        returns (uint32[] memory, address[] memory, bool[] memory)
+        returns (uint256[] memory, address[] memory, bool[] memory)
     {
         string[] memory chainIds = vm.envString(env, ",");
         uint256 chainSettlersCount = (chainIds.length - 1) * 2;
-        uint32[] memory chainIdsUint = new uint32[](chainSettlersCount);
+        uint256[] memory chainIdsUint = new uint256[](chainSettlersCount);
         address[] memory chainSettlers = new address[](chainSettlersCount);
         bool[] memory values = new bool[](chainSettlersCount);
         uint256 counter = 0;
         for (uint256 i = 0; i < chainIds.length; i++) {
-            uint32 currentChainId = uint32(vm.parseUint(chainIds[i]));
+            uint256 currentChainId = vm.parseUint(chainIds[i]);
             // skip the current chain
             if (currentChainId == block.chainid) {
                 continue;

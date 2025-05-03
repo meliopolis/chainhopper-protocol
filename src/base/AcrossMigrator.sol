@@ -36,7 +36,7 @@ abstract contract AcrossMigrator is IAcrossMigrator, Migrator {
     /// @param data The data to bridge
     function _bridge(
         address sender,
-        uint32 chainId,
+        uint256 chainId,
         address settler,
         address token,
         uint256 amount,

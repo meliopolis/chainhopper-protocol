@@ -38,7 +38,7 @@ interface IMigrator {
 
     /// @notice Struct for migration parameters
     struct MigrationParams {
-        uint32 chainId;
+        uint256 chainId;
         address settler;
         TokenRoute[] tokenRoutes;
         bytes settlementParams;
