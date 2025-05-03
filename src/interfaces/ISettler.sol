@@ -10,6 +10,8 @@ interface ISettler {
     error NotSelf();
     /// @notice Error thrown when the recipient is not the expected recipient
     error NotRecipient();
+    /// @notice Error thrown when the tokens are the same between two halves of a dual migration
+    error SameToken();
     /// @notice Error thrown when the migration hash does not match with data
     error InvalidMigrationHash();
     /// @notice Error thrown when the data mismatches between two halves of a dual migration

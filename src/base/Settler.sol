@@ -83,6 +83,7 @@ abstract contract Settler is ISettler, ProtocolFees {
                 // cache settlement to wait for the other half
                 settlementCaches[migrationHash] = SettlementCache(settlementParams.recipient, token, amount, data);
             } else {
+                if (token == settlementCache.token) revert SameToken();
                 if (keccak256(data) != keccak256(settlementCache.data)) revert MismatchingData();
 
                 // delete settlement cache to prevent reentrancy
