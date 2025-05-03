@@ -25,6 +25,13 @@ abstract contract Settler is ISettler, ProtocolFees, ReentrancyGuard {
         bytes data;
     }
 
+    /// @notice Constant for conversions between unit and percentage
+    uint256 internal constant UNIT_IN_PERCENTS = 100;
+    /// @notice Constant for conversions between unit and basis points
+    uint256 internal constant UNIT_IN_BASIS_POINTS = 10_000;
+    /// @notice Constant for conversions between unit and milli basis points
+    uint256 internal constant UNIT_IN_MILLI_BASIS_POINTS = 10_000_000;
+
     /// @notice Mapping of migration hashes to settlement caches
     mapping(bytes32 => SettlementCache) internal settlementCaches;
 
@@ -143,11 +150,11 @@ abstract contract Settler is ISettler, ProtocolFees, ReentrancyGuard {
     {
         if (protocolShareBps + senderShareBps > MAX_SHARE_BPS) revert MaxFeeExceeded(protocolShareBps, senderShareBps);
 
-        protocolFee = (amount * protocolShareBps) / 10000;
-        senderFee = (amount * senderShareBps) / 10000;
+        protocolFee = (amount * protocolShareBps) / UNIT_IN_BASIS_POINTS;
+        senderFee = (amount * senderShareBps) / UNIT_IN_BASIS_POINTS;
 
         if (protocolShareOfSenderFeePct > 0) {
-            uint256 protocolFeeFromSenderFee = (senderFee * protocolShareOfSenderFeePct) / 100;
+            uint256 protocolFeeFromSenderFee = (senderFee * protocolShareOfSenderFeePct) / UNIT_IN_PERCENTS;
             protocolFee += protocolFeeFromSenderFee;
             senderFee -= protocolFeeFromSenderFee;
         }
