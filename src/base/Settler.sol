@@ -197,12 +197,7 @@ abstract contract Settler is ISettler, ProtocolFees, ReentrancyGuard {
     /// @param recipient The recipient of the transfer
     /// @param amount The amount to transfer
     function _transfer(address token, address recipient, uint256 amount) internal {
-        if (token == address(0)) {
-            (bool success,) = recipient.call{value: amount}("");
-            if (!success) revert NativeTokenTransferFailed(recipient, amount);
-        } else {
-            IERC20(token).safeTransfer(recipient, amount);
-        }
+        IERC20(token).safeTransfer(recipient, amount);
     }
 
     /// @notice Internal function to mint a position
