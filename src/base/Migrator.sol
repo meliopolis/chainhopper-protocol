@@ -45,9 +45,15 @@ abstract contract Migrator is IMigrator, ChainSettlers {
             if (!_isAmountSufficient(amount, tokenRoute)) revert AmountTooLow(amount, tokenRoute.amountOutMin);
 
             // generate migration id, hash, and data (reusing the data variable)
-            bytes32 migrationId = keccak256(abi.encode(block.chainid, address(this), ++migrationCounter));
-            bytes32 migrationHash = keccak256(abi.encode(migrationId, params.settlementParams, ""));
-            data = abi.encode(migrationId, MigrationModes.SINGLE, params.settlementParams, "", migrationHash);
+            MigrationDataForSettler memory migrationDataForSettler = MigrationDataForSettler({
+                sourceChainId: block.chainid,
+                migrator: address(this),
+                nonce: ++migrationCounter,
+                migrationMode: MigrationModes.SINGLE,
+                dualTokenVerificationData: ""
+            });
+            bytes32 migrationHash = keccak256(abi.encode(migrationDataForSettler, params.settlementParams));
+            data = abi.encode(migrationHash, migrationDataForSettler, params.settlementParams);
 
             // bridge token
             _bridge(sender, params.chainId, params.settler, token0, amount, tokenRoute.token, tokenRoute.route, data);
@@ -76,11 +82,17 @@ abstract contract Migrator is IMigrator, ChainSettlers {
             if (!_isAmountSufficient(amount1, tokenRoute1)) revert AmountTooLow(amount1, tokenRoute1.amountOutMin);
 
             // generate migration id, hash, and data (reusing the data variable)
-            bytes32 migrationId = keccak256(abi.encode(block.chainid, address(this), ++migrationCounter));
-            bytes memory extraParams =
+            bytes memory dualTokenVerificationData =
                 abi.encode(tokenRoute0.token, tokenRoute1.token, tokenRoute0.amountOutMin, tokenRoute1.amountOutMin);
-            bytes32 migrationHash = keccak256(abi.encode(migrationId, params.settlementParams, extraParams));
-            data = abi.encode(migrationId, MigrationModes.DUAL, params.settlementParams, extraParams, migrationHash);
+            MigrationDataForSettler memory migrationDataForSettler = MigrationDataForSettler({
+                sourceChainId: block.chainid,
+                migrator: address(this),
+                nonce: ++migrationCounter,
+                migrationMode: MigrationModes.DUAL,
+                dualTokenVerificationData: dualTokenVerificationData
+            });
+            bytes32 migrationHash = keccak256(abi.encode(migrationDataForSettler, params.settlementParams));
+            data = abi.encode(migrationHash, migrationDataForSettler, params.settlementParams);
 
             // bridge tokens
             _bridge(sender, params.chainId, params.settler, token0, amount0, tokenRoute0.token, tokenRoute0.route, data);
