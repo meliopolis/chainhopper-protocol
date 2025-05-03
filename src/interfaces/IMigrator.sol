@@ -43,4 +43,12 @@ interface IMigrator {
         TokenRoute[] tokenRoutes;
         bytes settlementParams;
     }
+
+    struct MigrationDataForSettler {
+        uint256 sourceChainId;
+        address migrator;
+        uint56 nonce;
+        MigrationMode migrationMode;
+        bytes dualTokenVerificationData;
+    }
 }

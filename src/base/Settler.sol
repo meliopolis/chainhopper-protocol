@@ -5,6 +5,7 @@ import {IERC20} from "@openzeppelin/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/token/ERC20/utils/SafeERC20.sol";
 import {ReentrancyGuard} from "@openzeppelin/utils/ReentrancyGuard.sol";
 import {ISettler} from "../interfaces/ISettler.sol";
+import {IMigrator} from "../interfaces/IMigrator.sol";
 import {MigrationMode, MigrationModes} from "../types/MigrationMode.sol";
 import {ProtocolFees} from "./ProtocolFees.sol";
 
@@ -52,19 +53,13 @@ abstract contract Settler is ISettler, ProtocolFees, ReentrancyGuard {
         // must be called by the contract itself, for wrapping in a try/catch
         if (msg.sender != address(this)) revert NotSelf();
         if (amount == 0) revert MissingAmount(token);
-        (
-            bytes32 migrationId,
-            MigrationMode migrationMode,
-            bytes memory settlementParamsBytes,
-            bytes memory extraParamsBytes,
-            bytes32 migrationHash
-        ) = abi.decode(data, (bytes32, MigrationMode, bytes, bytes, bytes32));
-        if (migrationHash != keccak256(abi.encode(migrationId, settlementParamsBytes, extraParamsBytes))) {
+        ( bytes32 migrationHash, IMigrator.MigrationDataForSettler memory migrationDataForSettler, bytes memory settlementParamsBytes) = abi.decode(data, (bytes32, IMigrator.MigrationDataForSettler, bytes));
+        if (migrationHash != keccak256(abi.encode(migrationDataForSettler, settlementParamsBytes))) {
             revert InvalidMigrationHash();
         }
         SettlementParams memory settlementParams = abi.decode(settlementParamsBytes, (SettlementParams));
 
-        if (migrationMode == MigrationModes.SINGLE) {
+        if (migrationDataForSettler.migrationMode == MigrationModes.SINGLE) {
             // calculate fees
             (uint256 protocolFee, uint256 senderFee) = _calculateFees(amount, settlementParams.senderShareBps);
 
@@ -77,9 +72,9 @@ abstract contract Settler is ISettler, ProtocolFees, ReentrancyGuard {
             _payFees(migrationHash, token, protocolFee, senderFee, settlementParams.senderFeeRecipient);
 
             emit Settlement(migrationHash, settlementParams.recipient, positionId);
-        } else if (migrationMode == MigrationModes.DUAL) {
+        } else if (migrationDataForSettler.migrationMode == MigrationModes.DUAL) {
             (address token0, address token1, uint256 amount0Min, uint256 amount1Min) =
-                abi.decode(extraParamsBytes, (address, address, uint256, uint256));
+                abi.decode(migrationDataForSettler.dualTokenVerificationData, (address, address, uint256, uint256));
             if (token == token0) {
                 if (amount < amount0Min) revert AmountTooLow(token, amount, amount0Min);
             } else if (token == token1) {
@@ -123,7 +118,7 @@ abstract contract Settler is ISettler, ProtocolFees, ReentrancyGuard {
                 emit Settlement(migrationHash, settlementParams.recipient, positionId);
             }
         } else {
-            revert UnsupportedMode(migrationMode);
+            revert UnsupportedMode(migrationDataForSettler.migrationMode);
         }
 
         return (migrationHash, settlementParams.recipient);
