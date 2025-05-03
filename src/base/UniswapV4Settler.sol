@@ -133,6 +133,13 @@ abstract contract UniswapV4Settler is IUniswapV4Settler, Settler {
         );
 
         // refund surplus tokens
+        if (amount0 > amount0Used) {
+            uint256 amount = amount0 - amount0Used;
+            address token = _wrapIfEth(Currency.unwrap(poolKey.currency0), amount);
+
+            Currency.wrap(token).transfer(recipient, amount);
+        }
+
         if (amount0 > amount0Used) poolKey.currency0.transfer(recipient, amount0 - amount0Used);
         if (amount1 > amount1Used) poolKey.currency1.transfer(recipient, amount1 - amount1Used);
     }
@@ -145,6 +152,19 @@ abstract contract UniswapV4Settler is IUniswapV4Settler, Settler {
         if (token == address(weth)) {
             weth.withdraw(amount);
             return address(0);
+        }
+
+        return token;
+    }
+
+    /// @notice Internal function to wrap native token to WETH
+    /// @param token The token to wrap
+    /// @param amount The amount of the token to wrap
+    /// @return The address of the wrapped token
+    function _wrapIfEth(address token, uint256 amount) internal returns (address) {
+        if (token == address(0)) {
+            weth.deposit{value: amount}();
+            return address(weth);
         }
 
         return token;
