@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.0;
 
-import {MigrationId} from "../types/MigrationId.sol";
+import {MigrationMode} from "../types/MigrationMode.sol";
 
 /// @title IMigrator
 /// @notice Interface for the Migrator contract (abstract)
@@ -19,10 +19,13 @@ interface IMigrator {
 
     /// @notice Event emitted when a migration is started
     event MigrationStarted(
-        MigrationId indexed migrationId,
+        bytes32 indexed migrationHash,
         uint256 indexed positionId,
-        address indexed token,
+        uint256 indexed chainId,
+        address settler,
+        MigrationMode migrationMode,
         address sender,
+        address token,
         uint256 amount
     );
 

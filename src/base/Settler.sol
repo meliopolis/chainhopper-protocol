@@ -4,8 +4,7 @@ pragma solidity ^0.8.24;
 import {IERC20} from "@openzeppelin/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/token/ERC20/utils/SafeERC20.sol";
 import {ISettler} from "../interfaces/ISettler.sol";
-import {MigrationId} from "../types/MigrationId.sol";
-import {MigrationModes} from "../types/MigrationMode.sol";
+import {MigrationMode, MigrationModes} from "../types/MigrationMode.sol";
 import {ProtocolFees} from "./ProtocolFees.sol";
 
 /// @title Settler
@@ -25,8 +24,8 @@ abstract contract Settler is ISettler, ProtocolFees {
         bytes data;
     }
 
-    /// @notice Mapping of migration ids to settlement caches
-    mapping(MigrationId => SettlementCache) internal settlementCaches;
+    /// @notice Mapping of migration hashes to settlement caches
+    mapping(bytes32 => SettlementCache) internal settlementCaches;
 
     /// @notice Constructor for the Settler contract
     /// @param initialOwner The initial owner of the contract
@@ -36,22 +35,25 @@ abstract contract Settler is ISettler, ProtocolFees {
     /// @param token The token to settle
     /// @param amount The amount received from the migration
     /// @param data The data to settle
-    /// @return migrationId The migration id
+    /// @return migrationHash The migration hash
     /// @return recipient The recipient of the settlement
-    function selfSettle(address token, uint256 amount, bytes memory data)
-        external
-        virtual
-        returns (MigrationId, address)
-    {
+    function selfSettle(address token, uint256 amount, bytes memory data) external virtual returns (bytes32, address) {
         // must be called by the contract itself, for wrapping in a try/catch
         if (msg.sender != address(this)) revert NotSelf();
         if (amount == 0) revert MissingAmount(token);
+        (
+            bytes32 migrationId,
+            MigrationMode migrationMode,
+            bytes memory settlementParamsBytes,
+            bytes memory extraParamsBytes,
+            bytes32 migrationHash
+        ) = abi.decode(data, (bytes32, MigrationMode, bytes, bytes, bytes32));
+        if (migrationHash != keccak256(abi.encode(migrationId, settlementParamsBytes, extraParamsBytes))) {
+            revert InvalidMigrationHash();
+        }
+        SettlementParams memory settlementParams = abi.decode(settlementParamsBytes, (SettlementParams));
 
-        (MigrationId migrationId, bytes memory settlementParamsBytes) = abi.decode(data, (MigrationId, bytes));
-        (ISettler.SettlementParams memory settlementParams) =
-            abi.decode(settlementParamsBytes, (ISettler.SettlementParams));
-
-        if (migrationId.mode() == MigrationModes.SINGLE) {
+        if (migrationMode == MigrationModes.SINGLE) {
             // calculate fees
             (uint256 protocolFee, uint256 senderFee) = _calculateFees(amount, settlementParams.senderShareBps);
 
@@ -61,20 +63,30 @@ abstract contract Settler is ISettler, ProtocolFees {
             );
 
             // transfer fees after minting position to prevent reentrancy
-            _payFees(migrationId, token, protocolFee, senderFee, settlementParams.senderFeeRecipient);
+            _payFees(migrationHash, token, protocolFee, senderFee, settlementParams.senderFeeRecipient);
 
-            emit Settlement(migrationId, settlementParams.recipient, positionId);
-        } else if (migrationId.mode() == MigrationModes.DUAL) {
-            SettlementCache memory settlementCache = settlementCaches[migrationId];
+            emit Settlement(migrationHash, settlementParams.recipient, positionId);
+        } else if (migrationMode == MigrationModes.DUAL) {
+            (address token0, address token1, uint256 amount0Min, uint256 amount1Min) =
+                abi.decode(extraParamsBytes, (address, address, uint256, uint256));
+            if (token == token0) {
+                if (amount < amount0Min) revert AmountTooLow(token, amount, amount0Min);
+            } else if (token == token1) {
+                if (amount < amount1Min) revert AmountTooLow(token, amount, amount1Min);
+            } else {
+                revert UnexpectedToken(token);
+            }
+
+            SettlementCache memory settlementCache = settlementCaches[migrationHash];
 
             if (settlementCache.amount == 0) {
                 // cache settlement to wait for the other half
-                settlementCaches[migrationId] = SettlementCache(token, settlementParams.recipient, amount, data);
+                settlementCaches[migrationHash] = SettlementCache(token, settlementParams.recipient, amount, data);
             } else {
                 if (keccak256(data) != keccak256(settlementCache.data)) revert MismatchingData();
 
                 // delete settlement cache to prevent reentrancy
-                delete settlementCaches[migrationId];
+                delete settlementCaches[migrationHash];
 
                 // calculate fees
                 (uint256 protocolFeeA, uint256 senderFeeA) = _calculateFees(amount, settlementParams.senderShareBps);
@@ -92,18 +104,18 @@ abstract contract Settler is ISettler, ProtocolFees {
                 );
 
                 // transfer fees after minting position to prevent reentrancy
-                _payFees(migrationId, token, protocolFeeA, senderFeeA, settlementParams.senderFeeRecipient);
+                _payFees(migrationHash, token, protocolFeeA, senderFeeA, settlementParams.senderFeeRecipient);
                 _payFees(
-                    migrationId, settlementCache.token, protocolFeeB, senderFeeB, settlementParams.senderFeeRecipient
+                    migrationHash, settlementCache.token, protocolFeeB, senderFeeB, settlementParams.senderFeeRecipient
                 );
 
-                emit Settlement(migrationId, settlementParams.recipient, positionId);
+                emit Settlement(migrationHash, settlementParams.recipient, positionId);
             }
         } else {
-            revert UnsupportedMode(migrationId.mode());
+            revert UnsupportedMode(migrationMode);
         }
 
-        return (migrationId, settlementParams.recipient);
+        return (migrationHash, settlementParams.recipient);
     }
 
     /// @notice Internal function to calculate fees
@@ -129,19 +141,19 @@ abstract contract Settler is ISettler, ProtocolFees {
     }
 
     /// @notice Function to withdraw a migration
-    /// @param migrationId The migration id
-    function withdraw(MigrationId migrationId) external {
-        _refund(migrationId, true);
+    /// @param migrationHash The migration hash
+    function withdraw(bytes32 migrationHash) external {
+        _refund(migrationHash, true);
     }
 
     /// @notice Internal function to pay fees
-    /// @param migrationId The migration id
+    /// @param migrationHash The migration hash
     /// @param token The token to pay fees for
     /// @param protocolFee The protocol fee
     /// @param senderFee The sender fee
     /// @param senderFeeRecipient The recipient of the sender fee
     function _payFees(
-        MigrationId migrationId,
+        bytes32 migrationHash,
         address token,
         uint256 protocolFee,
         uint256 senderFee,
@@ -150,23 +162,23 @@ abstract contract Settler is ISettler, ProtocolFees {
         if (protocolFee > 0) _transfer(token, protocolFeeRecipient, protocolFee);
         if (senderFee > 0) _transfer(token, senderFeeRecipient, senderFee);
 
-        emit FeePayment(migrationId, token, protocolFee, senderFee);
+        emit FeePayment(migrationHash, token, protocolFee, senderFee);
     }
 
     /// @notice Internal function to refund a migration
-    /// @param migrationId The migration id
+    /// @param migrationHash The migration hash
     /// @param onlyRecipient Whether to only refund the recipient
-    function _refund(MigrationId migrationId, bool onlyRecipient) internal {
-        SettlementCache memory settlementCache = settlementCaches[migrationId];
+    function _refund(bytes32 migrationHash, bool onlyRecipient) internal {
+        SettlementCache memory settlementCache = settlementCaches[migrationHash];
 
         if (settlementCache.amount > 0) {
             if (onlyRecipient && msg.sender != settlementCache.recipient) revert NotRecipient();
 
             // delete settlement cache before transfer to prevent reentrancy
-            delete settlementCaches[migrationId];
+            delete settlementCaches[migrationHash];
             _transfer(settlementCache.token, settlementCache.recipient, settlementCache.amount);
 
-            emit Refund(migrationId, settlementCache.recipient, settlementCache.token, settlementCache.amount);
+            emit Refund(migrationHash, settlementCache.recipient, settlementCache.token, settlementCache.amount);
         }
     }
 

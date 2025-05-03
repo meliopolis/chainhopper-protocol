@@ -2,7 +2,6 @@
 pragma solidity ^0.8.24;
 
 import {IMigrator} from "../interfaces/IMigrator.sol";
-import {MigrationId, MigrationIdLibrary} from "../types/MigrationId.sol";
 import {MigrationModes} from "../types/MigrationMode.sol";
 import {ChainSettlers} from "./ChainSettlers.sol";
 
@@ -44,15 +43,24 @@ abstract contract Migrator is IMigrator, ChainSettlers {
                 : amount1 + (amount0 > 0 ? _swap(poolInfo, true, amount0) : 0);
             if (!_isAmountSufficient(amount, tokenRoute)) revert AmountTooLow(amount, tokenRoute.amountOutMin);
 
-            // generate migration id and data (reusing the data variable)
-            MigrationId migrationId =
-                MigrationIdLibrary.from(uint32(block.chainid), address(this), MigrationModes.SINGLE, ++migrationCounter);
-            data = abi.encode(migrationId, params.settlementParams);
+            // generate migration id, hash, and data (reusing the data variable)
+            bytes32 migrationId = keccak256(abi.encode(block.chainid, address(this), ++migrationCounter));
+            bytes32 migrationHash = keccak256(abi.encode(migrationId, params.settlementParams, ""));
+            data = abi.encode(migrationId, MigrationModes.SINGLE, params.settlementParams, "", migrationHash);
 
             // bridge token
             _bridge(sender, params.chainId, params.settler, token0, amount, tokenRoute.token, tokenRoute.route, data);
 
-            emit MigrationStarted(migrationId, positionId, tokenRoute.token, sender, amount);
+            emit MigrationStarted(
+                migrationHash,
+                positionId,
+                params.chainId,
+                params.settler,
+                MigrationModes.SINGLE,
+                sender,
+                tokenRoute.token,
+                amount
+            );
         } else if (params.tokenRoutes.length == 2) {
             TokenRoute memory tokenRoute0 = params.tokenRoutes[0];
             TokenRoute memory tokenRoute1 = params.tokenRoutes[1];
@@ -69,17 +77,37 @@ abstract contract Migrator is IMigrator, ChainSettlers {
             if (!_isAmountSufficient(amount0, tokenRoute0)) revert AmountTooLow(amount0, tokenRoute0.amountOutMin);
             if (!_isAmountSufficient(amount1, tokenRoute1)) revert AmountTooLow(amount1, tokenRoute1.amountOutMin);
 
-            // generate migration id and data (reusing the data variable)
-            MigrationId migrationId =
-                MigrationIdLibrary.from(uint32(block.chainid), address(this), MigrationModes.DUAL, ++migrationCounter);
-            data = abi.encode(migrationId, params.settlementParams);
+            // generate migration id, hash, and data (reusing the data variable)
+            bytes32 migrationId = keccak256(abi.encode(block.chainid, address(this), ++migrationCounter));
+            bytes memory extraParams =
+                abi.encode(tokenRoute0.token, tokenRoute1.token, tokenRoute0.amountOutMin, tokenRoute1.amountOutMin);
+            bytes32 migrationHash = keccak256(abi.encode(migrationId, params.settlementParams, extraParams));
+            data = abi.encode(migrationId, MigrationModes.DUAL, params.settlementParams, extraParams, migrationHash);
 
             // bridge tokens
             _bridge(sender, params.chainId, params.settler, token0, amount0, tokenRoute0.token, tokenRoute0.route, data);
             _bridge(sender, params.chainId, params.settler, token1, amount1, tokenRoute1.token, tokenRoute1.route, data);
 
-            emit MigrationStarted(migrationId, positionId, tokenRoute0.token, sender, amount0);
-            emit MigrationStarted(migrationId, positionId, tokenRoute1.token, sender, amount1);
+            emit MigrationStarted(
+                migrationHash,
+                positionId,
+                params.chainId,
+                params.settler,
+                MigrationModes.DUAL,
+                sender,
+                tokenRoute0.token,
+                amount0
+            );
+            emit MigrationStarted(
+                migrationHash,
+                positionId,
+                params.chainId,
+                params.settler,
+                MigrationModes.DUAL,
+                sender,
+                tokenRoute1.token,
+                amount1
+            );
         } else {
             revert TooManyTokenRoutes();
         }
