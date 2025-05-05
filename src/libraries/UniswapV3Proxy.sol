@@ -183,7 +183,7 @@ library UniswapV3Library {
 
     function approve(UniswapV3Proxy storage self, address token, address spender, uint256 amount) internal {
         if (!self.isPermit2Approved[token]) {
-            IERC20(token).approve(address(self.permit2), type(uint256).max);
+            IERC20(token).forceApprove(address(self.permit2), type(uint256).max);
             self.isPermit2Approved[token] = true;
         }
         self.permit2.approve(token, spender, amount.toUint160(), uint48(block.timestamp));
