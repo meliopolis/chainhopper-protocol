@@ -14,8 +14,6 @@ interface ISettler {
     error InvalidMigration();
     /// @notice Error thrown when the tokens are the same between two halves of a dual migration
     error SameToken();
-    /// @notice Error thrown when the data mismatches between two halves of a dual migration
-    error MismatchingData();
     /// @notice Error thrown when the amount is missing
     error MissingAmount(address token);
     /// @notice Error thrown when an unexpected token is received

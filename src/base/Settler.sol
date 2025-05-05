@@ -18,12 +18,10 @@ abstract contract Settler is ISettler, ProtocolFees, ReentrancyGuard {
     /// @param recipient The recipient of the settlement
     /// @param token The token to settle
     /// @param amount The amount to settle
-    /// @param data keccak256 hash of the data to settle
     struct SettlementCache {
         address recipient;
         address token;
         uint256 amount;
-        bytes data;
     }
 
     /// @notice Constant for conversions between unit and percentage
@@ -89,10 +87,9 @@ abstract contract Settler is ISettler, ProtocolFees, ReentrancyGuard {
             if (settlementCache.amount == 0) {
                 // cache settlement to wait for the other half
                 settlementCaches[migrationHash] =
-                    SettlementCache({recipient: settlementParams.recipient, token: token, amount: amount, data: data});
+                    SettlementCache({recipient: settlementParams.recipient, token: token, amount: amount});
             } else {
                 if (token == settlementCache.token) revert SameToken();
-                if (keccak256(data) != keccak256(settlementCache.data)) revert MismatchingData();
 
                 // delete settlement cache to prevent reentrancy
                 delete settlementCaches[migrationHash];
