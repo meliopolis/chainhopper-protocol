@@ -161,8 +161,8 @@ abstract contract Settler is ISettler, ProtocolFees, ReentrancyGuard {
         uint256 senderFee,
         address senderFeeRecipient
     ) internal {
-        if (protocolFee > 0) _transfer(token, protocolFeeRecipient, protocolFee);
-        if (senderFee > 0) _transfer(token, senderFeeRecipient, senderFee);
+        if (protocolFee > 0) IERC20(token).safeTransfer(protocolFeeRecipient, protocolFee);
+        if (senderFee > 0) IERC20(token).safeTransfer(senderFeeRecipient, senderFee);
 
         emit FeePayment(migrationHash, token, protocolFee, senderFee);
     }
@@ -178,22 +178,9 @@ abstract contract Settler is ISettler, ProtocolFees, ReentrancyGuard {
 
             // delete settlement cache before transfer to prevent reentrancy
             delete settlementCaches[migrationHash];
-            _transfer(settlementCache.token, settlementCache.recipient, settlementCache.amount);
+            IERC20(settlementCache.token).safeTransfer(settlementCache.recipient, settlementCache.amount);
 
             emit Refund(migrationHash, settlementCache.recipient, settlementCache.token, settlementCache.amount);
-        }
-    }
-
-    /// @notice Internal function to transfer a token
-    /// @param token The token to transfer
-    /// @param recipient The recipient of the transfer
-    /// @param amount The amount to transfer
-    function _transfer(address token, address recipient, uint256 amount) internal {
-        if (token == address(0)) {
-            (bool success,) = recipient.call{value: amount}("");
-            if (!success) revert NativeTokenTransferFailed(recipient, amount);
-        } else {
-            IERC20(token).safeTransfer(recipient, amount);
         }
     }
 
