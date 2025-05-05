@@ -33,7 +33,15 @@ abstract contract AcrossSettler is IAcrossSettler, IAcrossMessageHandler, Settle
         try this.selfSettle(token, amount, message) returns (bytes32 migrationHash, address recipient) {
             emit Receipt(migrationHash, recipient, token, amount);
         } catch (bytes memory reason) {
-            if (abi.decode(reason, (bytes4)) == InvalidMigration.selector) {
+            bytes4 selector;
+            assembly {
+                selector := mload(add(reason, 0x20))
+            }
+
+            if (
+                selector == InvalidMigration.selector || selector == AmountTooLow.selector
+                    || selector == UnexpectedToken.selector
+            ) {
                 revert();
             } else {
                 (bytes32 migrationHash, MigrationData memory migrationData) =
