@@ -8,6 +8,7 @@ import {IPermit2} from "@uniswap-permit2/interfaces/IPermit2.sol";
 import {IUniversalRouter} from "@uniswap-universal-router/interfaces/IUniversalRouter.sol";
 import {Commands} from "@uniswap-universal-router/libraries/Commands.sol";
 import {IPoolManager} from "@uniswap-v4-core/interfaces/IPoolManager.sol";
+import {SqrtPriceMath} from "@uniswap-v4-core/libraries/SqrtPriceMath.sol";
 import {StateLibrary} from "@uniswap-v4-core/libraries/StateLibrary.sol";
 import {TickMath} from "@uniswap-v4-core/libraries/TickMath.sol";
 import {Currency} from "@uniswap-v4-core/types/Currency.sol";
@@ -90,26 +91,42 @@ library UniswapV4Library {
         uint256 balance0Before = poolKey.currency0.balanceOfSelf();
         uint256 balance1Before = poolKey.currency1.balanceOfSelf();
 
-        // set transaction value and approve token transfers via permit2
-        uint256 value;
-        if (poolKey.currency0.isAddressZero()) {
-            value = amount0Desired;
-        } else {
-            self.approve(poolKey.currency0, address(self.positionManager), amount0Desired);
-        }
-        self.approve(poolKey.currency1, address(self.positionManager), amount1Desired);
-
         // get position id
         positionId = self.positionManager.nextTokenId();
 
+        uint160 sqrtPriceX96 = self.getPoolSqrtPriceX96(poolKey);
+        uint160 sqrtPriceX96Lower = TickMath.getSqrtPriceAtTick(tickLower);
+        uint160 sqrtPriceX96Upper = TickMath.getSqrtPriceAtTick(tickUpper);
+
         // calculate liquidity
         liquidity = LiquidityAmounts.getLiquidityForAmounts(
-            self.getPoolSqrtPriceX96(poolKey),
-            TickMath.getSqrtPriceAtTick(tickLower),
-            TickMath.getSqrtPriceAtTick(tickUpper),
-            amount0Desired,
-            amount1Desired
+            sqrtPriceX96, sqrtPriceX96Lower, sqrtPriceX96Upper, amount0Desired, amount1Desired
         );
+
+        // calculate and approve amounts (reuse amountXDesired variable)
+        uint256 value;
+        if (sqrtPriceX96Upper < sqrtPriceX96) {
+            amount0Desired = 0;
+        } else {
+            amount0Desired = SqrtPriceMath.getAmount0Delta(
+                sqrtPriceX96Upper, sqrtPriceX96 > sqrtPriceX96Lower ? sqrtPriceX96 : sqrtPriceX96Lower, liquidity, true
+            );
+
+            if (poolKey.currency0.isAddressZero()) {
+                value = amount0Desired;
+            } else {
+                self.approve(poolKey.currency0, address(self.positionManager), amount0Desired);
+            }
+        }
+        if (sqrtPriceX96Lower > sqrtPriceX96) {
+            amount1Desired = 0;
+        } else {
+            amount1Desired = SqrtPriceMath.getAmount1Delta(
+                sqrtPriceX96Upper < sqrtPriceX96 ? sqrtPriceX96Upper : sqrtPriceX96, sqrtPriceX96Lower, liquidity, true
+            );
+
+            self.approve(poolKey.currency1, address(self.positionManager), amount1Desired);
+        }
 
         // mint position
         bytes memory actions =

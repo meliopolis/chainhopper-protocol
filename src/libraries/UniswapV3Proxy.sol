@@ -106,6 +106,9 @@ library UniswapV3Library {
                 deadline: block.timestamp
             })
         );
+
+        if (amount0Desired > amount0) IERC20(token0).forceApprove(address(self.positionManager), 0);
+        if (amount1Desired > amount1) IERC20(token1).forceApprove(address(self.positionManager), 0);
     }
 
     /// @notice Liquidate a position
