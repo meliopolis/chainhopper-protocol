@@ -1,29 +1,35 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.24;
 
+import {IPermit2} from "@uniswap-permit2/interfaces/IPermit2.sol";
+import {IUniversalRouter} from "@uniswap-universal-router/interfaces/IUniversalRouter.sol";
 import {IHooks} from "@uniswap-v4-core/interfaces/IHooks.sol";
 import {Currency} from "@uniswap-v4-core/types/Currency.sol";
 import {PoolKey} from "@uniswap-v4-core/types/PoolKey.sol";
+import {IPositionManager} from "@uniswap-v4-periphery/interfaces/IPositionManager.sol";
 import {IWETH9} from "../interfaces/external/IWETH9.sol";
 import {IUniswapV4Settler} from "../interfaces/IUniswapV4Settler.sol";
-import {UniswapV4Proxy} from "../libraries/UniswapV4Proxy.sol";
+import {UniswapV4Library} from "../libraries/UniswapV4Library.sol";
 import {Settler} from "./Settler.sol";
 
 /// @title UniswapV4Settler
 /// @notice Contract for settling migrations on Uniswap V4
 abstract contract UniswapV4Settler is IUniswapV4Settler, Settler {
-    /// @notice The Uniswap V4 proxy
-    UniswapV4Proxy private proxy;
-    /// @notice The WETH address
+    IPositionManager private immutable positionManager;
+    IUniversalRouter private immutable universalRouter;
+    IPermit2 private immutable permit2;
     IWETH9 private immutable weth;
+    mapping(Currency => bool) isPermit2Approved;
 
     /// @notice Constructor for the UniswapV4Settler contract
-    /// @param positionManager The position manager address
-    /// @param universalRouter The universal router address
-    /// @param permit2 The permit2 address
+    /// @param _positionManager The position manager address
+    /// @param _universalRouter The universal router address
+    /// @param _permit2 The permit2 address
     /// @param _weth The WETH address
-    constructor(address positionManager, address universalRouter, address permit2, address _weth) {
-        proxy.initialize(positionManager, universalRouter, permit2);
+    constructor(address _positionManager, address _universalRouter, address _permit2, address _weth) {
+        positionManager = IPositionManager(_positionManager);
+        universalRouter = IUniversalRouter(_universalRouter);
+        permit2 = IPermit2(_permit2);
         weth = IWETH9(_weth);
     }
 
@@ -55,7 +61,11 @@ abstract contract UniswapV4Settler is IUniswapV4Settler, Settler {
 
         // swap tokens if needed
         uint256 amountOut;
-        if (amountIn > 0) amountOut = proxy.swap(poolKey, zeroForOne, amountIn, 0, address(this));
+        if (amountIn > 0) {
+            amountOut = UniswapV4Library.swap(
+                universalRouter, permit2, isPermit2Approved, poolKey, zeroForOne, amountIn, 0, address(this)
+            );
+        }
 
         address tokenOut = Currency.unwrap(zeroForOne ? poolKey.currency1 : poolKey.currency0);
         return _mintPosition(token, tokenOut, amount - amountIn, amountOut, recipient, data);
@@ -101,14 +111,17 @@ abstract contract UniswapV4Settler is IUniswapV4Settler, Settler {
             tokenA == Currency.unwrap(poolKey.currency0) ? (amountA, amountB) : (amountB, amountA);
 
         // initialize pool if haven't already
-        if (proxy.getPoolSqrtPriceX96(poolKey) == 0) {
-            proxy.initializePool(poolKey, mintParams.sqrtPriceX96);
+        if (UniswapV4Library.getPoolSqrtPriceX96(positionManager, poolKey) == 0) {
+            UniswapV4Library.initializePool(positionManager, poolKey, mintParams.sqrtPriceX96);
         }
 
         // mint position
         uint256 amount0Used;
         uint256 amount1Used;
-        (positionId,, amount0Used, amount1Used) = proxy.mintPosition(
+        (positionId,, amount0Used, amount1Used) = UniswapV4Library.mintPosition(
+            positionManager,
+            permit2,
+            isPermit2Approved,
             poolKey,
             mintParams.tickLower,
             mintParams.tickUpper,
