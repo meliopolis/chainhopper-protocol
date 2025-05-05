@@ -1,15 +1,18 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.24;
 
-import {Vm} from "forge-std/Test.sol";
-import {TestContext} from "./TestContext.sol";
+import {Vm, console} from "forge-std/Test.sol";
 
-contract AcrossHelpers is TestContext {
+library AcrossHelpers {
     error LogNotFound();
 
     function findFundsDepositedEvent(Vm.Log[] memory logs) public view returns (Vm.Log memory) {
+        bytes32 topic0 = keccak256(
+            "FundsDeposited(bytes32,bytes32,uint256,uint256,uint256,uint256,uint32,uint32,uint32,bytes32,bytes32,bytes32,bytes)"
+        );
         for (uint256 i = 0; i < logs.length; i++) {
-            if (logs[i].emitter == address(acrossSpokePool)) {
+            // skip events emitted by this contract
+            if (logs[i].topics[0] == topic0 && logs[i].emitter != address(this)) {
                 return logs[i];
             }
         }
