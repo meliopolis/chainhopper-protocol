@@ -45,6 +45,7 @@ abstract contract Migrator is IMigrator, ChainSettlers {
             if (!_isAmountSufficient(amount, tokenRoute)) revert AmountTooLow(amount, tokenRoute.amountOutMin);
 
             // generate migration id and data (reusing the data variable)
+            // TODO: fix chain id casting later when reworking the migration id
             MigrationId migrationId =
                 MigrationIdLibrary.from(uint32(block.chainid), address(this), MigrationModes.SINGLE, ++migrationCounter);
             data = abi.encode(migrationId, params.settlementParams);
@@ -70,6 +71,7 @@ abstract contract Migrator is IMigrator, ChainSettlers {
             if (!_isAmountSufficient(amount1, tokenRoute1)) revert AmountTooLow(amount1, tokenRoute1.amountOutMin);
 
             // generate migration id and data (reusing the data variable)
+            // TODO: fix chain id casting later when reworking the migration id
             MigrationId migrationId =
                 MigrationIdLibrary.from(uint32(block.chainid), address(this), MigrationModes.DUAL, ++migrationCounter);
             data = abi.encode(migrationId, params.settlementParams);
@@ -93,7 +95,7 @@ abstract contract Migrator is IMigrator, ChainSettlers {
     /// @param amount The amount to bridge
     function _bridge(
         address sender,
-        uint32 chainId,
+        uint256 chainId,
         address settler,
         address token,
         uint256 amount,

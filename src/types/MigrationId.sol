@@ -16,6 +16,7 @@ library MigrationIdLibrary {
     /// @param _mode The mode
     /// @param _nonce The nonce
     /// @return migrationId The migration id
+    // TODO: chain id size limit non-issue after reworking the migration id
     function from(uint32 _chainId, address _migrator, MigrationMode _mode, uint56 _nonce)
         internal
         pure
