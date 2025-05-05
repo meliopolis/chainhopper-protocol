@@ -38,7 +38,7 @@ abstract contract UniswapV3Settler is IUniswapV3Settler, Settler {
 
         // get token out and amount in
         address tokenOut = token == mintParams.token0 ? mintParams.token1 : mintParams.token0;
-        uint256 amountIn = (amount * mintParams.swapAmountInMilliBps) / 10_000_000;
+        uint256 amountIn = (amount * mintParams.swapAmountInMilliBps) / UNIT_IN_MILLI_BASIS_POINTS;
 
         // swap tokens if needed
         uint256 amountOut;

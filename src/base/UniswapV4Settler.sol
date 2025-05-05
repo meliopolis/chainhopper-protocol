@@ -51,7 +51,7 @@ abstract contract UniswapV4Settler is IUniswapV4Settler, Settler {
             IHooks(mintParams.hooks)
         );
         bool zeroForOne = token == Currency.unwrap(poolKey.currency0);
-        uint256 amountIn = (amount * mintParams.swapAmountInMilliBps) / 10_000_000;
+        uint256 amountIn = (amount * mintParams.swapAmountInMilliBps) / UNIT_IN_MILLI_BASIS_POINTS;
 
         // swap tokens if needed
         uint256 amountOut;
