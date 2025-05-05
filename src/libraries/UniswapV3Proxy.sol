@@ -92,19 +92,19 @@ library UniswapV3Library {
 
         // mint position
         (positionId, liquidity, amount0, amount1) = self.positionManager.mint(
-            IPositionManager.MintParams(
-                token0,
-                token1,
-                fee,
-                tickLower,
-                tickUpper,
-                amount0Desired,
-                amount1Desired,
-                amount0Min,
-                amount1Min,
-                recipient,
-                block.timestamp
-            )
+            IPositionManager.MintParams({
+                token0: token0,
+                token1: token1,
+                fee: fee,
+                tickLower: tickLower,
+                tickUpper: tickUpper,
+                amount0Desired: amount0Desired,
+                amount1Desired: amount1Desired,
+                amount0Min: amount0Min,
+                amount1Min: amount1Min,
+                recipient: recipient,
+                deadline: block.timestamp
+            })
         );
     }
 
@@ -126,12 +126,23 @@ library UniswapV3Library {
 
         // burn liquidity
         self.positionManager.decreaseLiquidity(
-            IPositionManager.DecreaseLiquidityParams(positionId, liquidity, amount0Min, amount1Min, block.timestamp)
+            IPositionManager.DecreaseLiquidityParams({
+                tokenId: positionId,
+                liquidity: liquidity,
+                amount0Min: amount0Min,
+                amount1Min: amount1Min,
+                deadline: block.timestamp
+            })
         );
 
         // collect tokens
         (amount0, amount1) = self.positionManager.collect(
-            IPositionManager.CollectParams(positionId, recipient, type(uint128).max, type(uint128).max)
+            IPositionManager.CollectParams({
+                tokenId: positionId,
+                recipient: recipient,
+                amount0Max: type(uint128).max,
+                amount1Max: type(uint128).max
+            })
         );
 
         // burn position
