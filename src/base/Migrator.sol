@@ -33,13 +33,12 @@ abstract contract Migrator is IMigrator, ChainSettlers {
             revert MissingTokenRoutes();
         } else if (params.tokenRoutes.length == 1) {
             TokenRoute memory tokenRoute = params.tokenRoutes[0];
+            bool isRoutingToken0 = _matchTokenWithRoute(token0, tokenRoute);
 
-            if (!_matchTokenWithRoute(token0, tokenRoute) && token1 != tokenRoute.token) {
-                revert TokensAndRoutesMismatch(token0, token1);
-            }
+            if (!isRoutingToken0 && token1 != tokenRoute.token) revert TokensAndRoutesMismatch(token0, token1);
 
             // calculate amount, swap if needed
-            uint256 amount = _matchTokenWithRoute(token0, tokenRoute)
+            uint256 amount = isRoutingToken0
                 ? amount0 + (amount1 > 0 ? _swap(poolInfo, false, amount1) : 0)
                 : amount1 + (amount0 > 0 ? _swap(poolInfo, true, amount0) : 0);
             if (!_isAmountSufficient(amount, tokenRoute)) revert AmountTooLow(amount, tokenRoute.amountOutMin);
