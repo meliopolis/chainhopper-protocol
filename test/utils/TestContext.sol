@@ -13,6 +13,8 @@ contract TestContext is Test {
     address weth;
     address usdc;
     address usdt;
+    address virtualToken;
+    address destChainUsdc;
 
     address acrossSpokePool;
     address permit2;
@@ -23,19 +25,21 @@ contract TestContext is Test {
     PoolKey v4NativePoolKey;
     PoolKey v4TokenPoolKey;
 
-    function _loadChain(string memory chainName) internal {
+    function _loadChain(string memory srcChainName, string memory destChainName) internal {
         // setting block number to 28545100 for repeatability
-        vm.createSelectFork(vm.envString(string(abi.encodePacked(chainName, "_RPC_URL"))), 28545100);
+        vm.createSelectFork(vm.envString(string(abi.encodePacked(srcChainName, "_RPC_URL"))), 28545100);
 
-        weth = vm.envAddress(string(abi.encodePacked(chainName, "_WETH")));
-        usdc = vm.envAddress(string(abi.encodePacked(chainName, "_USDC")));
-        usdt = vm.envAddress(string(abi.encodePacked(chainName, "_USDT")));
+        weth = vm.envAddress(string(abi.encodePacked(srcChainName, "_WETH")));
+        usdc = vm.envAddress(string(abi.encodePacked(srcChainName, "_USDC")));
+        usdt = vm.envAddress(string(abi.encodePacked(srcChainName, "_USDT")));
+        virtualToken = address(0x0b3e328455c4059EEb9e3f84b5543F74E24e7E1b); // useful as it sorts before weth and usdc
+        destChainUsdc = vm.envAddress(string(abi.encodePacked(destChainName, "_USDC")));
 
-        acrossSpokePool = vm.envAddress(string(abi.encodePacked(chainName, "_ACROSS_SPOKE_POOL")));
-        permit2 = vm.envAddress(string(abi.encodePacked(chainName, "_UNISWAP_PERMIT2")));
-        universalRouter = vm.envAddress(string(abi.encodePacked(chainName, "_UNISWAP_UNIVERSAL_ROUTER")));
-        v3PositionManager = vm.envAddress(string(abi.encodePacked(chainName, "_UNISWAP_V3_POSITION_MANAGER")));
-        v4PositionManager = vm.envAddress(string(abi.encodePacked(chainName, "_UNISWAP_V4_POSITION_MANAGER")));
+        acrossSpokePool = vm.envAddress(string(abi.encodePacked(srcChainName, "_ACROSS_SPOKE_POOL")));
+        permit2 = vm.envAddress(string(abi.encodePacked(srcChainName, "_UNISWAP_PERMIT2")));
+        universalRouter = vm.envAddress(string(abi.encodePacked(srcChainName, "_UNISWAP_UNIVERSAL_ROUTER")));
+        v3PositionManager = vm.envAddress(string(abi.encodePacked(srcChainName, "_UNISWAP_V3_POSITION_MANAGER")));
+        v4PositionManager = vm.envAddress(string(abi.encodePacked(srcChainName, "_UNISWAP_V4_POSITION_MANAGER")));
 
         v4NativePoolKey = PoolKey(Currency.wrap(address(0)), Currency.wrap(usdc), 500, 10, IHooks(address(0)));
         v4TokenPoolKey = PoolKey(

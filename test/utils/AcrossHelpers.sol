@@ -19,6 +19,22 @@ library AcrossHelpers {
         revert LogNotFound();
     }
 
+    function findFundsDepositedEvents(Vm.Log[] memory logs) public view returns (Vm.Log[] memory) {
+        bytes32 topic0 = keccak256(
+            "FundsDeposited(bytes32,bytes32,uint256,uint256,uint256,uint256,uint32,uint32,uint32,bytes32,bytes32,bytes32,bytes)"
+        );
+        Vm.Log[] memory events = new Vm.Log[](2); // never expect more than 2 events
+        uint256 eventIndex = 0;
+        for (uint256 i = 0; i < logs.length; i++) {
+            // skip events emitted by this contract
+            if (logs[i].topics[0] == topic0 && logs[i].emitter != address(this)) {
+                events[eventIndex] = logs[i];
+                eventIndex++;
+            }
+        }
+        return events;
+    }
+
     function parseFundsDepositedEvent(bytes memory data)
         public
         pure

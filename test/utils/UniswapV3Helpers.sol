@@ -31,7 +31,7 @@ contract UniswapV3Helpers is Test {
             fee: fee,
             tickLower: tickLower,
             tickUpper: tickUpper,
-            amount0Desired: 1_000_000_000_000_000_000_000,
+            amount0Desired: 1_000_000_000_000_000_000,
             amount1Desired: 1000_000_000,
             amount0Min: 0,
             amount1Min: 0,
