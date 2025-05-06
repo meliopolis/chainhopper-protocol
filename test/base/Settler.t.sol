@@ -7,7 +7,6 @@ import {MigrationData} from "../../src/types/MigrationData.sol";
 import {MigrationMode, MigrationModes} from "../../src/types/MigrationMode.sol";
 import {MockSettler} from "../mocks/MockSettler.sol";
 import {TestContext} from "../utils/TestContext.sol";
-// import {RejectingRecipient} from "../mocks/MockRejectingRecipient.sol";
 
 contract SettlerTest is TestContext {
     string public constant SRC_CHAIN_NAME = "BASE";
@@ -237,40 +236,4 @@ contract SettlerTest is TestContext {
         vm.prank(address(settler));
         settler.selfSettle(token1, 200, data);
     }
-
-    // function test_fuzz_selfSettle_dualRoute(
-    //     ISettler.SettlementParams memory params,
-    //     bool isToken0Sufficient,
-    //     bool isToken1Sufficient,
-    //     bool isSameToken,
-    //     bool isUnexpectedToken,
-    //     bool hasSettlementCache
-    // ) public {
-    //     vm.assume(!(isSameToken && isUnexpectedToken));
-
-    //     address unexpectedToken = usdt;
-
-    //     if (hasSettlementCache) {
-    //     }
-
-    //
-    //     if (isUnexpectedToken) {
-    //         isRevert = true;
-    //         vm.expectRevert(
-    //             abi.encodeWithSelector(ISettler.UnexpectedToken.selector, unexpectedToken), address(settler)
-    //         );
-    //     } else if (isToken0Sufficient) {
-    //         isRevert = true;
-    //         vm.expectRevert(
-    //             abi.encodeWithSelector(ISettler.AmountTooLow.selector, token0, 100, type(uint256).max), address(settler)
-    //         );
-    //     } else if (isToken1Sufficient) {
-    //         isRevert = true;
-    //         vm.expectRevert(
-    //             abi.encodeWithSelector(ISettler.AmountTooLow.selector, token1, 200, type(uint256).max), address(settler)
-    //         );
-    //     } else
-    //     }
-
-    // }
 }
