@@ -33,7 +33,9 @@ contract TestContext is Test {
         usdc = vm.envAddress(string(abi.encodePacked(srcChainName, "_USDC")));
         usdt = vm.envAddress(string(abi.encodePacked(srcChainName, "_USDT")));
         virtualToken = address(0x0b3e328455c4059EEb9e3f84b5543F74E24e7E1b); // useful as it sorts before weth and usdc
-        destChainUsdc = vm.envAddress(string(abi.encodePacked(destChainName, "_USDC")));
+        if (bytes(destChainName).length > 0) {
+            destChainUsdc = vm.envAddress(string(abi.encodePacked(destChainName, "_USDC")));
+        }
 
         acrossSpokePool = vm.envAddress(string(abi.encodePacked(srcChainName, "_ACROSS_SPOKE_POOL")));
         permit2 = vm.envAddress(string(abi.encodePacked(srcChainName, "_UNISWAP_PERMIT2")));

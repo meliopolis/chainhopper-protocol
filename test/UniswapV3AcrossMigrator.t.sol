@@ -18,6 +18,7 @@ import {V3SpokePoolInterface} from "@across/interfaces/V3SpokePoolInterface.sol"
 import {MigrationModes, MigrationMode} from "../src/types/MigrationMode.sol";
 import {AcrossHelpers} from "./utils/AcrossHelpers.sol";
 import {MigrationHelpers} from "./utils/MigrationHelpers.sol";
+import {MigrationData} from "../src/types/MigrationData.sol";
 
 contract UniswapV3AcrossMigratorTest is TestContext, UniswapV3Helpers {
     string public constant SRC_CHAIN_NAME = "BASE";
@@ -77,7 +78,18 @@ contract UniswapV3AcrossMigratorTest is TestContext, UniswapV3Helpers {
         assertEq(posToken0, token0);
 
         IMigrator.MigrationParams memory migrationParams =
-            MigrationHelpers.generateMigrationParams(token0, address(settler));
+            MigrationHelpers.generateMigrationParams(token0, address(settler), amount0-maxFees);
+
+        MigrationData memory migrationData = MigrationData({
+            sourceChainId: block.chainid,
+            migrator: address(migrator),
+            nonce: 1,
+            mode: MigrationModes.SINGLE,
+            routesData: "",
+            settlementData: ""
+        });
+        bytes32 migrationHash = migrationData.toHash();
+        bytes memory data = abi.encode(migrationHash, migrationData);
 
         // Transfer Position from user to migrator
         vm.expectEmit(true, true, false, false, address(v3PositionManager));
@@ -113,9 +125,9 @@ contract UniswapV3AcrossMigratorTest is TestContext, UniswapV3Helpers {
             ""
         );
 
-        vm.expectEmit(false, true, true, false);
+        vm.expectEmit(true, true, true, false);
         emit IMigrator.MigrationStarted(
-            bytes32(0), tokenId, destinationChainId, address(settler), MigrationModes.SINGLE, user, token0, 0
+            migrationHash, tokenId, destinationChainId, address(settler), MigrationModes.SINGLE, user, token0, 0
         );
         vm.prank(user);
         INonfungiblePositionManager(v3PositionManager).safeTransferFrom(
@@ -128,12 +140,13 @@ contract UniswapV3AcrossMigratorTest is TestContext, UniswapV3Helpers {
         uint256 swapOutAmount = parseSwapEvent(swapEvent.data);
         Vm.Log memory fundsDepositedEvent = AcrossHelpers.findFundsDepositedEvent(entries);
 
-        (bytes32 inputToken, bytes32 outputToken, uint256 inputAmount, uint256 outputAmount) =
+        (bytes32 inputToken, bytes32 outputToken, uint256 inputAmount, uint256 outputAmount, bytes memory message) =
             AcrossHelpers.parseFundsDepositedEvent(fundsDepositedEvent.data);
         assertEq(inputToken, bytes32(uint256(uint160(token0))));
         assertEq(outputToken, bytes32(uint256(uint160(weth))));
         assertEq(inputAmount, amount0 + swapOutAmount - 1); // -1 for rounding error
         assertEq(outputAmount, amount0 + swapOutAmount - 1 - maxFees); // -1 for rounding error
+        assertEq(message, data);
     }
 
     function test_onERC721Received_Token0WETHBaseToken_BelowTickLower() public {
@@ -151,7 +164,18 @@ contract UniswapV3AcrossMigratorTest is TestContext, UniswapV3Helpers {
         assertEq(posToken0, token0);
 
         IMigrator.MigrationParams memory migrationParams =
-            MigrationHelpers.generateMigrationParams(token0, address(settler));
+            MigrationHelpers.generateMigrationParams(token0, address(settler), maxFees);
+
+        MigrationData memory migrationData = MigrationData({
+            sourceChainId: block.chainid,
+            migrator: address(migrator),
+            nonce: 1,
+            mode: MigrationModes.SINGLE,
+            routesData: "",
+            settlementData: ""
+        });
+        bytes32 migrationHash = migrationData.toHash();
+        bytes memory data = abi.encode(migrationHash, migrationData);
 
         // Transfer Position from user to migrator
         vm.expectEmit(true, true, false, false, address(v3PositionManager));
@@ -202,12 +226,13 @@ contract UniswapV3AcrossMigratorTest is TestContext, UniswapV3Helpers {
         uint256 swapOutAmount = parseSwapEvent(swapEvent.data);
         Vm.Log memory fundsDepositedEvent = AcrossHelpers.findFundsDepositedEvent(entries);
 
-        (bytes32 inputToken, bytes32 outputToken, uint256 inputAmount, uint256 outputAmount) =
+        (bytes32 inputToken, bytes32 outputToken, uint256 inputAmount, uint256 outputAmount, bytes memory message) =
             AcrossHelpers.parseFundsDepositedEvent(fundsDepositedEvent.data);
         assertEq(inputToken, bytes32(uint256(uint160(token0))));
         assertEq(outputToken, bytes32(uint256(uint160(weth))));
         assertEq(inputAmount, amount0 + swapOutAmount);
         assertEq(outputAmount, amount0 + swapOutAmount - maxFees);
+        assertEq(message, data);
     }
 
     function test_onERC721Received_Token0WETHBaseToken_AboveTickUpper() public {
@@ -215,19 +240,28 @@ contract UniswapV3AcrossMigratorTest is TestContext, UniswapV3Helpers {
         address token0 = weth;
         address token1 = usdc;
         // current tick is ~ -201000
-        (uint256 tokenId, uint256 amount0, uint256 amount1) =
+        (uint256 tokenId, uint256 amount0,) =
             mintV3Position(v3PositionManager, user, token0, token1, -150000, -100000, 500);
 
         // only token0 is used, so no swap is needed
-        console.log(amount0);
-        console.log(amount1);
 
         // verify posToken0 is baseToken
         (,, address posToken0,,,,,,,,,) = INonfungiblePositionManager(v3PositionManager).positions(tokenId);
         assertEq(posToken0, token0);
 
         IMigrator.MigrationParams memory migrationParams =
-            MigrationHelpers.generateMigrationParams(token0, address(settler));
+            MigrationHelpers.generateMigrationParams(token0, address(settler), amount0-maxFees-1);
+
+        MigrationData memory migrationData = MigrationData({
+            sourceChainId: block.chainid,
+            migrator: address(migrator),
+            nonce: 1,
+            mode: MigrationModes.SINGLE,
+            routesData: "",
+            settlementData: ""
+        });
+        bytes32 migrationHash = migrationData.toHash();
+        bytes memory data = abi.encode(migrationHash, migrationData);
 
         // Transfer Position from user to migrator
         vm.expectEmit(true, true, false, false, address(v3PositionManager));
@@ -276,12 +310,13 @@ contract UniswapV3AcrossMigratorTest is TestContext, UniswapV3Helpers {
         uint256 swapOutAmount = 0;
         Vm.Log memory fundsDepositedEvent = AcrossHelpers.findFundsDepositedEvent(entries);
 
-        (bytes32 inputToken, bytes32 outputToken, uint256 inputAmount, uint256 outputAmount) =
+        (bytes32 inputToken, bytes32 outputToken, uint256 inputAmount, uint256 outputAmount, bytes memory message) =
             AcrossHelpers.parseFundsDepositedEvent(fundsDepositedEvent.data);
         assertEq(inputToken, bytes32(uint256(uint160(token0))));
         assertEq(outputToken, bytes32(uint256(uint160(weth))));
         assertEq(inputAmount, amount0 + swapOutAmount - 1); // -1 for rounding error
         assertEq(outputAmount, amount0 + swapOutAmount - 1 - maxFees); // -1 for rounding error
+        assertEq(message, data);
     }
 
     function test_onERC721Received_Token1WETHBaseToken_InRange() public {
@@ -296,7 +331,18 @@ contract UniswapV3AcrossMigratorTest is TestContext, UniswapV3Helpers {
         assertEq(posToken1, token1);
 
         IMigrator.MigrationParams memory migrationParams =
-            MigrationHelpers.generateMigrationParams(token1, address(settler));
+            MigrationHelpers.generateMigrationParams(token1, address(settler), amount1-maxFees-1);
+
+        MigrationData memory migrationData = MigrationData({
+            sourceChainId: block.chainid,
+            migrator: address(migrator),
+            nonce: 1,
+            mode: MigrationModes.SINGLE,
+            routesData: "",
+            settlementData: ""
+        });
+        bytes32 migrationHash = migrationData.toHash();
+        bytes memory data = abi.encode(migrationHash, migrationData);
 
         // Transfer Position from user to migrator
         vm.expectEmit(true, true, false, false, address(v3PositionManager));
@@ -347,12 +393,13 @@ contract UniswapV3AcrossMigratorTest is TestContext, UniswapV3Helpers {
         uint256 swapOutAmount = parseSwapEvent(swapEvent.data);
         Vm.Log memory fundsDepositedEvent = AcrossHelpers.findFundsDepositedEvent(entries);
 
-        (bytes32 inputToken, bytes32 outputToken, uint256 inputAmount, uint256 outputAmount) =
+        (bytes32 inputToken, bytes32 outputToken, uint256 inputAmount, uint256 outputAmount, bytes memory message) =
             AcrossHelpers.parseFundsDepositedEvent(fundsDepositedEvent.data);
         assertEq(inputToken, bytes32(uint256(uint160(token1))));
         assertEq(outputToken, bytes32(uint256(uint160(weth))));
         assertEq(inputAmount, amount1 + swapOutAmount - 1); // -1 for rounding error
         assertEq(outputAmount, amount1 + swapOutAmount - 1 - maxFees); // -1 for rounding error
+        assertEq(message, data);
     }
 
     function test_onERC721Received_Token1WETHBaseToken_BelowTickLower() public {
@@ -369,7 +416,18 @@ contract UniswapV3AcrossMigratorTest is TestContext, UniswapV3Helpers {
         assertEq(posToken1, token1);
 
         IMigrator.MigrationParams memory migrationParams =
-            MigrationHelpers.generateMigrationParams(token1, address(settler));
+            MigrationHelpers.generateMigrationParams(token1, address(settler), amount1-maxFees-1);
+
+        MigrationData memory migrationData = MigrationData({
+            sourceChainId: block.chainid,
+            migrator: address(migrator),
+            nonce: 1,
+            mode: MigrationModes.SINGLE,
+            routesData: "",
+            settlementData: ""
+        });
+        bytes32 migrationHash = migrationData.toHash();
+        bytes memory data = abi.encode(migrationHash, migrationData);
 
         // Transfer Position from user to migrator
         vm.expectEmit(true, true, false, false, address(v3PositionManager));
@@ -418,12 +476,13 @@ contract UniswapV3AcrossMigratorTest is TestContext, UniswapV3Helpers {
         uint256 swapOutAmount = 0;
         Vm.Log memory fundsDepositedEvent = AcrossHelpers.findFundsDepositedEvent(entries);
 
-        (bytes32 inputToken, bytes32 outputToken, uint256 inputAmount, uint256 outputAmount) =
+        (bytes32 inputToken, bytes32 outputToken, uint256 inputAmount, uint256 outputAmount, bytes memory message) =
             AcrossHelpers.parseFundsDepositedEvent(fundsDepositedEvent.data);
         assertEq(inputToken, bytes32(uint256(uint160(token1))));
         assertEq(outputToken, bytes32(uint256(uint160(weth))));
         assertEq(inputAmount, amount1 + swapOutAmount - 1); // -1 for rounding error
         assertEq(outputAmount, amount1 + swapOutAmount - 1 - maxFees); // -1 for rounding error
+        assertEq(message, data);
     }
 
     function test_onERC721Received_Token1WETHBaseToken_AboveTickUpper() public {
@@ -440,7 +499,18 @@ contract UniswapV3AcrossMigratorTest is TestContext, UniswapV3Helpers {
         assertEq(posToken1, token1);
 
         IMigrator.MigrationParams memory migrationParams =
-            MigrationHelpers.generateMigrationParams(token1, address(settler));
+            MigrationHelpers.generateMigrationParams(token1, address(settler), amount1-maxFees-1);
+
+        MigrationData memory migrationData = MigrationData({
+            sourceChainId: block.chainid,
+            migrator: address(migrator),
+            nonce: 1,
+            mode: MigrationModes.SINGLE,
+            routesData: "",
+            settlementData: ""
+        });
+        bytes32 migrationHash = migrationData.toHash();
+        bytes memory data = abi.encode(migrationHash, migrationData);
 
         // Transfer Position from user to migrator
         vm.expectEmit(true, true, false, false, address(v3PositionManager));
@@ -491,12 +561,13 @@ contract UniswapV3AcrossMigratorTest is TestContext, UniswapV3Helpers {
         uint256 swapOutAmount = parseSwapEvent(swapEvent.data);
         Vm.Log memory fundsDepositedEvent = AcrossHelpers.findFundsDepositedEvent(entries);
 
-        (bytes32 inputToken, bytes32 outputToken, uint256 inputAmount, uint256 outputAmount) =
+        (bytes32 inputToken, bytes32 outputToken, uint256 inputAmount, uint256 outputAmount, bytes memory message) =
             AcrossHelpers.parseFundsDepositedEvent(fundsDepositedEvent.data);
         assertEq(inputToken, bytes32(uint256(uint160(token1))));
         assertEq(outputToken, bytes32(uint256(uint160(weth))));
         assertEq(inputAmount, amount1 + swapOutAmount - 1); // -1 for rounding error
         assertEq(outputAmount, amount1 + swapOutAmount - 1 - maxFees); // -1 for rounding error
+        assertEq(message, data);
     }
 
     function test_onERC721Received_Token0USDCBaseToken_NoWETH_InRange() public {
@@ -511,7 +582,18 @@ contract UniswapV3AcrossMigratorTest is TestContext, UniswapV3Helpers {
         assertEq(posToken0, token0);
 
         IMigrator.MigrationParams memory migrationParams =
-            MigrationHelpers.generateMigrationParams(token0, destChainUsdc, address(settler));
+            MigrationHelpers.generateMigrationParams(token0, destChainUsdc, amount0-maxFees-1, address(settler));
+
+        MigrationData memory migrationData = MigrationData({
+            sourceChainId: block.chainid,
+            migrator: address(migrator),
+            nonce: 1,
+            mode: MigrationModes.SINGLE,
+            routesData: "",
+            settlementData: ""
+        });
+        bytes32 migrationHash = migrationData.toHash();
+        bytes memory data = abi.encode(migrationHash, migrationData);
 
         // Transfer Position from user to migrator
         vm.expectEmit(true, true, false, false, address(v3PositionManager));
@@ -562,12 +644,13 @@ contract UniswapV3AcrossMigratorTest is TestContext, UniswapV3Helpers {
         uint256 swapOutAmount = parseSwapEvent(swapEvent.data);
         Vm.Log memory fundsDepositedEvent = AcrossHelpers.findFundsDepositedEvent(entries);
 
-        (bytes32 inputToken, bytes32 outputToken, uint256 inputAmount, uint256 outputAmount) =
+        (bytes32 inputToken, bytes32 outputToken, uint256 inputAmount, uint256 outputAmount, bytes memory message) =
             AcrossHelpers.parseFundsDepositedEvent(fundsDepositedEvent.data);
         assertEq(inputToken, bytes32(uint256(uint160(token0))));
         assertEq(outputToken, bytes32(uint256(uint160(destChainUsdc))));
         assertEq(inputAmount, amount0 + swapOutAmount - 1);
         assertEq(outputAmount, amount0 + swapOutAmount - 1 - maxFees);
+        assertEq(message, data);
     }
 
     function test_onERC721Received_Token0USDCBaseToken_NoWETH_BelowTickLower() public {
@@ -584,7 +667,18 @@ contract UniswapV3AcrossMigratorTest is TestContext, UniswapV3Helpers {
         assertEq(posToken0, token0);
 
         IMigrator.MigrationParams memory migrationParams =
-            MigrationHelpers.generateMigrationParams(token0, destChainUsdc, address(settler));
+            MigrationHelpers.generateMigrationParams(token0, destChainUsdc, maxFees, address(settler));
+
+        MigrationData memory migrationData = MigrationData({
+            sourceChainId: block.chainid,
+            migrator: address(migrator),
+            nonce: 1,
+            mode: MigrationModes.SINGLE,
+            routesData: "",
+            settlementData: ""
+        });
+        bytes32 migrationHash = migrationData.toHash();
+        bytes memory data = abi.encode(migrationHash, migrationData);
 
         // Transfer Position from user to migrator
         vm.expectEmit(true, true, false, false, address(v3PositionManager));
@@ -635,12 +729,13 @@ contract UniswapV3AcrossMigratorTest is TestContext, UniswapV3Helpers {
         uint256 swapOutAmount = parseSwapEvent(swapEvent.data);
         Vm.Log memory fundsDepositedEvent = AcrossHelpers.findFundsDepositedEvent(entries);
 
-        (bytes32 inputToken, bytes32 outputToken, uint256 inputAmount, uint256 outputAmount) =
+        (bytes32 inputToken, bytes32 outputToken, uint256 inputAmount, uint256 outputAmount, bytes memory message) =
             AcrossHelpers.parseFundsDepositedEvent(fundsDepositedEvent.data);
         assertEq(inputToken, bytes32(uint256(uint160(token0))));
         assertEq(outputToken, bytes32(uint256(uint160(destChainUsdc))));
         assertEq(inputAmount, amount0 + swapOutAmount);
         assertEq(outputAmount, amount0 + swapOutAmount - maxFees);
+        assertEq(message, data);
     }
 
     function test_onERC721Received_Token0USDCBaseToken_NoWETH_AboveTickUpper() public {
@@ -657,7 +752,18 @@ contract UniswapV3AcrossMigratorTest is TestContext, UniswapV3Helpers {
         assertEq(posToken0, token0);
 
         IMigrator.MigrationParams memory migrationParams =
-            MigrationHelpers.generateMigrationParams(token0, destChainUsdc, address(settler));
+            MigrationHelpers.generateMigrationParams(token0, destChainUsdc, amount0-maxFees-1, address(settler));
+
+        MigrationData memory migrationData = MigrationData({
+            sourceChainId: block.chainid,
+            migrator: address(migrator),
+            nonce: 1,
+            mode: MigrationModes.SINGLE,
+            routesData: "",
+            settlementData: ""
+        });
+        bytes32 migrationHash = migrationData.toHash();
+        bytes memory data = abi.encode(migrationHash, migrationData);
 
         // Transfer Position from user to migrator
         vm.expectEmit(true, true, false, false, address(v3PositionManager));
@@ -706,12 +812,13 @@ contract UniswapV3AcrossMigratorTest is TestContext, UniswapV3Helpers {
         uint256 swapOutAmount = 0;
         Vm.Log memory fundsDepositedEvent = AcrossHelpers.findFundsDepositedEvent(entries);
 
-        (bytes32 inputToken, bytes32 outputToken, uint256 inputAmount, uint256 outputAmount) =
+        (bytes32 inputToken, bytes32 outputToken, uint256 inputAmount, uint256 outputAmount, bytes memory message) =
             AcrossHelpers.parseFundsDepositedEvent(fundsDepositedEvent.data);
         assertEq(inputToken, bytes32(uint256(uint160(token0))));
         assertEq(outputToken, bytes32(uint256(uint160(destChainUsdc))));
         assertEq(inputAmount, amount0 + swapOutAmount - 1);
         assertEq(outputAmount, amount0 + swapOutAmount - 1 - maxFees);
+        assertEq(message, data);
     }
 
     /**
@@ -732,7 +839,18 @@ contract UniswapV3AcrossMigratorTest is TestContext, UniswapV3Helpers {
         assertEq(posToken1, token1);
 
         IMigrator.MigrationParams memory migrationParams =
-            MigrationHelpers.generateMigrationParams(token0, token1, token0, destChainUsdc, address(settler));
+            MigrationHelpers.generateMigrationParams(token0, token1, token0, destChainUsdc, amount0-maxFees-1, amount1-maxFees-1, address(settler));
+
+        MigrationData memory migrationData = MigrationData({
+            sourceChainId: block.chainid,
+            migrator: address(migrator),
+            nonce: 1,
+            mode: MigrationModes.DUAL,
+            routesData: abi.encode(token0, token1, amount0-maxFees-1, amount1-maxFees-1),
+            settlementData: ""
+        });
+        bytes32 migrationHash = migrationData.toHash();
+        bytes memory data = abi.encode(migrationHash, migrationData);
 
         // Transfer Position from user to migrator
         vm.expectEmit(true, true, false, false, address(v3PositionManager));
@@ -801,19 +919,20 @@ contract UniswapV3AcrossMigratorTest is TestContext, UniswapV3Helpers {
         Vm.Log[] memory entries = vm.getRecordedLogs();
         Vm.Log[] memory fundsDepositedEvents = AcrossHelpers.findFundsDepositedEvents(entries);
 
-        (bytes32 inputToken0, bytes32 outputToken0, uint256 inputAmount0, uint256 outputAmount0) =
-            AcrossHelpers.parseFundsDepositedEvent(fundsDepositedEvents[0].data);
+        (bytes32 inputToken0, bytes32 outputToken0, uint256 inputAmount0, uint256 outputAmount0, bytes memory message0)
+        = AcrossHelpers.parseFundsDepositedEvent(fundsDepositedEvents[0].data);
         assertEq(inputToken0, bytes32(uint256(uint160(token0))));
         assertEq(outputToken0, bytes32(uint256(uint160(weth))));
         assertEq(inputAmount0, amount0 - 1); // -1 for rounding error
         assertEq(outputAmount0, amount0 - 1 - maxFees); // -1 for rounding error
-
-        (bytes32 inputToken1, bytes32 outputToken1, uint256 inputAmount1, uint256 outputAmount1) =
-            AcrossHelpers.parseFundsDepositedEvent(fundsDepositedEvents[1].data);
+        assertEq(message0, data);
+        (bytes32 inputToken1, bytes32 outputToken1, uint256 inputAmount1, uint256 outputAmount1, bytes memory message1)
+        = AcrossHelpers.parseFundsDepositedEvent(fundsDepositedEvents[1].data);
         assertEq(inputToken1, bytes32(uint256(uint160(token1))));
         assertEq(outputToken1, bytes32(uint256(uint160(destChainUsdc))));
         assertEq(inputAmount1, amount1 - 1); // -1 for rounding error
         assertEq(outputAmount1, amount1 - 1 - maxFees); // -1 for rounding error
+        assertEq(message1, data);
     }
 
     function test() public override(TestContext, UniswapV3Helpers) {}
