@@ -22,6 +22,8 @@ contract TestContext is Test {
     address internal usdt;
     address internal virtualToken;
     address internal destChainUsdc;
+    address internal newTokenFirst = address(10); // so it sorts before weth
+    address internal newTokenSecond = makeAddr("newToken");
 
     IAcrossSpokePool internal acrossSpokePool;
     IPermit2 internal permit2;
