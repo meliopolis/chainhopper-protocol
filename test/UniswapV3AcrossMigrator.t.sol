@@ -34,7 +34,12 @@ contract UniswapV3AcrossMigratorTest is TestContext, UniswapV3Helpers {
 
         vm.prank(owner);
         migrator = new UniswapV3AcrossMigrator(
-            owner, address(v3PositionManager), address(universalRouter), address(permit2), acrossSpokePool, weth
+            owner,
+            address(v3PositionManager),
+            address(universalRouter),
+            address(permit2),
+            address(acrossSpokePool),
+            weth
         );
         // update chainSettler
         vm.prank(owner);
@@ -135,8 +140,8 @@ contract UniswapV3AcrossMigratorTest is TestContext, UniswapV3Helpers {
 
         // verify diff between input and output amount is equal to maxFees
         Vm.Log[] memory entries = vm.getRecordedLogs();
-        Vm.Log memory swapEvent = findSwapEvent(entries);
-        uint256 swapOutAmount = parseSwapEvent(swapEvent.data);
+        Vm.Log[] memory swapEvents = findSwapEvents(entries);
+        uint256 swapOutAmount = parseSwapEvent(swapEvents[0].data);
         Vm.Log memory fundsDepositedEvent = AcrossHelpers.findFundsDepositedEvent(entries);
 
         (bytes32 inputToken, bytes32 outputToken, uint256 inputAmount, uint256 outputAmount, bytes memory message) =
@@ -219,8 +224,8 @@ contract UniswapV3AcrossMigratorTest is TestContext, UniswapV3Helpers {
 
         // verify diff between input and output amount is equal to maxFees
         Vm.Log[] memory entries = vm.getRecordedLogs();
-        Vm.Log memory swapEvent = findSwapEvent(entries);
-        uint256 swapOutAmount = parseSwapEvent(swapEvent.data);
+        Vm.Log[] memory swapEvents = findSwapEvents(entries);
+        uint256 swapOutAmount = parseSwapEvent(swapEvents[0].data);
         Vm.Log memory fundsDepositedEvent = AcrossHelpers.findFundsDepositedEvent(entries);
 
         (bytes32 inputToken, bytes32 outputToken, uint256 inputAmount, uint256 outputAmount, bytes memory message) =
@@ -382,8 +387,8 @@ contract UniswapV3AcrossMigratorTest is TestContext, UniswapV3Helpers {
 
         // verify diff between input and output amount is equal to maxFees
         Vm.Log[] memory entries = vm.getRecordedLogs();
-        Vm.Log memory swapEvent = findSwapEvent(entries);
-        uint256 swapOutAmount = parseSwapEvent(swapEvent.data);
+        Vm.Log[] memory swapEvents = findSwapEvents(entries);
+        uint256 swapOutAmount = parseSwapEvent(swapEvents[0].data);
         Vm.Log memory fundsDepositedEvent = AcrossHelpers.findFundsDepositedEvent(entries);
 
         (bytes32 inputToken, bytes32 outputToken, uint256 inputAmount, uint256 outputAmount, bytes memory message) =
@@ -546,8 +551,8 @@ contract UniswapV3AcrossMigratorTest is TestContext, UniswapV3Helpers {
 
         // verify diff between input and output amount is equal to maxFees
         Vm.Log[] memory entries = vm.getRecordedLogs();
-        Vm.Log memory swapEvent = findSwapEvent(entries);
-        uint256 swapOutAmount = parseSwapEvent(swapEvent.data);
+        Vm.Log[] memory swapEvents = findSwapEvents(entries);
+        uint256 swapOutAmount = parseSwapEvent(swapEvents[0].data);
         Vm.Log memory fundsDepositedEvent = AcrossHelpers.findFundsDepositedEvent(entries);
 
         (bytes32 inputToken, bytes32 outputToken, uint256 inputAmount, uint256 outputAmount, bytes memory message) =
@@ -628,8 +633,8 @@ contract UniswapV3AcrossMigratorTest is TestContext, UniswapV3Helpers {
 
         // verify diff between input and output amount is equal to maxFees
         Vm.Log[] memory entries = vm.getRecordedLogs();
-        Vm.Log memory swapEvent = findSwapEvent(entries);
-        uint256 swapOutAmount = parseSwapEvent(swapEvent.data);
+        Vm.Log[] memory swapEvents = findSwapEvents(entries);
+        uint256 swapOutAmount = parseSwapEvent(swapEvents[0].data);
         Vm.Log memory fundsDepositedEvent = AcrossHelpers.findFundsDepositedEvent(entries);
 
         (bytes32 inputToken, bytes32 outputToken, uint256 inputAmount, uint256 outputAmount, bytes memory message) =
@@ -712,8 +717,8 @@ contract UniswapV3AcrossMigratorTest is TestContext, UniswapV3Helpers {
 
         // verify diff between input and output amount is equal to maxFees
         Vm.Log[] memory entries = vm.getRecordedLogs();
-        Vm.Log memory swapEvent = findSwapEvent(entries);
-        uint256 swapOutAmount = parseSwapEvent(swapEvent.data);
+        Vm.Log[] memory swapEvents = findSwapEvents(entries);
+        uint256 swapOutAmount = parseSwapEvent(swapEvents[0].data);
         Vm.Log memory fundsDepositedEvent = AcrossHelpers.findFundsDepositedEvent(entries);
 
         (bytes32 inputToken, bytes32 outputToken, uint256 inputAmount, uint256 outputAmount, bytes memory message) =

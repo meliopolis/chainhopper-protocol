@@ -1,0 +1,169 @@
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity ^0.8.24;
+
+import {Vm} from "forge-std/Test.sol";
+import {console} from "forge-std/console.sol";
+import {IUniswapV3Settler} from "../../src/interfaces/IUniswapV3Settler.sol";
+import {ISettler} from "../../src/interfaces/ISettler.sol";
+import {MigrationData} from "../../src/types/MigrationData.sol";
+import {MigrationMode, MigrationModes} from "../../src/types/MigrationMode.sol";
+
+library SettlementHelpers {
+    enum Range {
+        InRange,
+        BelowTick,
+        AboveTick
+    }
+
+    function generateV3SettlementParams(
+        address user,
+        address token0,
+        address token1,
+        uint24 fee,
+        uint160 sqrtPriceX96,
+        int24 tickLower,
+        int24 tickUpper,
+        uint24 swapAmountInMilliBps,
+        uint256 amount0Min,
+        uint256 amount1Min,
+        uint16 senderShareBps,
+        address senderFeeRecipient
+    ) public pure returns (ISettler.SettlementParams memory) {
+        ISettler.SettlementParams memory settlementParams = ISettler.SettlementParams({
+            recipient: user,
+            senderShareBps: senderShareBps,
+            senderFeeRecipient: senderFeeRecipient,
+            mintParams: abi.encode(
+                IUniswapV3Settler.MintParams({
+                    token0: token0,
+                    token1: token1,
+                    fee: fee,
+                    sqrtPriceX96: sqrtPriceX96,
+                    tickLower: tickLower,
+                    tickUpper: tickUpper,
+                    swapAmountInMilliBps: swapAmountInMilliBps,
+                    amount0Min: amount0Min,
+                    amount1Min: amount1Min
+                })
+            )
+        });
+        return settlementParams;
+    }
+
+    function generateV3SettlementParamsUsingCurrentTick(
+        address user,
+        address token0,
+        address token1,
+        uint24 fee,
+        uint160 sqrtPriceX96,
+        int24 currentTick,
+        Range range,
+        uint256 amount0Min,
+        uint256 amount1Min,
+        bool isToken0BaseToken
+    ) public pure returns (ISettler.SettlementParams memory) {
+        int24 tickLower;
+        int24 tickUpper;
+        uint24 swapAmountInMilliBps = 0;
+
+        if (range == Range.InRange) {
+            tickLower = (currentTick - 6932 * 5) / 10000 * 10000;
+            tickUpper = (currentTick + 4055 * 5) / 10000 * 10000;
+            swapAmountInMilliBps = isToken0BaseToken ? 5_500_000 : 4_500_000; // intentionally set high, so both tokens are leftover
+        } else if (range == Range.BelowTick) {
+            tickLower = (currentTick - 60000) / 10000 * 10000;
+            tickUpper = (currentTick - 30000) / 10000 * 10000;
+            swapAmountInMilliBps = isToken0BaseToken ? 10_000_000 : 0; // TODO review
+        } else {
+            tickLower = (currentTick + 30000) / 10000 * 10000;
+            tickUpper = (currentTick + 60000) / 10000 * 10000;
+            swapAmountInMilliBps = isToken0BaseToken ? 0 : 10_000_000; // TODO review
+        }
+        return generateV3SettlementParams(
+            user,
+            token0,
+            token1,
+            fee,
+            sqrtPriceX96,
+            tickLower,
+            tickUpper,
+            swapAmountInMilliBps,
+            amount0Min,
+            amount1Min,
+            0,
+            address(0)
+        );
+    }
+
+    function generateSettlerData(
+        ISettler.SettlementParams memory settlementParams,
+        MigrationMode mode,
+        bytes memory routesData
+    ) public view returns (bytes32 migrationHash, bytes memory data) {
+        MigrationData memory migrationData = MigrationData({
+            sourceChainId: block.chainid,
+            migrator: address(1),
+            nonce: 1,
+            mode: mode,
+            routesData: routesData,
+            settlementData: abi.encode(settlementParams)
+        });
+        migrationHash = migrationData.toHash();
+        return (migrationHash, abi.encode(migrationHash, migrationData));
+    }
+
+    function findFeePaymentEvent(Vm.Log[] memory logs) public view returns (Vm.Log memory) {
+        bytes32 topic0 = keccak256("FeePayment(bytes32,address,uint256,uint256)");
+
+        for (uint256 i = 0; i < logs.length; i++) {
+            // skip events emitted by this contract
+            if (logs[i].topics[0] == topic0 && logs[i].emitter != address(this)) {
+                return logs[i];
+            }
+        }
+        revert();
+    }
+
+    function parseFeePaymentEvent(bytes memory data) public pure returns (uint256) {
+        (uint256 amount0, uint256 amount1) = abi.decode(data, (uint256, uint256));
+        return amount0 + amount1;
+    }
+
+    function findTransferToUserEvents(Vm.Log[] memory logs, address user) public view returns (Vm.Log[] memory) {
+        bytes32 topic0 = keccak256("Transfer(address,address,uint256)");
+
+        // First count the number of matching events
+        uint256 matchingEventsCount = 0;
+        for (uint256 i = 0; i < logs.length; i++) {
+            if (
+                logs[i].topics[0] == topic0 && logs[i].emitter != address(this)
+                    && logs[i].topics[2] == bytes32(uint256(uint160(user)))
+                    && logs[i].topics[1] != bytes32(uint256(uint160(address(0))))
+            ) {
+                matchingEventsCount++;
+            }
+        }
+
+        // Create array of exact size needed
+        Vm.Log[] memory transferEvents = new Vm.Log[](matchingEventsCount);
+        uint256 transferEventsIndex = 0;
+
+        // Fill the array with matching events
+        for (uint256 i = 0; i < logs.length; i++) {
+            if (
+                logs[i].topics[0] == topic0 && logs[i].emitter != address(this)
+                    && logs[i].topics[2] == bytes32(uint256(uint160(user)))
+                    && logs[i].topics[1] != bytes32(uint256(uint160(address(0))))
+            ) {
+                transferEvents[transferEventsIndex] = logs[i];
+                transferEventsIndex++;
+            }
+        }
+        return transferEvents;
+    }
+
+    function parseTransferToUserEvent(Vm.Log memory log) public pure returns (uint256) {
+        (uint256 amount) = abi.decode(log.data, (uint256));
+        return amount;
+    }
+}

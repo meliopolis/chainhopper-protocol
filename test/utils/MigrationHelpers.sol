@@ -22,11 +22,12 @@ library MigrationHelpers {
         return generateMigrationParams(tokensSourceChain, tokensDestinationChain, amountOutMins, settler);
     }
 
-    function generateMigrationParams(address tokenSourceChain, address tokenDestinationChain, uint256 amountOutMin, address settler)
-        public
-        view
-        returns (IMigrator.MigrationParams memory)
-    {
+    function generateMigrationParams(
+        address tokenSourceChain,
+        address tokenDestinationChain,
+        uint256 amountOutMin,
+        address settler
+    ) public view returns (IMigrator.MigrationParams memory) {
         address[] memory tokensSourceChain = new address[](1);
         tokensSourceChain[0] = tokenSourceChain;
         address[] memory tokensDestinationChain = new address[](1);
@@ -76,8 +77,11 @@ library MigrationHelpers {
                 exclusiveRelayer: address(0),
                 exclusivityDeadline: 0
             });
-            tokenRoutes[i] =
-                IMigrator.TokenRoute({token: tokensSourceChain[i], amountOutMin: amountOutMins[i], route: abi.encode(route)});
+            tokenRoutes[i] = IMigrator.TokenRoute({
+                token: tokensSourceChain[i],
+                amountOutMin: amountOutMins[i],
+                route: abi.encode(route)
+            });
         }
         // generate MigrationParams
         // note: settlementParams contents don't matter for migrator, since it passes them to bridge as is
