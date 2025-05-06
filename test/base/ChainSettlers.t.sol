@@ -6,10 +6,10 @@ import {Ownable} from "@openzeppelin/access/Ownable.sol";
 import {ChainSettlers} from "../../src/base/ChainSettlers.sol";
 
 contract ChainSettlersTest is Test {
-    address user = makeAddr("user");
-    address owner = makeAddr("owner");
+    address internal user = makeAddr("user");
+    address internal owner = makeAddr("owner");
 
-    ChainSettlers chainSettlers;
+    ChainSettlers internal chainSettlers;
 
     function setUp() public {
         chainSettlers = new ChainSettlers(owner);

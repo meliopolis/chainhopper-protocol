@@ -2,6 +2,7 @@
 pragma solidity ^0.8.24;
 
 import {Test} from "@forge-std/Test.sol";
+import {V3SpokePoolInterface as IAcrossSpokePool} from "@across/interfaces/V3SpokePoolInterface.sol";
 import {IPermit2} from "@uniswap-permit2/interfaces/IPermit2.sol";
 import {IUniversalRouter} from "@uniswap-universal-router/interfaces/IUniversalRouter.sol";
 import {IHooks} from "@uniswap-v4-core/interfaces/IHooks.sol";
@@ -13,23 +14,24 @@ import {INonfungiblePositionManager as IV3PositionManager} from
     "../../src/interfaces/external/INonfungiblePositionManager.sol";
 
 contract TestContext is Test {
-    address user = makeAddr("user");
-    address owner = makeAddr("owner");
+    address internal user = makeAddr("user");
+    address internal owner = makeAddr("owner");
 
-    address weth;
-    address usdc;
-    address usdt;
-    address virtualToken;
-    address destChainUsdc;
+    address internal weth;
+    address internal usdc;
+    address internal usdt;
+    address internal virtualToken;
+    address internal destChainUsdc;
 
-    address acrossSpokePool;
-    IPermit2 permit2;
-    IUniversalRouter universalRouter;
-    IV3PositionManager v3PositionManager;
-    IV4PositionManager v4PositionManager;
+    IAcrossSpokePool internal acrossSpokePool;
+    IPermit2 internal permit2;
+    IUniversalRouter internal universalRouter;
+    IV3PositionManager internal v3PositionManager;
+    IV4PositionManager internal v4PositionManager;
 
-    PoolKey v4NativePoolKey;
-    PoolKey v4TokenPoolKey;
+    PoolKey internal v4FreshPoolKey;
+    PoolKey internal v4NativePoolKey;
+    PoolKey internal v4TokenPoolKey;
 
     function _loadChain(string memory srcChainName, string memory destChainName) internal {
         // setting block number to 28545100 for repeatability
@@ -43,7 +45,7 @@ contract TestContext is Test {
             destChainUsdc = vm.envAddress(string(abi.encodePacked(destChainName, "_USDC")));
         }
 
-        acrossSpokePool = vm.envAddress(string(abi.encodePacked(srcChainName, "_ACROSS_SPOKE_POOL")));
+        acrossSpokePool = IAcrossSpokePool(vm.envAddress(string(abi.encodePacked(srcChainName, "_ACROSS_SPOKE_POOL"))));
         permit2 = IPermit2(vm.envAddress(string(abi.encodePacked(srcChainName, "_UNISWAP_PERMIT2"))));
         universalRouter =
             IUniversalRouter(vm.envAddress(string(abi.encodePacked(srcChainName, "_UNISWAP_UNIVERSAL_ROUTER"))));
@@ -52,6 +54,7 @@ contract TestContext is Test {
         v4PositionManager =
             IV4PositionManager(vm.envAddress(string(abi.encodePacked(srcChainName, "_UNISWAP_V4_POSITION_MANAGER"))));
 
+        v4FreshPoolKey = PoolKey(Currency.wrap(address(1)), Currency.wrap(address(2)), 100, 1, IHooks(address(0)));
         v4NativePoolKey = PoolKey(Currency.wrap(address(0)), Currency.wrap(usdc), 500, 10, IHooks(address(0)));
         v4TokenPoolKey = PoolKey(
             Currency.wrap(usdc > usdt ? usdt : usdc),
