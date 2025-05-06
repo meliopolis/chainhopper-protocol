@@ -2,9 +2,15 @@
 pragma solidity ^0.8.24;
 
 import {Test} from "@forge-std/Test.sol";
+import {IPermit2} from "@uniswap-permit2/interfaces/IPermit2.sol";
+import {IUniversalRouter} from "@uniswap-universal-router/interfaces/IUniversalRouter.sol";
 import {IHooks} from "@uniswap-v4-core/interfaces/IHooks.sol";
 import {Currency} from "@uniswap-v4-core/types/Currency.sol";
 import {PoolKey} from "@uniswap-v4-core/types/PoolKey.sol";
+import {IPositionManager as IV4PositionManager} from "@uniswap-v4-periphery/interfaces/IPositionManager.sol";
+// copied and modified from uniswap-v3-periphery, as the original had bad imports
+import {INonfungiblePositionManager as IV3PositionManager} from
+    "../../src/interfaces/external/INonfungiblePositionManager.sol";
 
 contract TestContext is Test {
     address user = makeAddr("user");
@@ -17,10 +23,10 @@ contract TestContext is Test {
     address destChainUsdc;
 
     address acrossSpokePool;
-    address permit2;
-    address universalRouter;
-    address v3PositionManager;
-    address v4PositionManager;
+    IPermit2 permit2;
+    IUniversalRouter universalRouter;
+    IV3PositionManager v3PositionManager;
+    IV4PositionManager v4PositionManager;
 
     PoolKey v4NativePoolKey;
     PoolKey v4TokenPoolKey;
@@ -38,10 +44,13 @@ contract TestContext is Test {
         }
 
         acrossSpokePool = vm.envAddress(string(abi.encodePacked(srcChainName, "_ACROSS_SPOKE_POOL")));
-        permit2 = vm.envAddress(string(abi.encodePacked(srcChainName, "_UNISWAP_PERMIT2")));
-        universalRouter = vm.envAddress(string(abi.encodePacked(srcChainName, "_UNISWAP_UNIVERSAL_ROUTER")));
-        v3PositionManager = vm.envAddress(string(abi.encodePacked(srcChainName, "_UNISWAP_V3_POSITION_MANAGER")));
-        v4PositionManager = vm.envAddress(string(abi.encodePacked(srcChainName, "_UNISWAP_V4_POSITION_MANAGER")));
+        permit2 = IPermit2(vm.envAddress(string(abi.encodePacked(srcChainName, "_UNISWAP_PERMIT2"))));
+        universalRouter =
+            IUniversalRouter(vm.envAddress(string(abi.encodePacked(srcChainName, "_UNISWAP_UNIVERSAL_ROUTER"))));
+        v3PositionManager =
+            IV3PositionManager(vm.envAddress(string(abi.encodePacked(srcChainName, "_UNISWAP_V3_POSITION_MANAGER"))));
+        v4PositionManager =
+            IV4PositionManager(vm.envAddress(string(abi.encodePacked(srcChainName, "_UNISWAP_V4_POSITION_MANAGER"))));
 
         v4NativePoolKey = PoolKey(Currency.wrap(address(0)), Currency.wrap(usdc), 500, 10, IHooks(address(0)));
         v4TokenPoolKey = PoolKey(
@@ -52,6 +61,8 @@ contract TestContext is Test {
             IHooks(address(0))
         );
     }
+
+    receive() external payable {}
 
     // add this to be excluded from coverage report
     function test() public virtual {}

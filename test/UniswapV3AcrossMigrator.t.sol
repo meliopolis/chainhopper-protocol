@@ -33,8 +33,9 @@ contract UniswapV3AcrossMigratorTest is TestContext, UniswapV3Helpers {
         _loadChain(SRC_CHAIN_NAME, DEST_CHAIN_NAME);
 
         vm.prank(owner);
-        migrator =
-            new UniswapV3AcrossMigrator(owner, v3PositionManager, universalRouter, permit2, acrossSpokePool, weth);
+        migrator = new UniswapV3AcrossMigrator(
+            owner, address(v3PositionManager), address(universalRouter), address(permit2), acrossSpokePool, weth
+        );
         // update chainSettler
         vm.prank(owner);
         uint256[] memory chainIds = new uint256[](1);
@@ -71,14 +72,14 @@ contract UniswapV3AcrossMigratorTest is TestContext, UniswapV3Helpers {
         address token1 = usdc;
         // current tick is ~ -201000
         (uint256 tokenId, uint256 amount0,) =
-            mintV3Position(v3PositionManager, user, token0, token1, -250000, -100000, 500);
+            mintV3Position(address(v3PositionManager), user, token0, token1, -250000, -100000, 500);
 
         // verify posToken0 is baseToken
-        (,, address posToken0,,,,,,,,,) = INonfungiblePositionManager(v3PositionManager).positions(tokenId);
+        (,, address posToken0,,,,,,,,,) = v3PositionManager.positions(tokenId);
         assertEq(posToken0, token0);
 
         IMigrator.MigrationParams memory migrationParams =
-            MigrationHelpers.generateMigrationParams(token0, address(settler), amount0-maxFees);
+            MigrationHelpers.generateMigrationParams(token0, address(settler), amount0 - maxFees);
 
         MigrationData memory migrationData = MigrationData({
             sourceChainId: block.chainid,
@@ -130,9 +131,7 @@ contract UniswapV3AcrossMigratorTest is TestContext, UniswapV3Helpers {
             migrationHash, tokenId, destinationChainId, address(settler), MigrationModes.SINGLE, user, token0, 0
         );
         vm.prank(user);
-        INonfungiblePositionManager(v3PositionManager).safeTransferFrom(
-            user, address(migrator), tokenId, abi.encode(migrationParams)
-        );
+        v3PositionManager.safeTransferFrom(user, address(migrator), tokenId, abi.encode(migrationParams));
 
         // verify diff between input and output amount is equal to maxFees
         Vm.Log[] memory entries = vm.getRecordedLogs();
@@ -156,11 +155,11 @@ contract UniswapV3AcrossMigratorTest is TestContext, UniswapV3Helpers {
         // current tick is ~ -201000
 
         (uint256 tokenId, uint256 amount0,) =
-            mintV3Position(v3PositionManager, user, token0, token1, -250000, -210000, 500);
+            mintV3Position(address(v3PositionManager), user, token0, token1, -250000, -210000, 500);
         // only token1 is used
 
         // verify posToken0 is baseToken
-        (,, address posToken0,,,,,,,,,) = INonfungiblePositionManager(v3PositionManager).positions(tokenId);
+        (,, address posToken0,,,,,,,,,) = v3PositionManager.positions(tokenId);
         assertEq(posToken0, token0);
 
         IMigrator.MigrationParams memory migrationParams =
@@ -216,9 +215,7 @@ contract UniswapV3AcrossMigratorTest is TestContext, UniswapV3Helpers {
             bytes32(0), tokenId, destinationChainId, address(settler), MigrationModes.SINGLE, user, token0, 0
         );
         vm.prank(user);
-        INonfungiblePositionManager(v3PositionManager).safeTransferFrom(
-            user, address(migrator), tokenId, abi.encode(migrationParams)
-        );
+        v3PositionManager.safeTransferFrom(user, address(migrator), tokenId, abi.encode(migrationParams));
 
         // verify diff between input and output amount is equal to maxFees
         Vm.Log[] memory entries = vm.getRecordedLogs();
@@ -241,16 +238,16 @@ contract UniswapV3AcrossMigratorTest is TestContext, UniswapV3Helpers {
         address token1 = usdc;
         // current tick is ~ -201000
         (uint256 tokenId, uint256 amount0,) =
-            mintV3Position(v3PositionManager, user, token0, token1, -150000, -100000, 500);
+            mintV3Position(address(v3PositionManager), user, token0, token1, -150000, -100000, 500);
 
         // only token0 is used, so no swap is needed
 
         // verify posToken0 is baseToken
-        (,, address posToken0,,,,,,,,,) = INonfungiblePositionManager(v3PositionManager).positions(tokenId);
+        (,, address posToken0,,,,,,,,,) = v3PositionManager.positions(tokenId);
         assertEq(posToken0, token0);
 
         IMigrator.MigrationParams memory migrationParams =
-            MigrationHelpers.generateMigrationParams(token0, address(settler), amount0-maxFees-1);
+            MigrationHelpers.generateMigrationParams(token0, address(settler), amount0 - maxFees - 1);
 
         MigrationData memory migrationData = MigrationData({
             sourceChainId: block.chainid,
@@ -301,9 +298,7 @@ contract UniswapV3AcrossMigratorTest is TestContext, UniswapV3Helpers {
             bytes32(0), tokenId, destinationChainId, address(settler), MigrationModes.SINGLE, user, token0, 0
         );
         vm.prank(user);
-        INonfungiblePositionManager(v3PositionManager).safeTransferFrom(
-            user, address(migrator), tokenId, abi.encode(migrationParams)
-        );
+        v3PositionManager.safeTransferFrom(user, address(migrator), tokenId, abi.encode(migrationParams));
 
         // verify diff between input and output amount is equal to maxFees
         Vm.Log[] memory entries = vm.getRecordedLogs();
@@ -324,14 +319,14 @@ contract UniswapV3AcrossMigratorTest is TestContext, UniswapV3Helpers {
         address token0 = virtualToken;
         address token1 = weth;
         (uint256 tokenId,, uint256 amount1) =
-            mintV3Position(v3PositionManager, user, token0, token1, -200000, -5000, 500);
+            mintV3Position(address(v3PositionManager), user, token0, token1, -200000, -5000, 500);
 
         // verify posToken0 is baseToken
-        (,,, address posToken1,,,,,,,,) = INonfungiblePositionManager(v3PositionManager).positions(tokenId);
+        (,,, address posToken1,,,,,,,,) = v3PositionManager.positions(tokenId);
         assertEq(posToken1, token1);
 
         IMigrator.MigrationParams memory migrationParams =
-            MigrationHelpers.generateMigrationParams(token1, address(settler), amount1-maxFees-1);
+            MigrationHelpers.generateMigrationParams(token1, address(settler), amount1 - maxFees - 1);
 
         MigrationData memory migrationData = MigrationData({
             sourceChainId: block.chainid,
@@ -383,9 +378,7 @@ contract UniswapV3AcrossMigratorTest is TestContext, UniswapV3Helpers {
             bytes32(0), tokenId, destinationChainId, address(settler), MigrationModes.SINGLE, user, token1, 0
         );
         vm.prank(user);
-        INonfungiblePositionManager(v3PositionManager).safeTransferFrom(
-            user, address(migrator), tokenId, abi.encode(migrationParams)
-        );
+        v3PositionManager.safeTransferFrom(user, address(migrator), tokenId, abi.encode(migrationParams));
 
         // verify diff between input and output amount is equal to maxFees
         Vm.Log[] memory entries = vm.getRecordedLogs();
@@ -407,16 +400,16 @@ contract UniswapV3AcrossMigratorTest is TestContext, UniswapV3Helpers {
         address token0 = virtualToken;
         address token1 = weth;
         (uint256 tokenId,, uint256 amount1) =
-            mintV3Position(v3PositionManager, user, token0, token1, -200000, -100000, 500);
+            mintV3Position(address(v3PositionManager), user, token0, token1, -200000, -100000, 500);
 
         // only token1 is used; no swap is needed
 
         // verify posToken0 is baseToken
-        (,,, address posToken1,,,,,,,,) = INonfungiblePositionManager(v3PositionManager).positions(tokenId);
+        (,,, address posToken1,,,,,,,,) = v3PositionManager.positions(tokenId);
         assertEq(posToken1, token1);
 
         IMigrator.MigrationParams memory migrationParams =
-            MigrationHelpers.generateMigrationParams(token1, address(settler), amount1-maxFees-1);
+            MigrationHelpers.generateMigrationParams(token1, address(settler), amount1 - maxFees - 1);
 
         MigrationData memory migrationData = MigrationData({
             sourceChainId: block.chainid,
@@ -467,9 +460,7 @@ contract UniswapV3AcrossMigratorTest is TestContext, UniswapV3Helpers {
             bytes32(0), tokenId, destinationChainId, address(settler), MigrationModes.SINGLE, user, token1, 0
         );
         vm.prank(user);
-        INonfungiblePositionManager(v3PositionManager).safeTransferFrom(
-            user, address(migrator), tokenId, abi.encode(migrationParams)
-        );
+        v3PositionManager.safeTransferFrom(user, address(migrator), tokenId, abi.encode(migrationParams));
 
         // verify diff between input and output amount is equal to maxFees
         Vm.Log[] memory entries = vm.getRecordedLogs();
@@ -490,16 +481,16 @@ contract UniswapV3AcrossMigratorTest is TestContext, UniswapV3Helpers {
         address token0 = virtualToken;
         address token1 = weth;
         (uint256 tokenId,, uint256 amount1) =
-            mintV3Position(v3PositionManager, user, token0, token1, -200000, -5000, 500);
+            mintV3Position(address(v3PositionManager), user, token0, token1, -200000, -5000, 500);
 
         // only token0 is used
 
         // verify posToken0 is baseToken
-        (,,, address posToken1,,,,,,,,) = INonfungiblePositionManager(v3PositionManager).positions(tokenId);
+        (,,, address posToken1,,,,,,,,) = v3PositionManager.positions(tokenId);
         assertEq(posToken1, token1);
 
         IMigrator.MigrationParams memory migrationParams =
-            MigrationHelpers.generateMigrationParams(token1, address(settler), amount1-maxFees-1);
+            MigrationHelpers.generateMigrationParams(token1, address(settler), amount1 - maxFees - 1);
 
         MigrationData memory migrationData = MigrationData({
             sourceChainId: block.chainid,
@@ -551,9 +542,7 @@ contract UniswapV3AcrossMigratorTest is TestContext, UniswapV3Helpers {
             bytes32(0), tokenId, destinationChainId, address(settler), MigrationModes.SINGLE, user, token1, 0
         );
         vm.prank(user);
-        INonfungiblePositionManager(v3PositionManager).safeTransferFrom(
-            user, address(migrator), tokenId, abi.encode(migrationParams)
-        );
+        v3PositionManager.safeTransferFrom(user, address(migrator), tokenId, abi.encode(migrationParams));
 
         // verify diff between input and output amount is equal to maxFees
         Vm.Log[] memory entries = vm.getRecordedLogs();
@@ -575,14 +564,15 @@ contract UniswapV3AcrossMigratorTest is TestContext, UniswapV3Helpers {
         address token0 = usdc;
         address token1 = usdt;
         // current tick is ~ -201000
-        (uint256 tokenId, uint256 amount0,) = mintV3Position(v3PositionManager, user, token0, token1, -5000, 5000, 100);
+        (uint256 tokenId, uint256 amount0,) =
+            mintV3Position(address(v3PositionManager), user, token0, token1, -5000, 5000, 100);
 
         // verify posToken0 is baseToken
-        (,, address posToken0,,,,,,,,,) = INonfungiblePositionManager(v3PositionManager).positions(tokenId);
+        (,, address posToken0,,,,,,,,,) = v3PositionManager.positions(tokenId);
         assertEq(posToken0, token0);
 
         IMigrator.MigrationParams memory migrationParams =
-            MigrationHelpers.generateMigrationParams(token0, destChainUsdc, amount0-maxFees-1, address(settler));
+            MigrationHelpers.generateMigrationParams(token0, destChainUsdc, amount0 - maxFees - 1, address(settler));
 
         MigrationData memory migrationData = MigrationData({
             sourceChainId: block.chainid,
@@ -634,9 +624,7 @@ contract UniswapV3AcrossMigratorTest is TestContext, UniswapV3Helpers {
             bytes32(0), tokenId, destinationChainId, address(settler), MigrationModes.SINGLE, user, token0, 0
         );
         vm.prank(user);
-        INonfungiblePositionManager(v3PositionManager).safeTransferFrom(
-            user, address(migrator), tokenId, abi.encode(migrationParams)
-        );
+        v3PositionManager.safeTransferFrom(user, address(migrator), tokenId, abi.encode(migrationParams));
 
         // verify diff between input and output amount is equal to maxFees
         Vm.Log[] memory entries = vm.getRecordedLogs();
@@ -658,12 +646,13 @@ contract UniswapV3AcrossMigratorTest is TestContext, UniswapV3Helpers {
         address token0 = usdc;
         address token1 = usdt;
         // current tick is ~ -201000
-        (uint256 tokenId, uint256 amount0,) = mintV3Position(v3PositionManager, user, token0, token1, -1000, -100, 100);
+        (uint256 tokenId, uint256 amount0,) =
+            mintV3Position(address(v3PositionManager), user, token0, token1, -1000, -100, 100);
 
         // only token1 is used
 
         // verify posToken0 is baseToken
-        (,, address posToken0,,,,,,,,,) = INonfungiblePositionManager(v3PositionManager).positions(tokenId);
+        (,, address posToken0,,,,,,,,,) = v3PositionManager.positions(tokenId);
         assertEq(posToken0, token0);
 
         IMigrator.MigrationParams memory migrationParams =
@@ -719,9 +708,7 @@ contract UniswapV3AcrossMigratorTest is TestContext, UniswapV3Helpers {
             bytes32(0), tokenId, destinationChainId, address(settler), MigrationModes.SINGLE, user, token0, 0
         );
         vm.prank(user);
-        INonfungiblePositionManager(v3PositionManager).safeTransferFrom(
-            user, address(migrator), tokenId, abi.encode(migrationParams)
-        );
+        v3PositionManager.safeTransferFrom(user, address(migrator), tokenId, abi.encode(migrationParams));
 
         // verify diff between input and output amount is equal to maxFees
         Vm.Log[] memory entries = vm.getRecordedLogs();
@@ -743,16 +730,17 @@ contract UniswapV3AcrossMigratorTest is TestContext, UniswapV3Helpers {
         address token0 = usdc;
         address token1 = usdt;
         // current tick is ~ -201000
-        (uint256 tokenId, uint256 amount0,) = mintV3Position(v3PositionManager, user, token0, token1, 100, 500, 100);
+        (uint256 tokenId, uint256 amount0,) =
+            mintV3Position(address(v3PositionManager), user, token0, token1, 100, 500, 100);
 
         // only token0 is used; no swap is needed
 
         // verify posToken0 is baseToken
-        (,, address posToken0,,,,,,,,,) = INonfungiblePositionManager(v3PositionManager).positions(tokenId);
+        (,, address posToken0,,,,,,,,,) = v3PositionManager.positions(tokenId);
         assertEq(posToken0, token0);
 
         IMigrator.MigrationParams memory migrationParams =
-            MigrationHelpers.generateMigrationParams(token0, destChainUsdc, amount0-maxFees-1, address(settler));
+            MigrationHelpers.generateMigrationParams(token0, destChainUsdc, amount0 - maxFees - 1, address(settler));
 
         MigrationData memory migrationData = MigrationData({
             sourceChainId: block.chainid,
@@ -803,9 +791,7 @@ contract UniswapV3AcrossMigratorTest is TestContext, UniswapV3Helpers {
             bytes32(0), tokenId, destinationChainId, address(settler), MigrationModes.SINGLE, user, token0, 0
         );
         vm.prank(user);
-        INonfungiblePositionManager(v3PositionManager).safeTransferFrom(
-            user, address(migrator), tokenId, abi.encode(migrationParams)
-        );
+        v3PositionManager.safeTransferFrom(user, address(migrator), tokenId, abi.encode(migrationParams));
 
         // verify diff between input and output amount is equal to maxFees
         Vm.Log[] memory entries = vm.getRecordedLogs();
@@ -830,23 +816,23 @@ contract UniswapV3AcrossMigratorTest is TestContext, UniswapV3Helpers {
         address token1 = usdc;
         // current tick is ~ -201000
         (uint256 tokenId, uint256 amount0, uint256 amount1) =
-            mintV3Position(v3PositionManager, user, token0, token1, -250000, -100000, 500);
+            mintV3Position(address(v3PositionManager), user, token0, token1, -250000, -100000, 500);
 
         // verify posToken0 is baseToken
-        (,, address posToken0, address posToken1,,,,,,,,) =
-            INonfungiblePositionManager(v3PositionManager).positions(tokenId);
+        (,, address posToken0, address posToken1,,,,,,,,) = v3PositionManager.positions(tokenId);
         assertEq(posToken0, token0);
         assertEq(posToken1, token1);
 
-        IMigrator.MigrationParams memory migrationParams =
-            MigrationHelpers.generateMigrationParams(token0, token1, token0, destChainUsdc, amount0-maxFees-1, amount1-maxFees-1, address(settler));
+        IMigrator.MigrationParams memory migrationParams = MigrationHelpers.generateMigrationParams(
+            token0, token1, token0, destChainUsdc, amount0 - maxFees - 1, amount1 - maxFees - 1, address(settler)
+        );
 
         MigrationData memory migrationData = MigrationData({
             sourceChainId: block.chainid,
             migrator: address(migrator),
             nonce: 1,
             mode: MigrationModes.DUAL,
-            routesData: abi.encode(token0, token1, amount0-maxFees-1, amount1-maxFees-1),
+            routesData: abi.encode(token0, token1, amount0 - maxFees - 1, amount1 - maxFees - 1),
             settlementData: ""
         });
         bytes32 migrationHash = migrationData.toHash();
@@ -911,9 +897,7 @@ contract UniswapV3AcrossMigratorTest is TestContext, UniswapV3Helpers {
             bytes32(0), tokenId, destinationChainId, address(settler), MigrationModes.DUAL, user, token1, 0
         );
         vm.prank(user);
-        INonfungiblePositionManager(v3PositionManager).safeTransferFrom(
-            user, address(migrator), tokenId, abi.encode(migrationParams)
-        );
+        v3PositionManager.safeTransferFrom(user, address(migrator), tokenId, abi.encode(migrationParams));
 
         // verify diff between input and output amount is equal to maxFees
         Vm.Log[] memory entries = vm.getRecordedLogs();
