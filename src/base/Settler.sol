@@ -174,7 +174,7 @@ abstract contract Settler is ISettler, ProtocolFees, ReentrancyGuard {
     /// @notice Internal function to refund a migration
     /// @param migrationHash The migration hash
     /// @param onlyRecipient Whether to only refund the recipient
-    function _refund(bytes32 migrationHash, bool onlyRecipient) internal {
+    function _refund(bytes32 migrationHash, bool onlyRecipient) internal virtual {
         SettlementCache memory settlementCache = settlementCaches[migrationHash];
 
         if (settlementCache.amount > 0) {
