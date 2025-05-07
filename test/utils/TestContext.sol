@@ -9,6 +9,9 @@ import {IHooks} from "@uniswap-v4-core/interfaces/IHooks.sol";
 import {Currency} from "@uniswap-v4-core/types/Currency.sol";
 import {PoolKey} from "@uniswap-v4-core/types/PoolKey.sol";
 import {IPositionManager as IV4PositionManager} from "@uniswap-v4-periphery/interfaces/IPositionManager.sol";
+import {IStateView} from "@uniswap-v4-periphery/interfaces/IStateView.sol";
+import {IPoolManager} from "@uniswap-v4-core/interfaces/IPoolManager.sol";
+
 // copied and modified from uniswap-v3-periphery, as the original had bad imports
 import {INonfungiblePositionManager as IV3PositionManager} from
     "../../src/interfaces/external/INonfungiblePositionManager.sol";
@@ -30,7 +33,8 @@ contract TestContext is Test {
     IUniversalRouter internal universalRouter;
     IV3PositionManager internal v3PositionManager;
     IV4PositionManager internal v4PositionManager;
-
+    IStateView internal v4StateView;
+    IPoolManager internal v4PoolManager;
     PoolKey internal v4FreshPoolKey;
     PoolKey internal v4NativePoolKey;
     PoolKey internal v4TokenPoolKey;
@@ -55,6 +59,8 @@ contract TestContext is Test {
             IV3PositionManager(vm.envAddress(string(abi.encodePacked(srcChainName, "_UNISWAP_V3_POSITION_MANAGER"))));
         v4PositionManager =
             IV4PositionManager(vm.envAddress(string(abi.encodePacked(srcChainName, "_UNISWAP_V4_POSITION_MANAGER"))));
+        v4StateView = IStateView(vm.envAddress(string(abi.encodePacked(srcChainName, "_UNISWAP_V4_STATE_VIEW"))));
+        v4PoolManager = IPoolManager(vm.envAddress(string(abi.encodePacked(srcChainName, "_UNISWAP_V4_POOL_MANAGER"))));
 
         v4FreshPoolKey = PoolKey(Currency.wrap(address(1)), Currency.wrap(address(2)), 100, 1, IHooks(address(0)));
         v4NativePoolKey = PoolKey(Currency.wrap(address(0)), Currency.wrap(usdc), 500, 10, IHooks(address(0)));

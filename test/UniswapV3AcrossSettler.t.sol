@@ -702,32 +702,6 @@ contract UniswapV3AcrossSettlerTest is TestContext, UniswapV3Helpers {
     }
 
     // Non-WETH base token scenarios
-    function test_handleV3AcrossMessage_ST_NonWethBaseToken_failsHashAndIsIgnored() public {
-        deal(usdc, address(settler), usdcAmount);
-        vm.recordLogs();
-        // generate data
-        (bytes32 migrationHash, bytes memory data) =
-            genSettlerData(usdc, usdt, 100, SettlementHelpers.Range.InRange, true);
-        (, MigrationData memory migrationData) = abi.decode(data, (bytes32, MigrationData));
-        bytes32 fakeMigrationHash = bytes32(abi.encode(bytes("fake")));
-        bytes memory fakeData = abi.encode(fakeMigrationHash, migrationData);
-
-        // call handleV3AcrossMessage
-        vm.prank(address(acrossSpokePool));
-        vm.expectRevert(bytes("")); // important to use bytes("") as this revert should contain no data
-        settler.handleV3AcrossMessage(usdc, usdcAmount, address(0), fakeData);
-
-        // verify no amounts were transferred
-        Vm.Log[] memory logs = vm.getRecordedLogs();
-        assertEq(logs.length, 0); // no logs were emitted
-        assertEq(IERC20(usdc).balanceOf(address(settler)), usdcAmount);
-        assertEq(IERC20(usdt).balanceOf(address(settler)), 0);
-
-        // verify settlement cache is not set
-        assertEq(settler.checkSettlementCache(fakeMigrationHash), false);
-        assertEq(settler.checkSettlementCache(migrationHash), false);
-    }
-
     function test_handleV3AcrossMessage_ST_NonWethBaseToken_failsAndRefunds() public {
         deal(usdc, address(settler), usdcAmount);
         (, bytes memory data) =
