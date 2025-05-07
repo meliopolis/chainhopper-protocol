@@ -34,8 +34,10 @@ abstract contract AcrossSettler is IAcrossSettler, IAcrossMessageHandler, Settle
             emit Receipt(migrationHash, recipient, token, amount);
         } catch (bytes memory reason) {
             bytes4 selector;
-            assembly ("memory-safe") {
-                selector := mload(add(reason, 0x20))
+            if (reason.length >= 4) {
+                selector = (
+                    bytes4(reason[0]) | (bytes4(reason[1]) >> 8) | (bytes4(reason[2]) >> 16) | (bytes4(reason[3]) >> 24)
+                );
             }
 
             if (
