@@ -124,6 +124,20 @@ library SettlementHelpers {
         revert();
     }
 
+    function findFeePaymentEvents(Vm.Log[] memory logs) public view returns (Vm.Log[] memory) {
+        bytes32 topic0 = keccak256("FeePayment(bytes32,address,uint256,uint256)");
+        Vm.Log[] memory feePaymentEvents = new Vm.Log[](2);
+        uint256 feePaymentEventsIndex = 0;
+
+        for (uint256 i = 0; i < logs.length; i++) {
+            if (logs[i].topics[0] == topic0 && logs[i].emitter != address(this)) {
+                feePaymentEvents[feePaymentEventsIndex] = logs[i];
+                feePaymentEventsIndex++;
+            }
+        }
+        return feePaymentEvents;
+    }
+
     function parseFeePaymentEvent(bytes memory data) public pure returns (uint256) {
         (uint256 amount0, uint256 amount1) = abi.decode(data, (uint256, uint256));
         return amount0 + amount1;
