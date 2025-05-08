@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.24;
 
-import {Vm} from "forge-std/Test.sol";
+import {Test, Vm} from "forge-std/Test.sol";
 import {console} from "forge-std/console.sol";
 import {IUniswapV3Settler} from "../../src/interfaces/IUniswapV3Settler.sol";
 import {IUniswapV4Settler} from "../../src/interfaces/IUniswapV4Settler.sol";
@@ -12,6 +12,8 @@ import {PoolKey} from "@uniswap-v4-core/types/PoolKey.sol";
 import {Currency} from "@uniswap-v4-core/types/Currency.sol";
 
 library SettlementHelpers {
+    address private constant SENDER_FEE_RECIPIENT = address(0x737383);
+
     enum Range {
         InRange,
         BelowTick,
@@ -63,7 +65,8 @@ library SettlementHelpers {
         Range range,
         uint256 amount0Min,
         uint256 amount1Min,
-        bool isToken0BaseToken
+        bool isToken0BaseToken,
+        uint16 senderShareBps
     ) public pure returns (ISettler.SettlementParams memory) {
         int24 tickLower;
         int24 tickUpper;
@@ -93,8 +96,8 @@ library SettlementHelpers {
             swapAmountInMilliBps,
             amount0Min,
             amount1Min,
-            0,
-            address(0)
+            senderShareBps,
+            SENDER_FEE_RECIPIENT
         );
     }
 
@@ -141,7 +144,8 @@ library SettlementHelpers {
         Range range,
         uint256 amount0Min,
         uint256 amount1Min,
-        bool isToken0BaseToken
+        bool isToken0BaseToken,
+        uint16 senderShareBps
     ) public pure returns (ISettler.SettlementParams memory) {
         int24 tickLower;
         int24 tickUpper;
@@ -169,8 +173,8 @@ library SettlementHelpers {
             swapAmountInMilliBps,
             amount0Min,
             amount1Min,
-            0,
-            address(0)
+            senderShareBps,
+            SENDER_FEE_RECIPIENT
         );
     }
 
