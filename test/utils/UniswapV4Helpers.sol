@@ -15,6 +15,7 @@ import {SafeERC20} from "@openzeppelin/token/ERC20/utils/SafeERC20.sol";
 import {SqrtPriceMath} from "@uniswap-v4-core/libraries/SqrtPriceMath.sol";
 import {TickMath} from "@uniswap-v4-core/libraries/TickMath.sol";
 import {IPoolManager} from "@uniswap-v4-core/interfaces/IPoolManager.sol";
+import {PositionInfoLibrary, PositionInfo} from "@uniswap-v4-periphery/libraries/PositionInfoLibrary.sol";
 
 contract UniswapV4Helpers is Test {
     using SafeERC20 for IERC20;
@@ -23,6 +24,59 @@ contract UniswapV4Helpers is Test {
         IStateView stateView = IStateView(stateViewAddr);
         (, int24 currentTick,,) = stateView.getSlot0(PoolIdLibrary.toId(poolKey));
         return currentTick;
+    }
+
+    function mintV4Position(
+        address nftPositionManager,
+        address permit2,
+        address user,
+        PoolKey memory poolKey,
+        int24 tickLower,
+        int24 tickUpper
+    ) public returns (uint256) {
+        uint256 amount0Desired = 1_000_000_000_000_000_000;
+        uint256 amount1Desired = 1_000_000_000_000_000_000;
+        // give user both tokens
+        // handle native token case
+        address token0 = Currency.unwrap(poolKey.currency0);
+        address token1 = Currency.unwrap(poolKey.currency1);
+        bool isToken0Native = token0 == address(0);
+        if (isToken0Native) {
+            deal(address(this), amount0Desired);
+        } else {
+            deal(token0, address(this), amount0Desired);
+        }
+        deal(token1, address(this), amount1Desired);
+        // handle permit2 approval
+        if (!isToken0Native) {
+            IERC20(Currency.unwrap(poolKey.currency0)).forceApprove(address(permit2), type(uint256).max);
+            IPermit2(permit2).approve(
+                Currency.unwrap(poolKey.currency0),
+                address(nftPositionManager),
+                uint160(amount0Desired),
+                uint48(block.timestamp + 10)
+            );
+        }
+        IERC20(Currency.unwrap(poolKey.currency1)).forceApprove(address(permit2), type(uint256).max);
+        IPermit2(permit2).approve(
+            Currency.unwrap(poolKey.currency1),
+            address(nftPositionManager),
+            uint160(amount1Desired),
+            uint48(block.timestamp + 10)
+        );
+
+        uint128 liquidity = 1_000_000_000_000;
+        uint256 tokenId = IPositionManager(nftPositionManager).nextTokenId();
+        // mint v4 position
+        bytes memory actions =
+            abi.encodePacked(bytes1(uint8(Actions.MINT_POSITION)), bytes1(uint8(Actions.SETTLE_PAIR)));
+        bytes[] memory params = new bytes[](2);
+        params[0] = abi.encode(poolKey, tickLower, tickUpper, liquidity, amount0Desired, amount1Desired, user, "");
+        params[1] = abi.encode(poolKey.currency0, poolKey.currency1);
+        IPositionManager(nftPositionManager).modifyLiquidities{value: isToken0Native ? amount0Desired : 0}(
+            abi.encode(actions, params), block.timestamp
+        );
+        return tokenId;
     }
 
     // mint a big v4 position with WETH to populate the pool
@@ -68,7 +122,24 @@ contract UniswapV4Helpers is Test {
         IPositionManager(nftPositionManager).modifyLiquidities{value: 0}(abi.encode(actions, params), block.timestamp);
     }
 
-    // only works for an in-range position
+    function getPositionAmounts(address nftPositionManager, address stateView, uint256 tokenId)
+        public
+        view
+        returns (uint256 amount0, uint256 amount1)
+    {
+        uint128 liquidity = this.getPositionLiquidity(nftPositionManager, tokenId);
+        (PoolKey memory poolKey, PositionInfo positionInfo) =
+            IPositionManager(nftPositionManager).getPoolAndPositionInfo(tokenId);
+        amount0 =
+            this.getAmount0(address(stateView), poolKey, positionInfo.tickLower(), positionInfo.tickUpper(), liquidity);
+        amount1 =
+            this.getAmount1(address(stateView), poolKey, positionInfo.tickLower(), positionInfo.tickUpper(), liquidity);
+    }
+
+    function getPositionLiquidity(address nftPositionManager, uint256 tokenId) public view returns (uint128) {
+        return IPositionManager(nftPositionManager).getPositionLiquidity(tokenId);
+    }
+
     function getAmount0(
         address stateViewAddr,
         PoolKey memory poolKey,
@@ -80,8 +151,32 @@ contract UniswapV4Helpers is Test {
         (uint160 sqrtPriceX96,,,) = stateView.getSlot0(PoolIdLibrary.toId(poolKey));
         uint160 sqrtPriceX96Lower = TickMath.getSqrtPriceAtTick(tickLower);
         uint160 sqrtPriceX96Upper = TickMath.getSqrtPriceAtTick(tickUpper);
+        // handle out of range case
+        if (sqrtPriceX96 > sqrtPriceX96Upper) {
+            return 0;
+        }
         return SqrtPriceMath.getAmount0Delta(
             sqrtPriceX96Upper, sqrtPriceX96 > sqrtPriceX96Lower ? sqrtPriceX96 : sqrtPriceX96Lower, liquidity, true
+        );
+    }
+
+    function getAmount1(
+        address stateViewAddr,
+        PoolKey memory poolKey,
+        int24 tickLower,
+        int24 tickUpper,
+        uint128 liquidity
+    ) public view returns (uint256) {
+        IStateView stateView = IStateView(stateViewAddr);
+        (uint160 sqrtPriceX96,,,) = stateView.getSlot0(PoolIdLibrary.toId(poolKey));
+        uint160 sqrtPriceX96Lower = TickMath.getSqrtPriceAtTick(tickLower);
+        uint160 sqrtPriceX96Upper = TickMath.getSqrtPriceAtTick(tickUpper);
+        // handle out of range case
+        if (sqrtPriceX96 < sqrtPriceX96Lower) {
+            return 0;
+        }
+        return SqrtPriceMath.getAmount1Delta(
+            sqrtPriceX96Upper < sqrtPriceX96 ? sqrtPriceX96Upper : sqrtPriceX96, sqrtPriceX96Lower, liquidity, true
         );
     }
 
