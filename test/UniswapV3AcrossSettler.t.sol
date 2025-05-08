@@ -421,7 +421,7 @@ contract UniswapV3AcrossSettlerTest is TestContext, UniswapV3Helpers {
         assertCorrectAmounts(vm.getRecordedLogs(), true, wethAmount, 0);
     }
 
-    function test_handleV3AcrossMessage_ST_Token0BaseToken_BelowTickLower() public {
+    function test_handleV3AcrossMessage_ST_Token0BaseToken_BelowCurrentTick() public {
         deal(weth, address(settler), wethAmount);
         vm.recordLogs();
         // generate data; below tick means only token1 is needed
@@ -466,7 +466,7 @@ contract UniswapV3AcrossSettlerTest is TestContext, UniswapV3Helpers {
         assertCorrectAmounts(vm.getRecordedLogs(), true, wethAmount, 0);
     }
 
-    function test_handleV3AcrossMessage_ST_Token0BaseToken_AboveTickUpper() public {
+    function test_handleV3AcrossMessage_ST_Token0BaseToken_AboveCurrentTick() public {
         deal(weth, address(settler), wethAmount);
         vm.recordLogs();
         // generate data; above tick means only token0 is needed
@@ -626,7 +626,7 @@ contract UniswapV3AcrossSettlerTest is TestContext, UniswapV3Helpers {
         assertCorrectAmounts(vm.getRecordedLogs(), false, 0, wethAmount);
     }
 
-    function test_handleV3AcrossMessage_ST_Token1BaseToken_BelowTickLower() public {
+    function test_handleV3AcrossMessage_ST_Token1BaseToken_BelowCurrentTick() public {
         deal(weth, address(settler), wethAmount);
         vm.recordLogs();
         // generate data
@@ -672,7 +672,7 @@ contract UniswapV3AcrossSettlerTest is TestContext, UniswapV3Helpers {
         assertCorrectAmounts(vm.getRecordedLogs(), false, 0, wethAmount);
     }
 
-    function test_handleV3AcrossMessage_ST_Token1BaseToken_AboveTickUpper() public {
+    function test_handleV3AcrossMessage_ST_Token1BaseToken_AboveCurrentTick() public {
         deal(weth, address(settler), wethAmount);
         vm.recordLogs();
         // generate data
@@ -830,7 +830,7 @@ contract UniswapV3AcrossSettlerTest is TestContext, UniswapV3Helpers {
         assertCorrectAmounts(vm.getRecordedLogs(), true, usdcAmount, 0);
     }
 
-    function test_handleV3AcrossMessage_ST_NonWethBaseToken_BelowTickLower() public {
+    function test_handleV3AcrossMessage_ST_NonWethBaseToken_BelowCurrentTick() public {
         deal(usdc, address(settler), usdcAmount);
 
         vm.recordLogs();
@@ -878,7 +878,7 @@ contract UniswapV3AcrossSettlerTest is TestContext, UniswapV3Helpers {
         assertCorrectAmounts(vm.getRecordedLogs(), true, usdcAmount, 0);
     }
 
-    function test_handleV3AcrossMessage_ST_NonWethBaseToken_AboveTickUpper() public {
+    function test_handleV3AcrossMessage_ST_NonWethBaseToken_AboveCurrentTick() public {
         deal(usdc, address(settler), usdcAmount);
 
         vm.recordLogs();

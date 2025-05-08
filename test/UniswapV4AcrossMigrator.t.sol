@@ -168,7 +168,7 @@ contract UniswapV4AcrossMigratorTest is TestContext, UniswapV4Helpers {
         assertEq(message, data);
     }
 
-    function test_onERC721Received_NativeToken_BelowTickLower() public {
+    function test_onERC721Received_NativeToken_BelowCurrentTick() public {
         address token0 = weth; // this is still left as weth for later in the test
         address token1 = usdc;
         PoolKey memory poolKey = PoolKey({
@@ -260,7 +260,7 @@ contract UniswapV4AcrossMigratorTest is TestContext, UniswapV4Helpers {
         assertEq(message, data);
     }
 
-    function test_onERC721Received_NativeToken_AboveTickUpper() public {
+    function test_onERC721Received_NativeToken_AboveCurrentTick() public {
         address token0 = weth; // this is still left as weth for later in the test
         address token1 = usdc;
         PoolKey memory poolKey = PoolKey({
@@ -445,7 +445,7 @@ contract UniswapV4AcrossMigratorTest is TestContext, UniswapV4Helpers {
         assertEq(message, data);
     }
 
-    function test_onERC721Received_Token0WETHBaseToken_BelowTickLower() public {
+    function test_onERC721Received_Token0WETHBaseToken_BelowCurrentTick() public {
         address token0 = weth;
         address token1 = usdc;
         PoolKey memory poolKey = PoolKey({
@@ -529,7 +529,7 @@ contract UniswapV4AcrossMigratorTest is TestContext, UniswapV4Helpers {
         // verify diff between input and output amount is equal to maxFees
         Vm.Log[] memory entries = vm.getRecordedLogs();
         Vm.Log[] memory swapEvents = findSwapEvents(entries);
-        (uint256 amountIn, uint256 amountOut) = parseSwapEventForBothAmounts(swapEvents[0].data);
+        (, uint256 amountOut) = parseSwapEventForBothAmounts(swapEvents[0].data);
         Vm.Log memory fundsDepositedEvent = AcrossHelpers.findFundsDepositedEvent(entries);
 
         (bytes32 inputToken, bytes32 outputToken, uint256 inputAmount, uint256 outputAmount, bytes memory message) =
@@ -541,7 +541,7 @@ contract UniswapV4AcrossMigratorTest is TestContext, UniswapV4Helpers {
         assertEq(message, data);
     }
 
-    function test_onERC721Received_Token0WETHBaseToken_AboveTickUpper() public {
+    function test_onERC721Received_Token0WETHBaseToken_AboveCurrentTick() public {
         address token0 = weth;
         address token1 = usdc;
         PoolKey memory poolKey = PoolKey({
@@ -730,7 +730,7 @@ contract UniswapV4AcrossMigratorTest is TestContext, UniswapV4Helpers {
         assertEq(message, data);
     }
 
-    function test_onERC721Received_Token1WETHBaseToken_BelowTickLower() public {
+    function test_onERC721Received_Token1WETHBaseToken_BelowCurrentTick() public {
         address token0 = virtualToken;
         address token1 = weth;
         PoolKey memory poolKey = PoolKey({
@@ -823,7 +823,7 @@ contract UniswapV4AcrossMigratorTest is TestContext, UniswapV4Helpers {
         assertEq(message, data);
     }
 
-    function test_onERC721Received_Token1WETHBaseToken_AboveTickUpper() public {
+    function test_onERC721Received_Token1WETHBaseToken_AboveCurrentTick() public {
         address token0 = virtualToken;
         address token1 = weth;
         PoolKey memory poolKey = PoolKey({
@@ -1013,7 +1013,7 @@ contract UniswapV4AcrossMigratorTest is TestContext, UniswapV4Helpers {
         assertEq(message, data);
     }
 
-    function test_onERC721Received_Token0USDCBaseToken_NoWETH_BelowTickLower() public {
+    function test_onERC721Received_Token0USDCBaseToken_NoWETH_BelowCurrentTick() public {
         address token0 = usdc;
         address token1 = usdt;
         PoolKey memory poolKey = PoolKey({
@@ -1108,7 +1108,7 @@ contract UniswapV4AcrossMigratorTest is TestContext, UniswapV4Helpers {
         assertEq(message, data);
     }
 
-    function test_onERC721Received_Token0USDCBaseToken_NoWETH_AboveTickUpper() public {
+    function test_onERC721Received_Token0USDCBaseToken_NoWETH_AboveCurrentTick() public {
         address token0 = usdc;
         address token1 = usdt;
         PoolKey memory poolKey = PoolKey({
@@ -1321,7 +1321,7 @@ contract UniswapV4AcrossMigratorTest is TestContext, UniswapV4Helpers {
     }
 
     function test_onERC721Received_BothTokensERC20andBaseTokens_InRange() public {
-          address token0 = weth;
+        address token0 = weth;
         address token1 = usdc;
         PoolKey memory poolKey = PoolKey({
             currency0: Currency.wrap(token0),
@@ -1340,15 +1340,16 @@ contract UniswapV4AcrossMigratorTest is TestContext, UniswapV4Helpers {
         (uint256 amount0, uint256 amount1) =
             getPositionAmounts(address(v4PositionManager), address(v4StateView), tokenId);
 
-        IMigrator.MigrationParams memory migrationParams =
-            MigrationHelpers.generateMigrationParams(token0, token1, token0, destChainUsdc, amount0 - maxFees-1, amount1 - maxFees-1, address(settler));
+        IMigrator.MigrationParams memory migrationParams = MigrationHelpers.generateMigrationParams(
+            token0, token1, token0, destChainUsdc, amount0 - maxFees - 1, amount1 - maxFees - 1, address(settler)
+        );
 
         MigrationData memory migrationData = MigrationData({
             sourceChainId: block.chainid,
             migrator: address(migrator),
             nonce: 1,
             mode: MigrationModes.DUAL,
-            routesData: abi.encode(token0, token1, amount0 - maxFees-1, amount1 - maxFees-1),
+            routesData: abi.encode(token0, token1, amount0 - maxFees - 1, amount1 - maxFees - 1),
             settlementData: ""
         });
         bytes32 migrationHash = migrationData.toHash();
@@ -1412,7 +1413,7 @@ contract UniswapV4AcrossMigratorTest is TestContext, UniswapV4Helpers {
         emit IMigrator.MigrationStarted(
             migrationHash, tokenId, destinationChainId, address(settler), MigrationModes.DUAL, user, token0, 0
         );
-                vm.expectEmit(true, true, true, false);
+        vm.expectEmit(true, true, true, false);
         emit IMigrator.MigrationStarted(
             migrationHash, tokenId, destinationChainId, address(settler), MigrationModes.DUAL, user, token1, 0
         );
@@ -1438,7 +1439,7 @@ contract UniswapV4AcrossMigratorTest is TestContext, UniswapV4Helpers {
         assertEq(inputAmount1, amount1 - 1); // -1 for rounding error
         assertEq(outputAmount1, amount1 - 1 - maxFees); // -1 for rounding error
         assertEq(message1, data);
-        }
+    }
 
     function test() public override(TestContext, UniswapV4Helpers) {}
 }

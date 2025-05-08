@@ -541,7 +541,7 @@ contract UniswapV4AcrossSettlerTest is TestContext, UniswapV4Helpers {
         assertCorrectAmountsForNativeTokenPositions(vm.getRecordedLogs(), poolKey, wethAmount, 0);
     }
 
-    function test_handleV3AcrossMessage_ST_NativeToken_BelowTickLower() public {
+    function test_handleV3AcrossMessage_ST_NativeToken_BelowCurrentTick() public {
         PoolKey memory poolKey = PoolKey(Currency.wrap(address(0)), Currency.wrap(usdc), 500, 10, IHooks(address(0)));
         deal(weth, address(settler), wethAmount);
         PoolId poolId = PoolIdLibrary.toId(poolKey);
@@ -591,7 +591,7 @@ contract UniswapV4AcrossSettlerTest is TestContext, UniswapV4Helpers {
         assertCorrectAmounts(vm.getRecordedLogs(), poolKey, true, wethAmount, 0);
     }
 
-    function test_handleV3AcrossMessage_ST_NativeToken_AboveTickUpper() public {
+    function test_handleV3AcrossMessage_ST_NativeToken_AboveCurrentTick() public {
         PoolKey memory poolKey = PoolKey(Currency.wrap(address(0)), Currency.wrap(usdc), 500, 10, IHooks(address(0)));
         deal(weth, address(settler), wethAmount);
         PoolId poolId = PoolIdLibrary.toId(poolKey);
@@ -766,7 +766,7 @@ contract UniswapV4AcrossSettlerTest is TestContext, UniswapV4Helpers {
         assertCorrectAmounts(vm.getRecordedLogs(), poolKey, true, wethAmount, 0);
     }
 
-    function test_handleV3AcrossMessage_ST_Token0BaseToken_BelowTickLower() public {
+    function test_handleV3AcrossMessage_ST_Token0BaseToken_BelowCurrentTick() public {
         PoolKey memory poolKey = PoolKey(Currency.wrap(weth), Currency.wrap(usdc), 500, 10, IHooks(address(0)));
         UniswapV4Helpers.mintBigV4PositionToPopulatePool(
             address(v4PositionManager), address(permit2), user, poolKey, -600000, 100000, 1_000_000_000_000_000
@@ -817,7 +817,7 @@ contract UniswapV4AcrossSettlerTest is TestContext, UniswapV4Helpers {
         assertCorrectAmounts(vm.getRecordedLogs(), poolKey, true, wethAmount, 0);
     }
 
-    function test_handleV3AcrossMessage_ST_Token0BaseToken_AboveTickUpper() public {
+    function test_handleV3AcrossMessage_ST_Token0BaseToken_AboveCurrentTick() public {
         PoolKey memory poolKey = PoolKey(Currency.wrap(weth), Currency.wrap(usdc), 500, 10, IHooks(address(0)));
         UniswapV4Helpers.mintBigV4PositionToPopulatePool(
             address(v4PositionManager), address(permit2), user, poolKey, -600000, 100000, 1_000_000_000_000_000
@@ -1007,7 +1007,7 @@ contract UniswapV4AcrossSettlerTest is TestContext, UniswapV4Helpers {
         assertCorrectAmounts(vm.getRecordedLogs(), poolKey, false, 0, wethAmount);
     }
 
-    function test_handleV3AcrossMessage_ST_Token1BaseToken_BelowTickLower() public {
+    function test_handleV3AcrossMessage_ST_Token1BaseToken_BelowCurrentTick() public {
         PoolKey memory poolKey =
             PoolKey(Currency.wrap(virtualToken), Currency.wrap(weth), 3000, 100, IHooks(address(0)));
         // initialize pool
@@ -1061,7 +1061,7 @@ contract UniswapV4AcrossSettlerTest is TestContext, UniswapV4Helpers {
         assertCorrectAmounts(vm.getRecordedLogs(), poolKey, false, 0, wethAmount);
     }
 
-    function test_handleV3AcrossMessage_ST_Token1BaseToken_AboveTickUpper() public {
+    function test_handleV3AcrossMessage_ST_Token1BaseToken_AboveCurrentTick() public {
         PoolKey memory poolKey =
             PoolKey(Currency.wrap(virtualToken), Currency.wrap(weth), 3000, 100, IHooks(address(0)));
         // initialize pool
@@ -1240,7 +1240,7 @@ contract UniswapV4AcrossSettlerTest is TestContext, UniswapV4Helpers {
         assertCorrectAmounts(vm.getRecordedLogs(), poolKey, true, usdcAmount, 0);
     }
 
-    function test_handleV3AcrossMessage_ST_NonWethBaseToken_BelowTickLower() public {
+    function test_handleV3AcrossMessage_ST_NonWethBaseToken_BelowCurrentTick() public {
         PoolKey memory poolKey = PoolKey(Currency.wrap(usdc), Currency.wrap(usdt), 500, 10, IHooks(address(0)));
         UniswapV4Helpers.mintBigV4PositionToPopulatePool(
             address(v4PositionManager), address(permit2), user, poolKey, -100000, 100000, 1_000_000_000_000_000_000
@@ -1292,7 +1292,7 @@ contract UniswapV4AcrossSettlerTest is TestContext, UniswapV4Helpers {
         assertCorrectAmounts(vm.getRecordedLogs(), poolKey, true, usdcAmount, 0);
     }
 
-    function test_handleV3AcrossMessage_ST_NonWethBaseToken_AboveTickUpper() public {
+    function test_handleV3AcrossMessage_ST_NonWethBaseToken_AboveCurrentTick() public {
         PoolKey memory poolKey = PoolKey(Currency.wrap(usdc), Currency.wrap(usdt), 500, 10, IHooks(address(0)));
         UniswapV4Helpers.mintBigV4PositionToPopulatePool(
             address(v4PositionManager), address(permit2), user, poolKey, -100000, 100000, 1_000_000_000_000_000_000
