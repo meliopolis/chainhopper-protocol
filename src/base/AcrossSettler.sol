@@ -52,6 +52,7 @@ abstract contract AcrossSettler is IAcrossSettler, IAcrossMessageHandler, Settle
 
                 // refund this and cached settlement if applicable (Across only receive ERC20 tokens)
                 IERC20(token).safeTransfer(settlementParams.recipient, amount);
+                emit Refund(migrationHash, settlementParams.recipient, token, amount);
                 if (migrationData.mode == MigrationModes.DUAL) {
                     _refund(migrationHash, false);
                 }
