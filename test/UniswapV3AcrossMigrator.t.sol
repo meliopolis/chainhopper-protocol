@@ -153,7 +153,7 @@ contract UniswapV3AcrossMigratorTest is TestContext, UniswapV3Helpers {
         assertEq(message, data);
     }
 
-    function test_onERC721Received_Token0WETHBaseToken_BelowTickLower() public {
+    function test_onERC721Received_Token0WETHBaseToken_BelowCurrentTick() public {
         vm.recordLogs();
         address token0 = weth;
         address token1 = usdc;
@@ -237,7 +237,7 @@ contract UniswapV3AcrossMigratorTest is TestContext, UniswapV3Helpers {
         assertEq(message, data);
     }
 
-    function test_onERC721Received_Token0WETHBaseToken_AboveTickUpper() public {
+    function test_onERC721Received_Token0WETHBaseToken_AboveCurrentTick() public {
         vm.recordLogs();
         address token0 = weth;
         address token1 = usdc;
@@ -400,7 +400,7 @@ contract UniswapV3AcrossMigratorTest is TestContext, UniswapV3Helpers {
         assertEq(message, data);
     }
 
-    function test_onERC721Received_Token1WETHBaseToken_BelowTickLower() public {
+    function test_onERC721Received_Token1WETHBaseToken_BelowCurrentTick() public {
         vm.recordLogs();
         address token0 = virtualToken;
         address token1 = weth;
@@ -481,7 +481,7 @@ contract UniswapV3AcrossMigratorTest is TestContext, UniswapV3Helpers {
         assertEq(message, data);
     }
 
-    function test_onERC721Received_Token1WETHBaseToken_AboveTickUpper() public {
+    function test_onERC721Received_Token1WETHBaseToken_AboveCurrentTick() public {
         vm.recordLogs();
         address token0 = virtualToken;
         address token1 = weth;
@@ -646,7 +646,7 @@ contract UniswapV3AcrossMigratorTest is TestContext, UniswapV3Helpers {
         assertEq(message, data);
     }
 
-    function test_onERC721Received_Token0USDCBaseToken_NoWETH_BelowTickLower() public {
+    function test_onERC721Received_Token0USDCBaseToken_NoWETH_BelowCurrentTick() public {
         vm.recordLogs();
         address token0 = usdc;
         address token1 = usdt;
@@ -730,7 +730,7 @@ contract UniswapV3AcrossMigratorTest is TestContext, UniswapV3Helpers {
         assertEq(message, data);
     }
 
-    function test_onERC721Received_Token0USDCBaseToken_NoWETH_AboveTickUpper() public {
+    function test_onERC721Received_Token0USDCBaseToken_NoWETH_AboveCurrentTick() public {
         vm.recordLogs();
         address token0 = usdc;
         address token1 = usdt;
