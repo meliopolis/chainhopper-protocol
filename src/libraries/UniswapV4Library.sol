@@ -58,7 +58,7 @@ library UniswapV4Library {
         uint256 amount0Min,
         uint256 amount1Min,
         address recipient
-    ) internal returns (uint256 positionId, uint128 liquidity, uint256 amount0, uint256 amount1) {
+    ) public returns (uint256 positionId, uint128 liquidity, uint256 amount0, uint256 amount1) {
         // cache balances before mint
         uint256 balance0Before = poolKey.currency0.balanceOfSelf();
         uint256 balance1Before = poolKey.currency1.balanceOfSelf();
