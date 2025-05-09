@@ -478,12 +478,16 @@ contract UniswapV4AcrossSettlerTest is TestContext, UniswapV4Helpers {
         // generate data with high amount0Min and amount1Min so it'll fail to mint
         deal(weth, address(settler), wethAmount);
         PoolKey memory poolKey = PoolKey(Currency.wrap(address(0)), Currency.wrap(usdc), 500, 10, IHooks(address(0)));
-        (, bytes memory data) =
+        (bytes32 migrationHash, bytes memory data) =
             genSettlerDataWithAmounts(poolKey, SettlementHelpers.Range.InRange, true, 1 ether, 1 ether);
 
         // expect the entire weth amount to be transferred to user
         vm.expectEmit(true, true, false, true, address(weth));
         emit IERC20.Transfer(address(settler), address(user), wethAmount);
+
+        // expect a refund
+        vm.expectEmit(true, true, true, true);
+        emit ISettler.Refund(migrationHash, address(user), weth, wethAmount);
 
         // call handleV3AcrossMessage
         vm.prank(address(acrossSpokePool));
@@ -700,12 +704,16 @@ contract UniswapV4AcrossSettlerTest is TestContext, UniswapV4Helpers {
         // generate data with high amount0Min and amount1Min so it'll fail to mint
         deal(weth, address(settler), wethAmount);
         PoolKey memory poolKey = PoolKey(Currency.wrap(weth), Currency.wrap(usdc), 500, 10, IHooks(address(0)));
-        (, bytes memory data) =
+        (bytes32 migrationHash, bytes memory data) =
             genSettlerDataWithAmounts(poolKey, SettlementHelpers.Range.InRange, true, 1 ether, 1 ether);
 
         // expect the entire weth amount to be transferred to user
         vm.expectEmit(true, true, false, true, address(weth));
         emit IERC20.Transfer(address(settler), address(user), wethAmount);
+
+        // expect a refund
+        vm.expectEmit(true, true, true, true);
+        emit ISettler.Refund(migrationHash, address(user), weth, wethAmount);
 
         // call handleV3AcrossMessage
         vm.prank(address(acrossSpokePool));
@@ -937,12 +945,16 @@ contract UniswapV4AcrossSettlerTest is TestContext, UniswapV4Helpers {
 
         vm.recordLogs();
         // generate data with high amount0Min and amount1Min so it'll fail to mint
-        (, bytes memory data) =
+        (bytes32 migrationHash, bytes memory data) =
             genSettlerDataWithAmounts(poolKey, SettlementHelpers.Range.InRange, false, 1 ether, 1 ether);
 
         // expect the entire weth amount to be transferred to user
         vm.expectEmit(true, true, false, true, address(weth));
         emit IERC20.Transfer(address(settler), address(user), wethAmount);
+
+        // expect a refund
+        vm.expectEmit(true, true, true, true);
+        emit ISettler.Refund(migrationHash, address(user), weth, wethAmount);
 
         // call handleV3AcrossMessage
         vm.prank(address(acrossSpokePool));
@@ -1176,12 +1188,16 @@ contract UniswapV4AcrossSettlerTest is TestContext, UniswapV4Helpers {
         deal(usdc, address(settler), usdcAmount);
         PoolKey memory poolKey = PoolKey(Currency.wrap(usdc), Currency.wrap(usdt), 500, 10, IHooks(address(0)));
 
-        (, bytes memory data) =
+        (bytes32 migrationHash, bytes memory data) =
             genSettlerDataWithAmounts(poolKey, SettlementHelpers.Range.InRange, true, 1 ether, 1 ether);
 
         // expect the entire weth amount to be transferred to user
         vm.expectEmit(true, true, false, true, address(usdc));
         emit IERC20.Transfer(address(settler), address(user), usdcAmount);
+
+        // expect a refund
+        vm.expectEmit(true, true, true, true);
+        emit ISettler.Refund(migrationHash, address(user), usdc, usdcAmount);
 
         // call handleV3AcrossMessage
         vm.prank(address(acrossSpokePool));
@@ -1520,9 +1536,16 @@ contract UniswapV4AcrossSettlerTest is TestContext, UniswapV4Helpers {
         vm.expectEmit(true, true, false, true, address(usdc));
         emit IERC20.Transfer(address(settler), address(user), usdcAmount);
 
+        // expect a refund
+        vm.expectEmit(true, true, true, true);
+        emit ISettler.Refund(migrationHash, address(user), usdc, usdcAmount);
+
         // expect the entire weth amount to be transferred to user
         vm.expectEmit(true, true, false, true, address(weth));
         emit IERC20.Transfer(address(settler), address(user), wethAmount);
+        // expect a refund
+        vm.expectEmit(true, true, true, true);
+        emit ISettler.Refund(migrationHash, address(user), weth, wethAmount);
 
         // second call to handleV3AcrossMessage fails via catch and refunds both token
         vm.prank(address(acrossSpokePool));
@@ -1918,9 +1941,17 @@ contract UniswapV4AcrossSettlerTest is TestContext, UniswapV4Helpers {
         vm.expectEmit(true, true, false, true, address(usdc));
         emit IERC20.Transfer(address(settler), address(user), usdcAmount);
 
+        // expect a refund
+        vm.expectEmit(true, true, true, true);
+        emit ISettler.Refund(migrationHash, address(user), usdc, usdcAmount);
+
         // expect the entire weth amount to be transferred to user
         vm.expectEmit(true, true, false, true, address(weth));
         emit IERC20.Transfer(address(settler), address(user), wethAmount);
+
+        // expect a refund
+        vm.expectEmit(true, true, true, true);
+        emit ISettler.Refund(migrationHash, address(user), weth, wethAmount);
 
         // second call to handleV3AcrossMessage fails via catch and refunds both token
         vm.prank(address(acrossSpokePool));

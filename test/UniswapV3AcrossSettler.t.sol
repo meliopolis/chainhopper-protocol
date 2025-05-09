@@ -360,12 +360,15 @@ contract UniswapV3AcrossSettlerTest is TestContext, UniswapV3Helpers {
     function test_handleV3AcrossMessage_ST_Token0BaseToken_failsAndRefunds() public {
         // generate data with high amount0Min and amount1Min so it'll fail to mint
         deal(weth, address(settler), wethAmount);
-        (, bytes memory data) =
+        (bytes32 migrationHash, bytes memory data) =
             genSettlerDataWithAmounts(weth, usdc, 500, SettlementHelpers.Range.InRange, true, 1 ether, 1 ether);
 
         // expect the entire weth amount to be transferred to user
         vm.expectEmit(true, true, false, true, address(weth));
         emit IERC20.Transfer(address(settler), address(user), wethAmount);
+        // expect a refund
+        vm.expectEmit(true, true, true, true);
+        emit ISettler.Refund(migrationHash, address(user), weth, wethAmount);
 
         // call handleV3AcrossMessage
         vm.prank(address(acrossSpokePool));
@@ -565,12 +568,15 @@ contract UniswapV3AcrossSettlerTest is TestContext, UniswapV3Helpers {
         deal(weth, address(settler), wethAmount);
         vm.recordLogs();
         // generate data with high amount0Min and amount1Min so it'll fail to mint
-        (, bytes memory data) =
+        (bytes32 migrationHash, bytes memory data) =
             genSettlerDataWithAmounts(virtualToken, weth, 500, SettlementHelpers.Range.InRange, false, 1 ether, 1 ether);
 
         // expect the entire weth amount to be transferred to user
         vm.expectEmit(true, true, false, true, address(weth));
         emit IERC20.Transfer(address(settler), address(user), wethAmount);
+        // expect a refund
+        vm.expectEmit(true, true, true, true);
+        emit ISettler.Refund(migrationHash, address(user), weth, wethAmount);
 
         // call handleV3AcrossMessage
         vm.prank(address(acrossSpokePool));
@@ -771,12 +777,15 @@ contract UniswapV3AcrossSettlerTest is TestContext, UniswapV3Helpers {
     // Non-WETH base token scenarios
     function test_handleV3AcrossMessage_ST_NonWethBaseToken_failsAndRefunds() public {
         deal(usdc, address(settler), usdcAmount);
-        (, bytes memory data) =
+        (bytes32 migrationHash, bytes memory data) =
             genSettlerDataWithAmounts(usdc, usdt, 100, SettlementHelpers.Range.InRange, true, 1 ether, 1 ether);
 
         // expect the entire weth amount to be transferred to user
         vm.expectEmit(true, true, false, true, address(usdc));
         emit IERC20.Transfer(address(settler), address(user), usdcAmount);
+        // expect a refund
+        vm.expectEmit(true, true, true, true);
+        emit ISettler.Refund(migrationHash, address(user), usdc, usdcAmount);
 
         // call handleV3AcrossMessage
         vm.prank(address(acrossSpokePool));
@@ -1086,9 +1095,17 @@ contract UniswapV3AcrossSettlerTest is TestContext, UniswapV3Helpers {
         vm.expectEmit(true, true, false, true, address(usdc));
         emit IERC20.Transfer(address(settler), address(user), usdcAmount);
 
+        // expect a refund
+        vm.expectEmit(true, true, true, true);
+        emit ISettler.Refund(migrationHash, address(user), usdc, usdcAmount);
+
         // expect the entire weth amount to be transferred to user
         vm.expectEmit(true, true, false, true, address(weth));
         emit IERC20.Transfer(address(settler), address(user), wethAmount);
+
+        // expect a refund
+        vm.expectEmit(true, true, true, true);
+        emit ISettler.Refund(migrationHash, address(user), weth, wethAmount);
 
         // second call to handleV3AcrossMessage fails via catch and refunds both token
         vm.prank(address(acrossSpokePool));
