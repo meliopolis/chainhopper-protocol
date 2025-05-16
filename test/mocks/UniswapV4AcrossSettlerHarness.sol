@@ -27,7 +27,7 @@ contract UniswapV4AcrossSettlerHarness is UniswapV4Settler, AcrossSettler {
         Settler(initialOwner)
     {}
 
-    function checkSettlementCache(bytes32 migrationHash) public view returns (bool) {
-        return settlementCaches[migrationHash].recipient != address(0);
+    function checkSettlementCache(bytes32 migrationId) public view returns (bool) {
+        return settlementCaches[migrationId].recipient != address(0);
     }
 }

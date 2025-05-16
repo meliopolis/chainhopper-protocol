@@ -16,7 +16,12 @@ contract MockAcrossSettler is AcrossSettler {
         errorSelector = selector;
     }
 
-    function selfSettle(address, uint256, bytes memory data) external view override returns (bytes32, address) {
+    function selfSettle(bytes32, address, uint256, MigrationData memory migrationData)
+        external
+        view
+        override
+        returns (bool)
+    {
         bytes4 selector = errorSelector;
 
         if (errorSelector != bytes4(0)) {
@@ -26,10 +31,7 @@ contract MockAcrossSettler is AcrossSettler {
                 revert(ptr, 4)
             }
         }
-
-        (bytes32 migrationHash, MigrationData memory migrationData) = abi.decode(data, (bytes32, MigrationData));
-        SettlementParams memory settlementParams = abi.decode(migrationData.settlementData, (SettlementParams));
-        return (migrationHash, settlementParams.recipient);
+        return true;
     }
 
     function _refund(bytes32, bool) internal override {

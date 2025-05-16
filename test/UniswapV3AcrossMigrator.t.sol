@@ -94,8 +94,8 @@ contract UniswapV3AcrossMigratorTest is TestContext, UniswapV3Helpers {
             routesData: "",
             settlementData: ""
         });
-        bytes32 migrationHash = migrationData.toHash();
-        bytes memory data = abi.encode(migrationHash, migrationData);
+        bytes32 migrationId = migrationData.toId();
+        bytes memory data = abi.encode(migrationId, migrationData);
 
         // Transfer Position from user to migrator
         vm.expectEmit(true, true, false, false, address(v3PositionManager));
@@ -133,7 +133,7 @@ contract UniswapV3AcrossMigratorTest is TestContext, UniswapV3Helpers {
 
         vm.expectEmit(true, true, true, false);
         emit IMigrator.MigrationStarted(
-            migrationHash, tokenId, destinationChainId, address(settler), MigrationModes.SINGLE, user, token0, 0
+            migrationId, tokenId, destinationChainId, address(settler), MigrationModes.SINGLE, user, token0, 0
         );
         vm.prank(user);
         v3PositionManager.safeTransferFrom(user, address(migrator), tokenId, abi.encode(migrationParams));
@@ -178,8 +178,8 @@ contract UniswapV3AcrossMigratorTest is TestContext, UniswapV3Helpers {
             routesData: "",
             settlementData: ""
         });
-        bytes32 migrationHash = migrationData.toHash();
-        bytes memory data = abi.encode(migrationHash, migrationData);
+        bytes32 migrationId = migrationData.toId();
+        bytes memory data = abi.encode(migrationId, migrationData);
 
         // Transfer Position from user to migrator
         vm.expectEmit(true, true, false, false, address(v3PositionManager));
@@ -262,8 +262,8 @@ contract UniswapV3AcrossMigratorTest is TestContext, UniswapV3Helpers {
             routesData: "",
             settlementData: ""
         });
-        bytes32 migrationHash = migrationData.toHash();
-        bytes memory data = abi.encode(migrationHash, migrationData);
+        bytes32 migrationId = migrationData.toId();
+        bytes memory data = abi.encode(migrationId, migrationData);
 
         // Transfer Position from user to migrator
         vm.expectEmit(true, true, false, false, address(v3PositionManager));
@@ -341,8 +341,8 @@ contract UniswapV3AcrossMigratorTest is TestContext, UniswapV3Helpers {
             routesData: "",
             settlementData: ""
         });
-        bytes32 migrationHash = migrationData.toHash();
-        bytes memory data = abi.encode(migrationHash, migrationData);
+        bytes32 migrationId = migrationData.toId();
+        bytes memory data = abi.encode(migrationId, migrationData);
 
         // Transfer Position from user to migrator
         vm.expectEmit(true, true, false, false, address(v3PositionManager));
@@ -424,8 +424,8 @@ contract UniswapV3AcrossMigratorTest is TestContext, UniswapV3Helpers {
             routesData: "",
             settlementData: ""
         });
-        bytes32 migrationHash = migrationData.toHash();
-        bytes memory data = abi.encode(migrationHash, migrationData);
+        bytes32 migrationId = migrationData.toId();
+        bytes memory data = abi.encode(migrationId, migrationData);
 
         // Transfer Position from user to migrator
         vm.expectEmit(true, true, false, false, address(v3PositionManager));
@@ -505,8 +505,8 @@ contract UniswapV3AcrossMigratorTest is TestContext, UniswapV3Helpers {
             routesData: "",
             settlementData: ""
         });
-        bytes32 migrationHash = migrationData.toHash();
-        bytes memory data = abi.encode(migrationHash, migrationData);
+        bytes32 migrationId = migrationData.toId();
+        bytes memory data = abi.encode(migrationId, migrationData);
 
         // Transfer Position from user to migrator
         vm.expectEmit(true, true, false, false, address(v3PositionManager));
@@ -587,8 +587,8 @@ contract UniswapV3AcrossMigratorTest is TestContext, UniswapV3Helpers {
             routesData: "",
             settlementData: ""
         });
-        bytes32 migrationHash = migrationData.toHash();
-        bytes memory data = abi.encode(migrationHash, migrationData);
+        bytes32 migrationId = migrationData.toId();
+        bytes memory data = abi.encode(migrationId, migrationData);
 
         // Transfer Position from user to migrator
         vm.expectEmit(true, true, false, false, address(v3PositionManager));
@@ -671,8 +671,8 @@ contract UniswapV3AcrossMigratorTest is TestContext, UniswapV3Helpers {
             routesData: "",
             settlementData: ""
         });
-        bytes32 migrationHash = migrationData.toHash();
-        bytes memory data = abi.encode(migrationHash, migrationData);
+        bytes32 migrationId = migrationData.toId();
+        bytes memory data = abi.encode(migrationId, migrationData);
 
         // Transfer Position from user to migrator
         vm.expectEmit(true, true, false, false, address(v3PositionManager));
@@ -755,8 +755,8 @@ contract UniswapV3AcrossMigratorTest is TestContext, UniswapV3Helpers {
             routesData: "",
             settlementData: ""
         });
-        bytes32 migrationHash = migrationData.toHash();
-        bytes memory data = abi.encode(migrationHash, migrationData);
+        bytes32 migrationId = migrationData.toId();
+        bytes memory data = abi.encode(migrationId, migrationData);
 
         // Transfer Position from user to migrator
         vm.expectEmit(true, true, false, false, address(v3PositionManager));
@@ -840,8 +840,8 @@ contract UniswapV3AcrossMigratorTest is TestContext, UniswapV3Helpers {
             routesData: abi.encode(token0, token1, amount0 - maxFees - 1, amount1 - maxFees - 1),
             settlementData: ""
         });
-        bytes32 migrationHash = migrationData.toHash();
-        bytes memory data = abi.encode(migrationHash, migrationData);
+        bytes32 migrationId = migrationData.toId();
+        bytes memory data = abi.encode(migrationId, migrationData);
 
         // Transfer Position from user to migrator
         vm.expectEmit(true, true, false, false, address(v3PositionManager));

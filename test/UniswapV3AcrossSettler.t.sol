@@ -5,8 +5,8 @@ import {Vm} from "forge-std/Test.sol";
 import {console} from "forge-std/console.sol";
 import {TestContext} from "./utils/TestContext.sol";
 import {ISettler} from "../src/interfaces/ISettler.sol";
-import {IUniswapV3Settler} from "../src/interfaces/IUniswapV3Settler.sol";
 import {IAcrossSettler} from "../src/interfaces/IAcrossSettler.sol";
+import {IUniswapV3Settler} from "../src/interfaces/IUniswapV3Settler.sol";
 import {UniswapV3AcrossSettlerHarness} from "./mocks/UniswapV3AcrossSettlerHarness.sol";
 import {UniswapV3Helpers} from "./utils/UniswapV3Helpers.sol";
 import {IERC721} from "@openzeppelin/token/ERC721/IERC721.sol";
@@ -56,16 +56,16 @@ contract UniswapV3AcrossSettlerTest is TestContext, UniswapV3Helpers {
         uint24 fee,
         SettlementHelpers.Range range,
         bool isToken0BaseToken
-    ) public view returns (bytes32 migrationHash, bytes memory data) {
+    ) public view returns (bytes32 migrationId, bytes memory data) {
         int24 currentTick = UniswapV3Helpers.getCurrentTick(address(v3PositionManager), token0, token1, fee);
-        (migrationHash, data) = SettlementHelpers.generateSettlerData(
+        (migrationId, data) = SettlementHelpers.generateSettlerData(
             SettlementHelpers.generateV3SettlementParamsUsingCurrentTick(
                 user, token0, token1, fee, 0, currentTick, range, 0, 0, isToken0BaseToken, senderShareBps
             ),
             MigrationModes.SINGLE,
             ""
         );
-        return (migrationHash, data);
+        return (migrationId, data);
     }
 
     function genSettlerDataWithSqrtPriceX96(
@@ -75,16 +75,16 @@ contract UniswapV3AcrossSettlerTest is TestContext, UniswapV3Helpers {
         SettlementHelpers.Range range,
         bool isToken0BaseToken,
         uint160 sqrtPriceX96
-    ) public view returns (bytes32 migrationHash, bytes memory data) {
+    ) public view returns (bytes32 migrationId, bytes memory data) {
         int24 currentTick = 10000;
-        (migrationHash, data) = SettlementHelpers.generateSettlerData(
+        (migrationId, data) = SettlementHelpers.generateSettlerData(
             SettlementHelpers.generateV3SettlementParamsUsingCurrentTick(
                 user, token0, token1, fee, sqrtPriceX96, currentTick, range, 0, 0, isToken0BaseToken, senderShareBps
             ),
             MigrationModes.SINGLE,
             ""
         );
-        return (migrationHash, data);
+        return (migrationId, data);
     }
 
     function genSettlerDataWithAmounts(
@@ -95,9 +95,9 @@ contract UniswapV3AcrossSettlerTest is TestContext, UniswapV3Helpers {
         bool isToken0BaseToken,
         uint256 amount0Min,
         uint256 amount1Min
-    ) public view returns (bytes32 migrationHash, bytes memory data) {
+    ) public view returns (bytes32 migrationId, bytes memory data) {
         int24 currentTick = UniswapV3Helpers.getCurrentTick(address(v3PositionManager), token0, token1, fee);
-        (migrationHash, data) = SettlementHelpers.generateSettlerData(
+        (migrationId, data) = SettlementHelpers.generateSettlerData(
             SettlementHelpers.generateV3SettlementParamsUsingCurrentTick(
                 user,
                 token0,
@@ -114,7 +114,7 @@ contract UniswapV3AcrossSettlerTest is TestContext, UniswapV3Helpers {
             MigrationModes.SINGLE,
             ""
         );
-        return (migrationHash, data);
+        return (migrationId, data);
     }
 
     function genSettlerDataForDualToken(
@@ -125,16 +125,16 @@ contract UniswapV3AcrossSettlerTest is TestContext, UniswapV3Helpers {
         bool isToken0BaseToken,
         uint256 routeMinAmount0,
         uint256 routeMinAmount1
-    ) public view returns (bytes32 migrationHash, bytes memory data) {
+    ) public view returns (bytes32 migrationId, bytes memory data) {
         int24 currentTick = UniswapV3Helpers.getCurrentTick(address(v3PositionManager), token0, token1, fee);
-        (migrationHash, data) = SettlementHelpers.generateSettlerData(
+        (migrationId, data) = SettlementHelpers.generateSettlerData(
             SettlementHelpers.generateV3SettlementParamsUsingCurrentTick(
                 user, token0, token1, fee, 0, currentTick, range, 0, 0, isToken0BaseToken, senderShareBps
             ),
             MigrationModes.DUAL,
             abi.encode(token0, token1, routeMinAmount0, routeMinAmount1)
         );
-        return (migrationHash, data);
+        return (migrationId, data);
     }
 
     function genSettlerDataForDualTokenWithSqrtPriceX96(
@@ -146,16 +146,16 @@ contract UniswapV3AcrossSettlerTest is TestContext, UniswapV3Helpers {
         uint256 routeMinAmount0,
         uint256 routeMinAmount1,
         uint160 sqrtPriceX96
-    ) public view returns (bytes32 migrationHash, bytes memory data) {
+    ) public view returns (bytes32 migrationId, bytes memory data) {
         int24 currentTick = 10000;
-        (migrationHash, data) = SettlementHelpers.generateSettlerData(
+        (migrationId, data) = SettlementHelpers.generateSettlerData(
             SettlementHelpers.generateV3SettlementParamsUsingCurrentTick(
                 user, token0, token1, fee, sqrtPriceX96, currentTick, range, 0, 0, isToken0BaseToken, senderShareBps
             ),
             MigrationModes.DUAL,
             abi.encode(token0, token1, routeMinAmount0, routeMinAmount1)
         );
-        return (migrationHash, data);
+        return (migrationId, data);
     }
 
     function genSettlerDataForDualTokenWithAmounts(
@@ -168,9 +168,9 @@ contract UniswapV3AcrossSettlerTest is TestContext, UniswapV3Helpers {
         uint256 routeMinAmount1,
         uint256 amount0Min,
         uint256 amount1Min
-    ) public view returns (bytes32 migrationHash, bytes memory data) {
+    ) public view returns (bytes32 migrationId, bytes memory data) {
         int24 currentTick = UniswapV3Helpers.getCurrentTick(address(v3PositionManager), token0, token1, fee);
-        (migrationHash, data) = SettlementHelpers.generateSettlerData(
+        (migrationId, data) = SettlementHelpers.generateSettlerData(
             SettlementHelpers.generateV3SettlementParamsUsingCurrentTick(
                 user,
                 token0,
@@ -187,7 +187,7 @@ contract UniswapV3AcrossSettlerTest is TestContext, UniswapV3Helpers {
             MigrationModes.DUAL,
             abi.encode(token0, token1, routeMinAmount0, routeMinAmount1)
         );
-        return (migrationHash, data);
+        return (migrationId, data);
     }
 
     function assertCorrectAmounts(
@@ -301,7 +301,7 @@ contract UniswapV3AcrossSettlerTest is TestContext, UniswapV3Helpers {
 
     /*
     Paths to include in tests:
-    - migrationHash check (before either path)
+    - migrationId check (before either path)
     - Single token path
     - Dual token path (only applicable to both tokens being base tokens and in range)
 
@@ -311,10 +311,10 @@ contract UniswapV3AcrossSettlerTest is TestContext, UniswapV3Helpers {
     - usdc/usdt (non-weth base token)
 
     Ranges & final states to include in tests:
-    - fails and is ignored (hash doesn't match)
-    - fails and is ignored (hash matches but first amount is too low) (dual token only)
-    - fails and is ignored (hash matches but second amount is too low) (dual Token only)
-    - fails and is ignored (hash matches but token doesn't match)
+    - fails and is ignored (id doesn't match)
+    - fails and is ignored (id matches but first amount is too low) (dual token only)
+    - fails and is ignored (id matches but second amount is too low) (dual Token only)
+    - fails and is ignored (id matches but token doesn't match)
     - fails and refunds one
     - fails and refunds both (dual token only)
     - succeeds creating a new pool
@@ -325,32 +325,30 @@ contract UniswapV3AcrossSettlerTest is TestContext, UniswapV3Helpers {
     */
 
     /**
-     * MigrationHash fails and is ignored
+     * migrationId fails and is ignored
      */
     function test_handleV3AcrossMessage_failsHashAndIsIgnored() public {
         deal(weth, address(settler), wethAmount);
         vm.recordLogs();
         // generate data
-        (bytes32 migrationHash, bytes memory data) =
+        (bytes32 migrationId, bytes memory data) =
             genSettlerData(weth, usdc, 500, SettlementHelpers.Range.InRange, true);
         (, MigrationData memory migrationData) = abi.decode(data, (bytes32, MigrationData));
-        bytes32 fakeMigrationHash = bytes32(abi.encode(bytes("fake")));
-        bytes memory fakeData = abi.encode(fakeMigrationHash, migrationData);
+        bytes32 fakeMigrationId = bytes32(abi.encode(bytes("fake")));
+        bytes memory fakeData = abi.encode(fakeMigrationId, migrationData);
 
         // call handleV3AcrossMessage
         vm.prank(address(acrossSpokePool));
-        vm.expectRevert(bytes("")); // important to use bytes("") as this revert should contain no data
+        vm.expectRevert(IAcrossSettler.InvalidMigration.selector);
         settler.handleV3AcrossMessage(weth, wethAmount, address(0), fakeData);
 
         // verify no amounts were transferred
-        Vm.Log[] memory logs = vm.getRecordedLogs();
-        assertEq(logs.length, 0); // no logs were emitted
         assertEq(IERC20(weth).balanceOf(address(settler)), wethAmount);
         assertEq(IERC20(usdc).balanceOf(address(settler)), 0);
 
         // verify settlement cache is not set
-        assertEq(settler.checkSettlementCache(fakeMigrationHash), false);
-        assertEq(settler.checkSettlementCache(migrationHash), false);
+        assertEq(settler.checkSettlementCache(fakeMigrationId), false);
+        assertEq(settler.checkSettlementCache(migrationId), false);
     }
     /**
      * SINGLE TOKEN PATHS ***
@@ -360,15 +358,19 @@ contract UniswapV3AcrossSettlerTest is TestContext, UniswapV3Helpers {
     function test_handleV3AcrossMessage_ST_Token0BaseToken_failsAndRefunds() public {
         // generate data with high amount0Min and amount1Min so it'll fail to mint
         deal(weth, address(settler), wethAmount);
-        (bytes32 migrationHash, bytes memory data) =
+        (bytes32 migrationId, bytes memory data) =
             genSettlerDataWithAmounts(weth, usdc, 500, SettlementHelpers.Range.InRange, true, 1 ether, 1 ether);
+
+        // Receipt
+        vm.expectEmit(true, true, false, true);
+        emit ISettler.Receipt(migrationId, weth, wethAmount);
 
         // expect the entire weth amount to be transferred to user
         vm.expectEmit(true, true, false, true, address(weth));
         emit IERC20.Transfer(address(settler), address(user), wethAmount);
         // expect a refund
         vm.expectEmit(true, true, true, true);
-        emit ISettler.Refund(migrationHash, address(user), weth, wethAmount);
+        emit ISettler.Refund(migrationId, address(user), weth, wethAmount);
 
         // call handleV3AcrossMessage
         vm.prank(address(acrossSpokePool));
@@ -380,8 +382,12 @@ contract UniswapV3AcrossSettlerTest is TestContext, UniswapV3Helpers {
 
         vm.recordLogs();
         // generate data
-        (bytes32 migrationHash, bytes memory data) =
+        (bytes32 migrationId, bytes memory data) =
             genSettlerData(weth, usdc, 500, SettlementHelpers.Range.InRange, true);
+
+        // Receipt
+        vm.expectEmit(true, true, false, true);
+        emit ISettler.Receipt(migrationId, weth, wethAmount);
 
         vm.expectEmit(true, true, false, false);
         emit IUniswapV3PoolEvents.Swap(address(universalRouter), address(settler), 0, 1, 0, 0, 0);
@@ -403,7 +409,7 @@ contract UniswapV3AcrossSettlerTest is TestContext, UniswapV3Helpers {
         // Fee payment
         vm.expectEmit(true, true, false, true);
         emit ISettler.FeePayment(
-            migrationHash,
+            migrationId,
             weth,
             uint256(totalProtocolFeeBps) * wethAmount / 10000,
             uint256(netSenderFeeBps) * wethAmount / 10000
@@ -411,11 +417,7 @@ contract UniswapV3AcrossSettlerTest is TestContext, UniswapV3Helpers {
 
         // Settlement
         vm.expectEmit(true, true, false, true);
-        emit ISettler.Settlement(migrationHash, user, tokenId);
-
-        // Receipt
-        vm.expectEmit(true, true, true, true);
-        emit IAcrossSettler.Receipt(migrationHash, user, weth, wethAmount);
+        emit ISettler.Settlement(migrationId, user, tokenId);
 
         // call handleV3AcrossMessage
         vm.prank(address(acrossSpokePool));
@@ -428,8 +430,12 @@ contract UniswapV3AcrossSettlerTest is TestContext, UniswapV3Helpers {
         deal(weth, address(settler), wethAmount);
         vm.recordLogs();
         // generate data; below tick means only token1 is needed
-        (bytes32 migrationHash, bytes memory data) =
+        (bytes32 migrationId, bytes memory data) =
             genSettlerData(weth, usdc, 500, SettlementHelpers.Range.BelowTick, true);
+
+        // Receipt
+        vm.expectEmit(true, true, false, true);
+        emit ISettler.Receipt(migrationId, weth, wethAmount);
 
         vm.expectEmit(true, true, false, false);
         emit IUniswapV3PoolEvents.Swap(address(universalRouter), address(settler), 0, 1, 0, 0, 0);
@@ -448,7 +454,7 @@ contract UniswapV3AcrossSettlerTest is TestContext, UniswapV3Helpers {
         // Fee payment
         vm.expectEmit(true, true, false, true);
         emit ISettler.FeePayment(
-            migrationHash,
+            migrationId,
             weth,
             uint256(totalProtocolFeeBps) * wethAmount / 10000,
             uint256(netSenderFeeBps) * wethAmount / 10000
@@ -456,11 +462,7 @@ contract UniswapV3AcrossSettlerTest is TestContext, UniswapV3Helpers {
 
         // Settlement
         vm.expectEmit(true, true, false, true);
-        emit ISettler.Settlement(migrationHash, user, tokenId);
-
-        // Receipt
-        vm.expectEmit(true, true, true, true);
-        emit IAcrossSettler.Receipt(migrationHash, user, weth, wethAmount);
+        emit ISettler.Settlement(migrationId, user, tokenId);
 
         // call handleV3AcrossMessage
         vm.prank(address(acrossSpokePool));
@@ -473,8 +475,12 @@ contract UniswapV3AcrossSettlerTest is TestContext, UniswapV3Helpers {
         deal(weth, address(settler), wethAmount);
         vm.recordLogs();
         // generate data; above tick means only token0 is needed
-        (bytes32 migrationHash, bytes memory data) =
+        (bytes32 migrationId, bytes memory data) =
             genSettlerData(weth, usdc, 500, SettlementHelpers.Range.AboveTick, true);
+
+        // Receipt
+        vm.expectEmit(true, true, false, true);
+        emit ISettler.Receipt(migrationId, weth, wethAmount);
 
         // swap event
         // no swap event expected
@@ -493,7 +499,7 @@ contract UniswapV3AcrossSettlerTest is TestContext, UniswapV3Helpers {
         // Fee payment
         vm.expectEmit(true, true, false, true);
         emit ISettler.FeePayment(
-            migrationHash,
+            migrationId,
             weth,
             uint256(totalProtocolFeeBps) * wethAmount / 10000,
             uint256(netSenderFeeBps) * wethAmount / 10000
@@ -501,11 +507,7 @@ contract UniswapV3AcrossSettlerTest is TestContext, UniswapV3Helpers {
 
         // Settlement
         vm.expectEmit(true, true, false, true);
-        emit ISettler.Settlement(migrationHash, user, tokenId);
-
-        // Receipt
-        vm.expectEmit(true, true, true, true);
-        emit IAcrossSettler.Receipt(migrationHash, user, weth, wethAmount);
+        emit ISettler.Settlement(migrationId, user, tokenId);
 
         // call handleV3AcrossMessage
         vm.prank(address(acrossSpokePool));
@@ -518,8 +520,12 @@ contract UniswapV3AcrossSettlerTest is TestContext, UniswapV3Helpers {
         deal(weth, address(settler), wethAmount);
         vm.recordLogs();
         // generate data; above tick means only token0 is needed
-        (bytes32 migrationHash, bytes memory data) =
+        (bytes32 migrationId, bytes memory data) =
             genSettlerDataWithSqrtPriceX96(weth, newTokenSecond, 500, SettlementHelpers.Range.AboveTick, true, 2 ** 96);
+
+        // Receipt
+        vm.expectEmit(true, true, false, true);
+        emit ISettler.Receipt(migrationId, weth, wethAmount);
 
         // swap event
         // no swap event expected
@@ -542,7 +548,7 @@ contract UniswapV3AcrossSettlerTest is TestContext, UniswapV3Helpers {
         // Fee payment
         vm.expectEmit(true, true, false, true);
         emit ISettler.FeePayment(
-            migrationHash,
+            migrationId,
             weth,
             uint256(totalProtocolFeeBps) * wethAmount / 10000,
             uint256(netSenderFeeBps) * wethAmount / 10000
@@ -550,11 +556,7 @@ contract UniswapV3AcrossSettlerTest is TestContext, UniswapV3Helpers {
 
         // Settlement
         vm.expectEmit(true, true, false, true);
-        emit ISettler.Settlement(migrationHash, user, tokenId);
-
-        // Receipt
-        vm.expectEmit(true, true, true, true);
-        emit IAcrossSettler.Receipt(migrationHash, user, weth, wethAmount);
+        emit ISettler.Settlement(migrationId, user, tokenId);
 
         // call handleV3AcrossMessage
         vm.prank(address(acrossSpokePool));
@@ -568,15 +570,19 @@ contract UniswapV3AcrossSettlerTest is TestContext, UniswapV3Helpers {
         deal(weth, address(settler), wethAmount);
         vm.recordLogs();
         // generate data with high amount0Min and amount1Min so it'll fail to mint
-        (bytes32 migrationHash, bytes memory data) =
+        (bytes32 migrationId, bytes memory data) =
             genSettlerDataWithAmounts(virtualToken, weth, 500, SettlementHelpers.Range.InRange, false, 1 ether, 1 ether);
+
+        // Receipt
+        vm.expectEmit(true, true, false, true);
+        emit ISettler.Receipt(migrationId, weth, wethAmount);
 
         // expect the entire weth amount to be transferred to user
         vm.expectEmit(true, true, false, true, address(weth));
         emit IERC20.Transfer(address(settler), address(user), wethAmount);
         // expect a refund
         vm.expectEmit(true, true, true, true);
-        emit ISettler.Refund(migrationHash, address(user), weth, wethAmount);
+        emit ISettler.Refund(migrationId, address(user), weth, wethAmount);
 
         // call handleV3AcrossMessage
         vm.prank(address(acrossSpokePool));
@@ -587,9 +593,14 @@ contract UniswapV3AcrossSettlerTest is TestContext, UniswapV3Helpers {
         deal(weth, address(settler), wethAmount);
         vm.recordLogs();
         // generate data
-        (bytes32 migrationHash, bytes memory data) =
+        (bytes32 migrationId, bytes memory data) =
             genSettlerData(virtualToken, weth, 500, SettlementHelpers.Range.InRange, false);
 
+        // Receipt
+        vm.expectEmit(true, true, false, true);
+        emit ISettler.Receipt(migrationId, weth, wethAmount);
+
+        // swap event
         vm.expectEmit(true, true, false, false);
         emit IUniswapV3PoolEvents.Swap(address(universalRouter), address(settler), 0, 1, 0, 0, 0);
 
@@ -611,7 +622,7 @@ contract UniswapV3AcrossSettlerTest is TestContext, UniswapV3Helpers {
         // Fee payment
         vm.expectEmit(true, true, false, true);
         emit ISettler.FeePayment(
-            migrationHash,
+            migrationId,
             weth,
             uint256(totalProtocolFeeBps) * wethAmount / 10000,
             uint256(netSenderFeeBps) * wethAmount / 10000
@@ -619,11 +630,7 @@ contract UniswapV3AcrossSettlerTest is TestContext, UniswapV3Helpers {
 
         // Settlement
         vm.expectEmit(true, true, false, true);
-        emit ISettler.Settlement(migrationHash, user, tokenId);
-
-        // Receipt
-        vm.expectEmit(true, true, true, true);
-        emit IAcrossSettler.Receipt(migrationHash, user, weth, wethAmount);
+        emit ISettler.Settlement(migrationId, user, tokenId);
 
         // call handleV3AcrossMessage
         vm.prank(address(acrossSpokePool));
@@ -636,8 +643,12 @@ contract UniswapV3AcrossSettlerTest is TestContext, UniswapV3Helpers {
         deal(weth, address(settler), wethAmount);
         vm.recordLogs();
         // generate data
-        (bytes32 migrationHash, bytes memory data) =
+        (bytes32 migrationId, bytes memory data) =
             genSettlerData(virtualToken, weth, 500, SettlementHelpers.Range.BelowTick, false);
+
+        // Receipt
+        vm.expectEmit(true, true, false, true);
+        emit ISettler.Receipt(migrationId, weth, wethAmount);
 
         // only token1 is needed
         // swap event
@@ -657,7 +668,7 @@ contract UniswapV3AcrossSettlerTest is TestContext, UniswapV3Helpers {
         // Fee payment
         vm.expectEmit(true, true, false, true);
         emit ISettler.FeePayment(
-            migrationHash,
+            migrationId,
             weth,
             uint256(totalProtocolFeeBps) * wethAmount / 10000,
             uint256(netSenderFeeBps) * wethAmount / 10000
@@ -665,11 +676,7 @@ contract UniswapV3AcrossSettlerTest is TestContext, UniswapV3Helpers {
 
         // Settlement
         vm.expectEmit(true, true, false, true);
-        emit ISettler.Settlement(migrationHash, user, tokenId);
-
-        // Receipt
-        vm.expectEmit(true, true, true, true);
-        emit IAcrossSettler.Receipt(migrationHash, user, weth, wethAmount);
+        emit ISettler.Settlement(migrationId, user, tokenId);
 
         // call handleV3AcrossMessage
         vm.prank(address(acrossSpokePool));
@@ -682,8 +689,12 @@ contract UniswapV3AcrossSettlerTest is TestContext, UniswapV3Helpers {
         deal(weth, address(settler), wethAmount);
         vm.recordLogs();
         // generate data
-        (bytes32 migrationHash, bytes memory data) =
+        (bytes32 migrationId, bytes memory data) =
             genSettlerData(virtualToken, weth, 500, SettlementHelpers.Range.AboveTick, false);
+
+        // Receipt
+        vm.expectEmit(true, true, false, true);
+        emit ISettler.Receipt(migrationId, weth, wethAmount);
 
         // only token0 is needed
         // swap event
@@ -704,7 +715,7 @@ contract UniswapV3AcrossSettlerTest is TestContext, UniswapV3Helpers {
         // Fee payment
         vm.expectEmit(true, true, false, true);
         emit ISettler.FeePayment(
-            migrationHash,
+            migrationId,
             weth,
             uint256(totalProtocolFeeBps) * wethAmount / 10000,
             uint256(netSenderFeeBps) * wethAmount / 10000
@@ -712,11 +723,7 @@ contract UniswapV3AcrossSettlerTest is TestContext, UniswapV3Helpers {
 
         // Settlement
         vm.expectEmit(true, true, false, true);
-        emit ISettler.Settlement(migrationHash, user, tokenId);
-
-        // Receipt
-        vm.expectEmit(true, true, true, true);
-        emit IAcrossSettler.Receipt(migrationHash, user, weth, wethAmount);
+        emit ISettler.Settlement(migrationId, user, tokenId);
 
         // call handleV3AcrossMessage
         vm.prank(address(acrossSpokePool));
@@ -729,8 +736,12 @@ contract UniswapV3AcrossSettlerTest is TestContext, UniswapV3Helpers {
         deal(weth, address(settler), wethAmount);
         vm.recordLogs();
         // generate data; above tick means only token0 is needed
-        (bytes32 migrationHash, bytes memory data) =
+        (bytes32 migrationId, bytes memory data) =
             genSettlerDataWithSqrtPriceX96(newTokenFirst, weth, 500, SettlementHelpers.Range.BelowTick, false, 2 ** 96);
+
+        // Receipt
+        vm.expectEmit(true, true, false, true);
+        emit ISettler.Receipt(migrationId, weth, wethAmount);
 
         // swap event
         // no swap event expected
@@ -753,7 +764,7 @@ contract UniswapV3AcrossSettlerTest is TestContext, UniswapV3Helpers {
         // Fee payment
         vm.expectEmit(true, true, false, true);
         emit ISettler.FeePayment(
-            migrationHash,
+            migrationId,
             weth,
             uint256(totalProtocolFeeBps) * wethAmount / 10000,
             uint256(netSenderFeeBps) * wethAmount / 10000
@@ -761,11 +772,7 @@ contract UniswapV3AcrossSettlerTest is TestContext, UniswapV3Helpers {
 
         // Settlement
         vm.expectEmit(true, true, false, true);
-        emit ISettler.Settlement(migrationHash, user, tokenId);
-
-        // Receipt
-        vm.expectEmit(true, true, true, true);
-        emit IAcrossSettler.Receipt(migrationHash, user, weth, wethAmount);
+        emit ISettler.Settlement(migrationId, user, tokenId);
 
         // call handleV3AcrossMessage
         vm.prank(address(acrossSpokePool));
@@ -777,15 +784,20 @@ contract UniswapV3AcrossSettlerTest is TestContext, UniswapV3Helpers {
     // Non-WETH base token scenarios
     function test_handleV3AcrossMessage_ST_NonWethBaseToken_failsAndRefunds() public {
         deal(usdc, address(settler), usdcAmount);
-        (bytes32 migrationHash, bytes memory data) =
+        (bytes32 migrationId, bytes memory data) =
             genSettlerDataWithAmounts(usdc, usdt, 100, SettlementHelpers.Range.InRange, true, 1 ether, 1 ether);
+
+        // Receipt
+        vm.expectEmit(true, true, false, true);
+        emit ISettler.Receipt(migrationId, usdc, usdcAmount);
 
         // expect the entire weth amount to be transferred to user
         vm.expectEmit(true, true, false, true, address(usdc));
         emit IERC20.Transfer(address(settler), address(user), usdcAmount);
+
         // expect a refund
         vm.expectEmit(true, true, true, true);
-        emit ISettler.Refund(migrationHash, address(user), usdc, usdcAmount);
+        emit ISettler.Refund(migrationId, address(user), usdc, usdcAmount);
 
         // call handleV3AcrossMessage
         vm.prank(address(acrossSpokePool));
@@ -797,9 +809,14 @@ contract UniswapV3AcrossSettlerTest is TestContext, UniswapV3Helpers {
 
         vm.recordLogs();
         // generate data
-        (bytes32 migrationHash, bytes memory data) =
+        (bytes32 migrationId, bytes memory data) =
             genSettlerData(usdc, usdt, 100, SettlementHelpers.Range.InRange, true);
 
+        // Receipt
+        vm.expectEmit(true, true, true, true);
+        emit ISettler.Receipt(migrationId, usdc, usdcAmount);
+
+        // swap event
         vm.expectEmit(true, true, false, false);
         emit IUniswapV3PoolEvents.Swap(address(universalRouter), address(settler), 0, 1, 0, 0, 0);
 
@@ -818,7 +835,7 @@ contract UniswapV3AcrossSettlerTest is TestContext, UniswapV3Helpers {
         // Fee payment
         vm.expectEmit(true, true, false, true);
         emit ISettler.FeePayment(
-            migrationHash,
+            migrationId,
             usdc,
             uint256(totalProtocolFeeBps) * usdcAmount / 10000,
             uint256(netSenderFeeBps) * usdcAmount / 10000
@@ -826,11 +843,7 @@ contract UniswapV3AcrossSettlerTest is TestContext, UniswapV3Helpers {
 
         // Settlement
         vm.expectEmit(true, true, false, true);
-        emit ISettler.Settlement(migrationHash, user, tokenId);
-
-        // Receipt
-        vm.expectEmit(true, true, true, true);
-        emit IAcrossSettler.Receipt(migrationHash, user, usdc, usdcAmount);
+        emit ISettler.Settlement(migrationId, user, tokenId);
 
         // call handleV3AcrossMessage
         vm.prank(address(acrossSpokePool));
@@ -844,8 +857,12 @@ contract UniswapV3AcrossSettlerTest is TestContext, UniswapV3Helpers {
 
         vm.recordLogs();
         // generate data
-        (bytes32 migrationHash, bytes memory data) =
+        (bytes32 migrationId, bytes memory data) =
             genSettlerData(usdc, usdt, 100, SettlementHelpers.Range.BelowTick, true);
+
+        // Receipt
+        vm.expectEmit(true, true, false, true);
+        emit ISettler.Receipt(migrationId, usdc, usdcAmount);
 
         // only token1 is needed
         // swap event
@@ -866,7 +883,7 @@ contract UniswapV3AcrossSettlerTest is TestContext, UniswapV3Helpers {
         // Fee payment
         vm.expectEmit(true, true, false, true);
         emit ISettler.FeePayment(
-            migrationHash,
+            migrationId,
             usdc,
             uint256(totalProtocolFeeBps) * usdcAmount / 10000,
             uint256(netSenderFeeBps) * usdcAmount / 10000
@@ -874,11 +891,7 @@ contract UniswapV3AcrossSettlerTest is TestContext, UniswapV3Helpers {
 
         // Settlement
         vm.expectEmit(true, true, false, true);
-        emit ISettler.Settlement(migrationHash, user, tokenId);
-
-        // Receipt
-        vm.expectEmit(true, true, true, true);
-        emit IAcrossSettler.Receipt(migrationHash, user, usdc, usdcAmount);
+        emit ISettler.Settlement(migrationId, user, tokenId);
 
         // call handleV3AcrossMessage
         vm.prank(address(acrossSpokePool));
@@ -892,8 +905,12 @@ contract UniswapV3AcrossSettlerTest is TestContext, UniswapV3Helpers {
 
         vm.recordLogs();
         // generate data
-        (bytes32 migrationHash, bytes memory data) =
+        (bytes32 migrationId, bytes memory data) =
             genSettlerData(usdc, usdt, 100, SettlementHelpers.Range.AboveTick, true);
+
+        // Receipt
+        vm.expectEmit(true, true, false, true);
+        emit ISettler.Receipt(migrationId, usdc, usdcAmount);
 
         // only token0 is needed
         // swap event
@@ -912,7 +929,7 @@ contract UniswapV3AcrossSettlerTest is TestContext, UniswapV3Helpers {
         // Fee payment
         vm.expectEmit(true, true, false, true);
         emit ISettler.FeePayment(
-            migrationHash,
+            migrationId,
             usdc,
             uint256(totalProtocolFeeBps) * usdcAmount / 10000,
             uint256(netSenderFeeBps) * usdcAmount / 10000
@@ -920,11 +937,7 @@ contract UniswapV3AcrossSettlerTest is TestContext, UniswapV3Helpers {
 
         // Settlement
         vm.expectEmit(true, true, false, true);
-        emit ISettler.Settlement(migrationHash, user, tokenId);
-
-        // Receipt
-        vm.expectEmit(true, true, true, true);
-        emit IAcrossSettler.Receipt(migrationHash, user, usdc, usdcAmount);
+        emit ISettler.Settlement(migrationId, user, tokenId);
 
         // call handleV3AcrossMessage
         vm.prank(address(acrossSpokePool));
@@ -937,8 +950,12 @@ contract UniswapV3AcrossSettlerTest is TestContext, UniswapV3Helpers {
         deal(usdc, address(settler), usdcAmount);
         vm.recordLogs();
         // generate data; above tick means only token0 is needed
-        (bytes32 migrationHash, bytes memory data) =
+        (bytes32 migrationId, bytes memory data) =
             genSettlerDataWithSqrtPriceX96(usdc, newTokenSecond, 500, SettlementHelpers.Range.AboveTick, true, 2 ** 96);
+
+        // Receipt
+        vm.expectEmit(true, true, false, true);
+        emit ISettler.Receipt(migrationId, usdc, usdcAmount);
 
         // swap event
         // no swap event expected
@@ -961,7 +978,7 @@ contract UniswapV3AcrossSettlerTest is TestContext, UniswapV3Helpers {
         // Fee payment
         vm.expectEmit(true, true, false, true);
         emit ISettler.FeePayment(
-            migrationHash,
+            migrationId,
             usdc,
             uint256(totalProtocolFeeBps) * usdcAmount / 10000,
             uint256(netSenderFeeBps) * usdcAmount / 10000
@@ -969,11 +986,7 @@ contract UniswapV3AcrossSettlerTest is TestContext, UniswapV3Helpers {
 
         // Settlement
         vm.expectEmit(true, true, false, true);
-        emit ISettler.Settlement(migrationHash, user, tokenId);
-
-        // Receipt
-        vm.expectEmit(true, true, true, true);
-        emit IAcrossSettler.Receipt(migrationHash, user, usdc, usdcAmount);
+        emit ISettler.Settlement(migrationId, user, tokenId);
 
         // call handleV3AcrossMessage
         vm.prank(address(acrossSpokePool));
@@ -988,7 +1001,7 @@ contract UniswapV3AcrossSettlerTest is TestContext, UniswapV3Helpers {
     function test_handleV3AcrossMessage_DT_FirstBridgeCallFailsWhenFirstAmountTooLowAndIsIgnored() public {
         vm.recordLogs();
         // generate data
-        (bytes32 migrationHash, bytes memory data) = genSettlerDataForDualToken(
+        (bytes32 migrationId, bytes memory data) = genSettlerDataForDualToken(
             weth, usdc, 500, SettlementHelpers.Range.InRange, true, wethAmount - 1, usdcAmount - 1
         );
 
@@ -998,19 +1011,17 @@ contract UniswapV3AcrossSettlerTest is TestContext, UniswapV3Helpers {
         settler.handleV3AcrossMessage(weth, wethAmount - 10, address(0), data);
 
         // verify no amounts were transferred
-        Vm.Log[] memory logs = vm.getRecordedLogs();
-        assertEq(logs.length, 0); // no logs were emitted
         assertEq(IERC20(weth).balanceOf(address(settler)), 0);
         assertEq(IERC20(usdc).balanceOf(address(settler)), 0);
 
         // verify settlement cache is not set
-        assertEq(settler.checkSettlementCache(migrationHash), false);
+        assertEq(settler.checkSettlementCache(migrationId), false);
     }
 
     function test_handleV3AcrossMessage_DT_FirstBridgeCallFailsWhenSecondAmountTooLowAndIsIgnored() public {
         vm.recordLogs();
         // generate data
-        (bytes32 migrationHash, bytes memory data) = genSettlerDataForDualToken(
+        (bytes32 migrationId, bytes memory data) = genSettlerDataForDualToken(
             weth, usdc, 500, SettlementHelpers.Range.InRange, true, wethAmount - 1, usdcAmount - 1
         );
 
@@ -1020,19 +1031,17 @@ contract UniswapV3AcrossSettlerTest is TestContext, UniswapV3Helpers {
         settler.handleV3AcrossMessage(usdc, usdcAmount - 10, address(0), data);
 
         // verify no amounts were transferred
-        Vm.Log[] memory logs = vm.getRecordedLogs();
-        assertEq(logs.length, 0); // no logs were emitted
         assertEq(IERC20(weth).balanceOf(address(settler)), 0);
         assertEq(IERC20(usdc).balanceOf(address(settler)), 0);
 
         // verify settlement cache is not set
-        assertEq(settler.checkSettlementCache(migrationHash), false);
+        assertEq(settler.checkSettlementCache(migrationId), false);
     }
 
     function test_handleV3AcrossMessage_DT_FirstBridgeCallFailsTokenMismatchAndIsIgnored() public {
         vm.recordLogs();
         // generate data
-        (bytes32 migrationHash, bytes memory data) = genSettlerDataForDualToken(
+        (bytes32 migrationId, bytes memory data) = genSettlerDataForDualToken(
             weth, usdc, 500, SettlementHelpers.Range.InRange, true, wethAmount - 1, usdcAmount - 1
         );
 
@@ -1042,25 +1051,25 @@ contract UniswapV3AcrossSettlerTest is TestContext, UniswapV3Helpers {
         settler.handleV3AcrossMessage(virtualToken, wethAmount - 10, address(0), data);
 
         // verify no amounts were transferred
-        Vm.Log[] memory logs = vm.getRecordedLogs();
-        assertEq(logs.length, 0); // no logs were emitted
         assertEq(IERC20(weth).balanceOf(address(settler)), 0);
         assertEq(IERC20(usdc).balanceOf(address(settler)), 0);
 
         // verify settlement cache is not set
-        assertEq(settler.checkSettlementCache(migrationHash), false);
+        assertEq(settler.checkSettlementCache(migrationId), false);
     }
 
     function test_handleV3AcrossMessage_DT_SecondBridgeCallFailsSecondAmountTooLowAndIsIgnored() public {
         deal(weth, address(settler), wethAmount);
+        deal(usdc, address(settler), usdcAmount);
         // generate data
-        (bytes32 migrationHash, bytes memory data) =
-            genSettlerDataForDualToken(weth, usdc, 500, SettlementHelpers.Range.InRange, true, wethAmount, usdcAmount);
+        (bytes32 migrationId, bytes memory data) = genSettlerDataForDualTokenWithAmounts(
+            weth, usdc, 500, SettlementHelpers.Range.InRange, true, wethAmount, usdcAmount, wethAmount, usdcAmount
+        );
 
         // first call to handleV3AcrossMessage; succeeds
         vm.prank(address(acrossSpokePool));
         settler.handleV3AcrossMessage(weth, wethAmount, address(0), data);
-        assertEq(settler.checkSettlementCache(migrationHash), true);
+        assertEq(settler.checkSettlementCache(migrationId), true);
 
         vm.recordLogs();
 
@@ -1070,26 +1079,28 @@ contract UniswapV3AcrossSettlerTest is TestContext, UniswapV3Helpers {
         settler.handleV3AcrossMessage(usdc, 1, address(0), data);
 
         // verify settlement cache still exists
-        assertEq(settler.checkSettlementCache(migrationHash), true);
+        assertEq(settler.checkSettlementCache(migrationId), true);
         // verify no amounts were transferred
-        Vm.Log[] memory logs = vm.getRecordedLogs();
-        assertEq(logs.length, 0); // no logs were emitted
         assertEq(IERC20(weth).balanceOf(address(settler)), wethAmount);
-        assertEq(IERC20(usdc).balanceOf(address(settler)), 0);
+        assertEq(IERC20(usdc).balanceOf(address(settler)), usdcAmount);
     }
 
     function test_handleV3AcrossMessage_DT_SecondBridgeCallFailsAndRefundsBoth() public {
         deal(weth, address(settler), wethAmount);
         deal(usdc, address(settler), usdcAmount);
         // generate data
-        (bytes32 migrationHash, bytes memory data) = genSettlerDataForDualTokenWithAmounts(
+        (bytes32 migrationId, bytes memory data) = genSettlerDataForDualTokenWithAmounts(
             weth, usdc, 500, SettlementHelpers.Range.InRange, true, wethAmount, usdcAmount, wethAmount, usdcAmount
         );
 
         // first call to handleV3AcrossMessage; succeeds
         vm.prank(address(acrossSpokePool));
         settler.handleV3AcrossMessage(weth, wethAmount, address(0), data);
-        assertEq(settler.checkSettlementCache(migrationHash), true);
+        assertEq(settler.checkSettlementCache(migrationId), true);
+
+        // Receipt
+        vm.expectEmit(true, true, false, true);
+        emit ISettler.Receipt(migrationId, usdc, usdcAmount);
 
         // expect the entire usdc amount to be transferred to user
         vm.expectEmit(true, true, false, true, address(usdc));
@@ -1097,7 +1108,7 @@ contract UniswapV3AcrossSettlerTest is TestContext, UniswapV3Helpers {
 
         // expect a refund
         vm.expectEmit(true, true, true, true);
-        emit ISettler.Refund(migrationHash, address(user), usdc, usdcAmount);
+        emit ISettler.Refund(migrationId, address(user), usdc, usdcAmount);
 
         // expect the entire weth amount to be transferred to user
         vm.expectEmit(true, true, false, true, address(weth));
@@ -1105,29 +1116,33 @@ contract UniswapV3AcrossSettlerTest is TestContext, UniswapV3Helpers {
 
         // expect a refund
         vm.expectEmit(true, true, true, true);
-        emit ISettler.Refund(migrationHash, address(user), weth, wethAmount);
+        emit ISettler.Refund(migrationId, address(user), weth, wethAmount);
 
         // second call to handleV3AcrossMessage fails via catch and refunds both token
         vm.prank(address(acrossSpokePool));
         settler.handleV3AcrossMessage(usdc, usdcAmount, address(0), data);
 
         // verify settlement cache is not set
-        assertEq(settler.checkSettlementCache(migrationHash), false);
+        assertEq(settler.checkSettlementCache(migrationId), false);
     }
 
     function test_handleV3AcrossMessage_DT_InRange_ExistingPool_Token0ArrivesBeforeToken1() public {
         deal(weth, address(settler), wethAmount);
         deal(usdc, address(settler), usdcAmount);
         // generate data
-        (bytes32 migrationHash, bytes memory data) =
+        (bytes32 migrationId, bytes memory data) =
             genSettlerDataForDualToken(weth, usdc, 500, SettlementHelpers.Range.InRange, true, wethAmount, usdcAmount);
 
         // first call to handleV3AcrossMessage; succeeds
         vm.prank(address(acrossSpokePool));
         settler.handleV3AcrossMessage(weth, wethAmount, address(0), data);
-        assertEq(settler.checkSettlementCache(migrationHash), true);
+        assertEq(settler.checkSettlementCache(migrationId), true);
 
         vm.recordLogs();
+        // Receipt
+        vm.expectEmit(true, true, false, true);
+        emit ISettler.Receipt(migrationId, usdc, usdcAmount);
+
         // Minting
         vm.expectEmit(true, false, false, false);
         emit IUniswapV3PoolEvents.Mint(address(settler), address(v3PositionManager), 0, 0, 0, 0, 0);
@@ -1143,7 +1158,7 @@ contract UniswapV3AcrossSettlerTest is TestContext, UniswapV3Helpers {
         // Fee payment
         vm.expectEmit(true, true, false, true);
         emit ISettler.FeePayment(
-            migrationHash,
+            migrationId,
             usdc,
             uint256(totalProtocolFeeBps) * usdcAmount / 10000,
             uint256(netSenderFeeBps) * usdcAmount / 10000
@@ -1151,7 +1166,7 @@ contract UniswapV3AcrossSettlerTest is TestContext, UniswapV3Helpers {
 
         vm.expectEmit(true, true, false, true);
         emit ISettler.FeePayment(
-            migrationHash,
+            migrationId,
             weth,
             uint256(totalProtocolFeeBps) * wethAmount / 10000,
             uint256(netSenderFeeBps) * wethAmount / 10000
@@ -1159,11 +1174,7 @@ contract UniswapV3AcrossSettlerTest is TestContext, UniswapV3Helpers {
 
         // Settlement
         vm.expectEmit(true, true, false, true);
-        emit ISettler.Settlement(migrationHash, user, tokenId);
-
-        // Receipt
-        vm.expectEmit(true, true, true, true);
-        emit IAcrossSettler.Receipt(migrationHash, user, usdc, usdcAmount);
+        emit ISettler.Settlement(migrationId, user, tokenId);
 
         // second call to handleV3AcrossMessage fails via catch and refunds both token
         vm.prank(address(acrossSpokePool));
@@ -1175,15 +1186,20 @@ contract UniswapV3AcrossSettlerTest is TestContext, UniswapV3Helpers {
         deal(weth, address(settler), wethAmount);
         deal(usdc, address(settler), usdcAmount);
         // generate data
-        (bytes32 migrationHash, bytes memory data) =
+        (bytes32 migrationId, bytes memory data) =
             genSettlerDataForDualToken(weth, usdc, 500, SettlementHelpers.Range.InRange, true, wethAmount, usdcAmount);
 
         // first call to handleV3AcrossMessage; succeeds
         vm.prank(address(acrossSpokePool));
         settler.handleV3AcrossMessage(usdc, usdcAmount, address(0), data);
-        assertEq(settler.checkSettlementCache(migrationHash), true);
+        assertEq(settler.checkSettlementCache(migrationId), true);
 
         vm.recordLogs();
+
+        // Receipt
+        vm.expectEmit(true, true, false, true);
+        emit ISettler.Receipt(migrationId, weth, wethAmount);
+
         // Minting
         vm.expectEmit(true, false, false, false);
         emit IUniswapV3PoolEvents.Mint(address(settler), address(v3PositionManager), 0, 0, 0, 0, 0);
@@ -1199,7 +1215,7 @@ contract UniswapV3AcrossSettlerTest is TestContext, UniswapV3Helpers {
         // Fee payment
         vm.expectEmit(true, true, false, true);
         emit ISettler.FeePayment(
-            migrationHash,
+            migrationId,
             weth,
             uint256(totalProtocolFeeBps) * wethAmount / 10000,
             uint256(netSenderFeeBps) * wethAmount / 10000
@@ -1207,7 +1223,7 @@ contract UniswapV3AcrossSettlerTest is TestContext, UniswapV3Helpers {
 
         vm.expectEmit(true, true, false, true);
         emit ISettler.FeePayment(
-            migrationHash,
+            migrationId,
             usdc,
             uint256(totalProtocolFeeBps) * usdcAmount / 10000,
             uint256(netSenderFeeBps) * usdcAmount / 10000
@@ -1215,11 +1231,7 @@ contract UniswapV3AcrossSettlerTest is TestContext, UniswapV3Helpers {
 
         // Settlement
         vm.expectEmit(true, true, false, true);
-        emit ISettler.Settlement(migrationHash, user, tokenId);
-
-        // Receipt
-        vm.expectEmit(true, true, true, true);
-        emit IAcrossSettler.Receipt(migrationHash, user, weth, wethAmount);
+        emit ISettler.Settlement(migrationId, user, tokenId);
 
         // second call to handleV3AcrossMessage fails via catch and refunds both token
         vm.prank(address(acrossSpokePool));
@@ -1232,16 +1244,20 @@ contract UniswapV3AcrossSettlerTest is TestContext, UniswapV3Helpers {
         deal(weth, address(settler), wethAmount);
         deal(address(mockUSDC), address(settler), usdcAmount);
         // generate data
-        (bytes32 migrationHash, bytes memory data) = genSettlerDataForDualTokenWithSqrtPriceX96(
+        (bytes32 migrationId, bytes memory data) = genSettlerDataForDualTokenWithSqrtPriceX96(
             weth, address(mockUSDC), 10000, SettlementHelpers.Range.InRange, true, wethAmount, usdcAmount, 2 ** 96
         );
 
         // first call to handleV3AcrossMessage; succeeds
         vm.prank(address(acrossSpokePool));
         settler.handleV3AcrossMessage(weth, wethAmount, address(0), data);
-        assertEq(settler.checkSettlementCache(migrationHash), true);
+        assertEq(settler.checkSettlementCache(migrationId), true);
 
         vm.recordLogs();
+
+        // Receipt
+        vm.expectEmit(true, true, false, true);
+        emit ISettler.Receipt(migrationId, address(mockUSDC), usdcAmount);
 
         // pool creation event
         vm.expectEmit(true, true, false, false);
@@ -1262,7 +1278,7 @@ contract UniswapV3AcrossSettlerTest is TestContext, UniswapV3Helpers {
         // Fee payment
         vm.expectEmit(true, true, false, true);
         emit ISettler.FeePayment(
-            migrationHash,
+            migrationId,
             address(mockUSDC),
             uint256(totalProtocolFeeBps) * usdcAmount / 10000,
             uint256(netSenderFeeBps) * usdcAmount / 10000
@@ -1270,7 +1286,7 @@ contract UniswapV3AcrossSettlerTest is TestContext, UniswapV3Helpers {
 
         vm.expectEmit(true, true, false, true);
         emit ISettler.FeePayment(
-            migrationHash,
+            migrationId,
             weth,
             uint256(totalProtocolFeeBps) * wethAmount / 10000,
             uint256(netSenderFeeBps) * wethAmount / 10000
@@ -1278,11 +1294,7 @@ contract UniswapV3AcrossSettlerTest is TestContext, UniswapV3Helpers {
 
         // Settlement
         vm.expectEmit(true, true, false, true);
-        emit ISettler.Settlement(migrationHash, user, tokenId);
-
-        // Receipt
-        vm.expectEmit(true, true, true, true);
-        emit IAcrossSettler.Receipt(migrationHash, user, address(mockUSDC), usdcAmount);
+        emit ISettler.Settlement(migrationId, user, tokenId);
 
         // second call to handleV3AcrossMessage fails via catch and refunds both token
         vm.prank(address(acrossSpokePool));
@@ -1295,16 +1307,20 @@ contract UniswapV3AcrossSettlerTest is TestContext, UniswapV3Helpers {
         deal(weth, address(settler), wethAmount);
         deal(address(mockUSDC), address(settler), usdcAmount);
         // generate data
-        (bytes32 migrationHash, bytes memory data) = genSettlerDataForDualTokenWithSqrtPriceX96(
+        (bytes32 migrationId, bytes memory data) = genSettlerDataForDualTokenWithSqrtPriceX96(
             weth, address(mockUSDC), 10000, SettlementHelpers.Range.InRange, true, wethAmount, usdcAmount, 2 ** 96
         );
 
         // first call to handleV3AcrossMessage; succeeds
         vm.prank(address(acrossSpokePool));
         settler.handleV3AcrossMessage(address(mockUSDC), usdcAmount, address(0), data);
-        assertEq(settler.checkSettlementCache(migrationHash), true);
+        assertEq(settler.checkSettlementCache(migrationId), true);
 
         vm.recordLogs();
+
+        // Receipt
+        vm.expectEmit(true, true, false, true);
+        emit ISettler.Receipt(migrationId, weth, wethAmount);
 
         // pool creation event
         vm.expectEmit(true, true, false, false);
@@ -1325,7 +1341,7 @@ contract UniswapV3AcrossSettlerTest is TestContext, UniswapV3Helpers {
         // Fee payment
         vm.expectEmit(true, true, false, true);
         emit ISettler.FeePayment(
-            migrationHash,
+            migrationId,
             weth,
             uint256(totalProtocolFeeBps) * wethAmount / 10000,
             uint256(netSenderFeeBps) * wethAmount / 10000
@@ -1333,7 +1349,7 @@ contract UniswapV3AcrossSettlerTest is TestContext, UniswapV3Helpers {
 
         vm.expectEmit(true, true, false, true);
         emit ISettler.FeePayment(
-            migrationHash,
+            migrationId,
             address(mockUSDC),
             uint256(totalProtocolFeeBps) * usdcAmount / 10000,
             uint256(netSenderFeeBps) * usdcAmount / 10000
@@ -1341,11 +1357,7 @@ contract UniswapV3AcrossSettlerTest is TestContext, UniswapV3Helpers {
 
         // Settlement
         vm.expectEmit(true, true, false, true);
-        emit ISettler.Settlement(migrationHash, user, tokenId);
-
-        // Receipt
-        vm.expectEmit(true, true, true, true);
-        emit IAcrossSettler.Receipt(migrationHash, user, weth, wethAmount);
+        emit ISettler.Settlement(migrationId, user, tokenId);
 
         // second call to handleV3AcrossMessage fails via catch and refunds both token
         vm.prank(address(acrossSpokePool));

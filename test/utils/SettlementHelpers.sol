@@ -182,7 +182,7 @@ library SettlementHelpers {
         ISettler.SettlementParams memory settlementParams,
         MigrationMode mode,
         bytes memory routesData
-    ) public view returns (bytes32 migrationHash, bytes memory data) {
+    ) public view returns (bytes32 migrationId, bytes memory data) {
         MigrationData memory migrationData = MigrationData({
             sourceChainId: block.chainid,
             migrator: address(1),
@@ -191,8 +191,8 @@ library SettlementHelpers {
             routesData: routesData,
             settlementData: abi.encode(settlementParams)
         });
-        migrationHash = migrationData.toHash();
-        return (migrationHash, abi.encode(migrationHash, migrationData));
+        migrationId = migrationData.toId();
+        return (migrationId, abi.encode(migrationId, migrationData));
     }
 
     function findFeePaymentEvent(Vm.Log[] memory logs) public view returns (Vm.Log memory) {

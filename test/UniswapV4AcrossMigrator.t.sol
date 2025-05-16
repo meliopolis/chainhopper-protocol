@@ -103,8 +103,8 @@ contract UniswapV4AcrossMigratorTest is TestContext, UniswapV4Helpers {
             routesData: "",
             settlementData: ""
         });
-        bytes32 migrationHash = migrationData.toHash();
-        bytes memory data = abi.encode(migrationHash, migrationData);
+        bytes32 migrationId = migrationData.toId();
+        bytes memory data = abi.encode(migrationId, migrationData);
 
         vm.recordLogs();
 
@@ -146,7 +146,7 @@ contract UniswapV4AcrossMigratorTest is TestContext, UniswapV4Helpers {
 
         vm.expectEmit(true, true, true, false);
         emit IMigrator.MigrationStarted(
-            migrationHash, tokenId, destinationChainId, address(settler), MigrationModes.SINGLE, user, token0, 0
+            migrationId, tokenId, destinationChainId, address(settler), MigrationModes.SINGLE, user, token0, 0
         );
         vm.prank(user);
         IERC721(address(v4PositionManager)).safeTransferFrom(
@@ -197,8 +197,8 @@ contract UniswapV4AcrossMigratorTest is TestContext, UniswapV4Helpers {
             routesData: "",
             settlementData: ""
         });
-        bytes32 migrationHash = migrationData.toHash();
-        bytes memory data = abi.encode(migrationHash, migrationData);
+        bytes32 migrationId = migrationData.toId();
+        bytes memory data = abi.encode(migrationId, migrationData);
 
         vm.recordLogs();
 
@@ -238,7 +238,7 @@ contract UniswapV4AcrossMigratorTest is TestContext, UniswapV4Helpers {
 
         vm.expectEmit(true, true, true, false);
         emit IMigrator.MigrationStarted(
-            migrationHash, tokenId, destinationChainId, address(settler), MigrationModes.SINGLE, user, token0, 0
+            migrationId, tokenId, destinationChainId, address(settler), MigrationModes.SINGLE, user, token0, 0
         );
         vm.prank(user);
         IERC721(address(v4PositionManager)).safeTransferFrom(
@@ -289,8 +289,8 @@ contract UniswapV4AcrossMigratorTest is TestContext, UniswapV4Helpers {
             routesData: "",
             settlementData: ""
         });
-        bytes32 migrationHash = migrationData.toHash();
-        bytes memory data = abi.encode(migrationHash, migrationData);
+        bytes32 migrationId = migrationData.toId();
+        bytes memory data = abi.encode(migrationId, migrationData);
 
         vm.recordLogs();
 
@@ -328,7 +328,7 @@ contract UniswapV4AcrossMigratorTest is TestContext, UniswapV4Helpers {
 
         vm.expectEmit(true, true, true, false);
         emit IMigrator.MigrationStarted(
-            migrationHash, tokenId, destinationChainId, address(settler), MigrationModes.SINGLE, user, token0, 0
+            migrationId, tokenId, destinationChainId, address(settler), MigrationModes.SINGLE, user, token0, 0
         );
         vm.prank(user);
         IERC721(address(v4PositionManager)).safeTransferFrom(
@@ -380,8 +380,8 @@ contract UniswapV4AcrossMigratorTest is TestContext, UniswapV4Helpers {
             routesData: "",
             settlementData: ""
         });
-        bytes32 migrationHash = migrationData.toHash();
-        bytes memory data = abi.encode(migrationHash, migrationData);
+        bytes32 migrationId = migrationData.toId();
+        bytes memory data = abi.encode(migrationId, migrationData);
 
         vm.recordLogs();
 
@@ -423,7 +423,7 @@ contract UniswapV4AcrossMigratorTest is TestContext, UniswapV4Helpers {
 
         vm.expectEmit(true, true, true, false);
         emit IMigrator.MigrationStarted(
-            migrationHash, tokenId, destinationChainId, address(settler), MigrationModes.SINGLE, user, token0, 0
+            migrationId, tokenId, destinationChainId, address(settler), MigrationModes.SINGLE, user, token0, 0
         );
         vm.prank(user);
         IERC721(address(v4PositionManager)).safeTransferFrom(
@@ -478,8 +478,8 @@ contract UniswapV4AcrossMigratorTest is TestContext, UniswapV4Helpers {
             routesData: "",
             settlementData: ""
         });
-        bytes32 migrationHash = migrationData.toHash();
-        bytes memory data = abi.encode(migrationHash, migrationData);
+        bytes32 migrationId = migrationData.toId();
+        bytes memory data = abi.encode(migrationId, migrationData);
 
         vm.recordLogs();
 
@@ -519,7 +519,7 @@ contract UniswapV4AcrossMigratorTest is TestContext, UniswapV4Helpers {
 
         vm.expectEmit(true, true, true, false);
         emit IMigrator.MigrationStarted(
-            migrationHash, tokenId, destinationChainId, address(settler), MigrationModes.SINGLE, user, token0, 0
+            migrationId, tokenId, destinationChainId, address(settler), MigrationModes.SINGLE, user, token0, 0
         );
         vm.prank(user);
         IERC721(address(v4PositionManager)).safeTransferFrom(
@@ -574,8 +574,8 @@ contract UniswapV4AcrossMigratorTest is TestContext, UniswapV4Helpers {
             routesData: "",
             settlementData: ""
         });
-        bytes32 migrationHash = migrationData.toHash();
-        bytes memory data = abi.encode(migrationHash, migrationData);
+        bytes32 migrationId = migrationData.toId();
+        bytes memory data = abi.encode(migrationId, migrationData);
 
         vm.recordLogs();
 
@@ -614,7 +614,7 @@ contract UniswapV4AcrossMigratorTest is TestContext, UniswapV4Helpers {
 
         vm.expectEmit(true, true, true, false);
         emit IMigrator.MigrationStarted(
-            migrationHash, tokenId, destinationChainId, address(settler), MigrationModes.SINGLE, user, token0, 0
+            migrationId, tokenId, destinationChainId, address(settler), MigrationModes.SINGLE, user, token0, 0
         );
         vm.prank(user);
         IERC721(address(v4PositionManager)).safeTransferFrom(
@@ -623,7 +623,7 @@ contract UniswapV4AcrossMigratorTest is TestContext, UniswapV4Helpers {
 
         // verify diff between input and output amount is equal to maxFees
         Vm.Log[] memory entries = vm.getRecordedLogs();
-        uint256 amountOut = 0;
+        (, uint256 amountOut) = (0, 0);
         Vm.Log memory fundsDepositedEvent = AcrossHelpers.findFundsDepositedEvent(entries);
 
         (bytes32 inputToken, bytes32 outputToken, uint256 inputAmount, uint256 outputAmount, bytes memory message) =
@@ -665,8 +665,8 @@ contract UniswapV4AcrossMigratorTest is TestContext, UniswapV4Helpers {
             routesData: "",
             settlementData: ""
         });
-        bytes32 migrationHash = migrationData.toHash();
-        bytes memory data = abi.encode(migrationHash, migrationData);
+        bytes32 migrationId = migrationData.toId();
+        bytes memory data = abi.encode(migrationId, migrationData);
 
         vm.recordLogs();
 
@@ -708,7 +708,7 @@ contract UniswapV4AcrossMigratorTest is TestContext, UniswapV4Helpers {
 
         vm.expectEmit(true, true, true, false);
         emit IMigrator.MigrationStarted(
-            migrationHash, tokenId, destinationChainId, address(settler), MigrationModes.SINGLE, user, token1, 0
+            migrationId, tokenId, destinationChainId, address(settler), MigrationModes.SINGLE, user, token1, 0
         );
         vm.prank(user);
         IERC721(address(v4PositionManager)).safeTransferFrom(
@@ -762,8 +762,8 @@ contract UniswapV4AcrossMigratorTest is TestContext, UniswapV4Helpers {
             routesData: "",
             settlementData: ""
         });
-        bytes32 migrationHash = migrationData.toHash();
-        bytes memory data = abi.encode(migrationHash, migrationData);
+        bytes32 migrationId = migrationData.toId();
+        bytes memory data = abi.encode(migrationId, migrationData);
 
         vm.recordLogs();
 
@@ -802,7 +802,7 @@ contract UniswapV4AcrossMigratorTest is TestContext, UniswapV4Helpers {
 
         vm.expectEmit(true, true, true, false);
         emit IMigrator.MigrationStarted(
-            migrationHash, tokenId, destinationChainId, address(settler), MigrationModes.SINGLE, user, token1, 0
+            migrationId, tokenId, destinationChainId, address(settler), MigrationModes.SINGLE, user, token1, 0
         );
         vm.prank(user);
         IERC721(address(v4PositionManager)).safeTransferFrom(
@@ -855,8 +855,8 @@ contract UniswapV4AcrossMigratorTest is TestContext, UniswapV4Helpers {
             routesData: "",
             settlementData: ""
         });
-        bytes32 migrationHash = migrationData.toHash();
-        bytes memory data = abi.encode(migrationHash, migrationData);
+        bytes32 migrationId = migrationData.toId();
+        bytes memory data = abi.encode(migrationId, migrationData);
 
         vm.recordLogs();
 
@@ -896,7 +896,7 @@ contract UniswapV4AcrossMigratorTest is TestContext, UniswapV4Helpers {
 
         vm.expectEmit(true, true, true, false);
         emit IMigrator.MigrationStarted(
-            migrationHash, tokenId, destinationChainId, address(settler), MigrationModes.SINGLE, user, token1, 0
+            migrationId, tokenId, destinationChainId, address(settler), MigrationModes.SINGLE, user, token1, 0
         );
         vm.prank(user);
         IERC721(address(v4PositionManager)).safeTransferFrom(
@@ -948,8 +948,8 @@ contract UniswapV4AcrossMigratorTest is TestContext, UniswapV4Helpers {
             routesData: "",
             settlementData: ""
         });
-        bytes32 migrationHash = migrationData.toHash();
-        bytes memory data = abi.encode(migrationHash, migrationData);
+        bytes32 migrationId = migrationData.toId();
+        bytes memory data = abi.encode(migrationId, migrationData);
 
         vm.recordLogs();
 
@@ -991,7 +991,7 @@ contract UniswapV4AcrossMigratorTest is TestContext, UniswapV4Helpers {
 
         vm.expectEmit(true, true, true, false);
         emit IMigrator.MigrationStarted(
-            migrationHash, tokenId, destinationChainId, address(settler), MigrationModes.SINGLE, user, token0, 0
+            migrationId, tokenId, destinationChainId, address(settler), MigrationModes.SINGLE, user, token0, 0
         );
         vm.prank(user);
         IERC721(address(v4PositionManager)).safeTransferFrom(
@@ -1045,8 +1045,8 @@ contract UniswapV4AcrossMigratorTest is TestContext, UniswapV4Helpers {
             routesData: "",
             settlementData: ""
         });
-        bytes32 migrationHash = migrationData.toHash();
-        bytes memory data = abi.encode(migrationHash, migrationData);
+        bytes32 migrationId = migrationData.toId();
+        bytes memory data = abi.encode(migrationId, migrationData);
 
         vm.recordLogs();
 
@@ -1086,7 +1086,7 @@ contract UniswapV4AcrossMigratorTest is TestContext, UniswapV4Helpers {
 
         vm.expectEmit(true, true, true, false);
         emit IMigrator.MigrationStarted(
-            migrationHash, tokenId, destinationChainId, address(settler), MigrationModes.SINGLE, user, token0, 0
+            migrationId, tokenId, destinationChainId, address(settler), MigrationModes.SINGLE, user, token0, 0
         );
         vm.prank(user);
         IERC721(address(v4PositionManager)).safeTransferFrom(
@@ -1141,8 +1141,8 @@ contract UniswapV4AcrossMigratorTest is TestContext, UniswapV4Helpers {
             routesData: "",
             settlementData: ""
         });
-        bytes32 migrationHash = migrationData.toHash();
-        bytes memory data = abi.encode(migrationHash, migrationData);
+        bytes32 migrationId = migrationData.toId();
+        bytes memory data = abi.encode(migrationId, migrationData);
 
         vm.recordLogs();
 
@@ -1181,7 +1181,7 @@ contract UniswapV4AcrossMigratorTest is TestContext, UniswapV4Helpers {
 
         vm.expectEmit(true, true, true, false);
         emit IMigrator.MigrationStarted(
-            migrationHash, tokenId, destinationChainId, address(settler), MigrationModes.SINGLE, user, token0, 0
+            migrationId, tokenId, destinationChainId, address(settler), MigrationModes.SINGLE, user, token0, 0
         );
         vm.prank(user);
         IERC721(address(v4PositionManager)).safeTransferFrom(
@@ -1233,8 +1233,8 @@ contract UniswapV4AcrossMigratorTest is TestContext, UniswapV4Helpers {
             routesData: abi.encode(token0, token1, amount0 - maxFees - 1, amount1 - maxFees - 1),
             settlementData: ""
         });
-        bytes32 migrationHash = migrationData.toHash();
-        bytes memory data = abi.encode(migrationHash, migrationData);
+        bytes32 migrationId = migrationData.toId();
+        bytes memory data = abi.encode(migrationId, migrationData);
 
         vm.recordLogs();
 
@@ -1290,11 +1290,11 @@ contract UniswapV4AcrossMigratorTest is TestContext, UniswapV4Helpers {
 
         vm.expectEmit(true, true, true, false);
         emit IMigrator.MigrationStarted(
-            migrationHash, tokenId, destinationChainId, address(settler), MigrationModes.DUAL, user, token0, 0
+            migrationId, tokenId, destinationChainId, address(settler), MigrationModes.DUAL, user, token0, 0
         );
         vm.expectEmit(true, true, true, false);
         emit IMigrator.MigrationStarted(
-            migrationHash, tokenId, destinationChainId, address(settler), MigrationModes.DUAL, user, token1, 0
+            migrationId, tokenId, destinationChainId, address(settler), MigrationModes.DUAL, user, token1, 0
         );
         vm.prank(user);
         IERC721(address(v4PositionManager)).safeTransferFrom(
@@ -1352,8 +1352,8 @@ contract UniswapV4AcrossMigratorTest is TestContext, UniswapV4Helpers {
             routesData: abi.encode(token0, token1, amount0 - maxFees - 1, amount1 - maxFees - 1),
             settlementData: ""
         });
-        bytes32 migrationHash = migrationData.toHash();
-        bytes memory data = abi.encode(migrationHash, migrationData);
+        bytes32 migrationId = migrationData.toId();
+        bytes memory data = abi.encode(migrationId, migrationData);
 
         vm.recordLogs();
 
@@ -1411,11 +1411,11 @@ contract UniswapV4AcrossMigratorTest is TestContext, UniswapV4Helpers {
 
         vm.expectEmit(true, true, true, false);
         emit IMigrator.MigrationStarted(
-            migrationHash, tokenId, destinationChainId, address(settler), MigrationModes.DUAL, user, token0, 0
+            migrationId, tokenId, destinationChainId, address(settler), MigrationModes.DUAL, user, token0, 0
         );
         vm.expectEmit(true, true, true, false);
         emit IMigrator.MigrationStarted(
-            migrationHash, tokenId, destinationChainId, address(settler), MigrationModes.DUAL, user, token1, 0
+            migrationId, tokenId, destinationChainId, address(settler), MigrationModes.DUAL, user, token1, 0
         );
         vm.prank(user);
         IERC721(address(v4PositionManager)).safeTransferFrom(

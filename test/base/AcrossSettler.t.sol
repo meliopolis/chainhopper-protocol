@@ -29,6 +29,25 @@ contract AcrossSettlerTest is TestContext {
         settler.handleV3AcrossMessage(address(0), 0, address(0), "");
     }
 
+    function test_handleV3AcrossMessage_fails_ifMissingAmount() public {
+        MigrationData memory migrationData = MigrationData(0, address(0), 0, MigrationModes.SINGLE, "", "");
+        bytes memory data = abi.encode(bytes32(0), migrationData);
+
+        vm.expectRevert(abi.encodeWithSelector(IAcrossSettler.MissingAmount.selector, address(1)));
+
+        vm.prank(address(acrossSpokePool));
+        settler.handleV3AcrossMessage(address(1), 0, address(0), data);
+    }
+
+    function test_handleV3AcrossMessage_fails_ifInvalidMigration() public {
+        MigrationData memory migrationData = MigrationData(0, address(0), 0, MigrationModes.SINGLE, "", "");
+        bytes memory data = abi.encode(bytes32(0), migrationData);
+
+        vm.expectRevert(IAcrossSettler.InvalidMigration.selector, address(settler));
+        vm.prank(address(acrossSpokePool));
+        settler.handleV3AcrossMessage(address(0), 1, address(0), data);
+    }
+
     function test_fuzz_handleV3AcrossMessage(
         bool hasSettlementCache,
         bool shouldSelfSettleRevert,
@@ -37,11 +56,11 @@ contract AcrossSettlerTest is TestContext {
         ISettler.SettlementParams memory settlementParams = ISettler.SettlementParams(user, 0, address(0), "");
         MigrationData memory migrationData =
             MigrationData(block.chainid, address(0), 1, MigrationModes.DUAL, "", abi.encode(settlementParams));
-        bytes memory data = abi.encode(migrationData.toHash(), migrationData);
+        bytes memory data = abi.encode(migrationData.toId(), migrationData);
 
         if (shouldSelfSettleRevert) {
             if (shouldHandleMessageRevert) {
-                settler.setErrorSelector(ISettler.InvalidMigration.selector);
+                settler.setErrorSelector(IAcrossSettler.InvalidMigration.selector);
 
                 vm.expectRevert();
             } else {
@@ -58,7 +77,7 @@ contract AcrossSettlerTest is TestContext {
             }
         } else {
             vm.expectEmit(true, false, false, false);
-            emit IAcrossSettler.Receipt(migrationData.toHash(), address(2), weth, 100);
+            emit ISettler.Receipt(migrationData.toId(), weth, 100);
         }
 
         vm.prank(address(acrossSpokePool));

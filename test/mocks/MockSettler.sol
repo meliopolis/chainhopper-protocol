@@ -6,17 +6,17 @@ import {Settler} from "../../src/base/Settler.sol";
 contract MockSettler is Settler {
     constructor(address initialOwner) Settler(initialOwner) {}
 
-    function getSettlementCache(bytes32 migrationHash)
+    function getSettlementCache(bytes32 migrationId)
         external
         view
         returns (address recipient, address token, uint256 amount)
     {
-        SettlementCache memory cache = settlementCaches[migrationHash];
+        SettlementCache memory cache = settlementCaches[migrationId];
         return (cache.recipient, cache.token, cache.amount);
     }
 
-    function setSettlementCache(bytes32 migrationHash, address recipient, address token, uint256 amount) external {
-        settlementCaches[migrationHash] = SettlementCache(recipient, token, amount);
+    function setSettlementCache(bytes32 migrationId, address recipient, address token, uint256 amount) external {
+        settlementCaches[migrationId] = SettlementCache(recipient, token, amount);
     }
 
     function _mintPosition(address token, uint256 amount, address recipient, bytes memory data)
