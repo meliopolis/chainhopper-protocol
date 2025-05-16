@@ -31,7 +31,7 @@ abstract contract Settler is ISettler, ProtocolFees, ReentrancyGuard {
     /// @notice Constant for conversions between unit and milli basis points
     uint256 internal constant UNIT_IN_MILLI_BASIS_POINTS = 10_000_000;
 
-    /// @notice Mapping of migration hashes to settlement caches
+    /// @notice Mapping of migration ID to settlement cach
     mapping(bytes32 => SettlementCache) internal settlementCaches;
 
     /// @notice Constructor for the Settler contract
@@ -39,23 +39,20 @@ abstract contract Settler is ISettler, ProtocolFees, ReentrancyGuard {
     constructor(address initialOwner) ProtocolFees(initialOwner) {}
 
     /// @notice Function to settle a migration
+    /// @param migrationId The migration ID
     /// @param token The token to settle
     /// @param amount The amount received from the migration
-    /// @param data The data to settle
-    /// @return migrationHash The migration hash
-    /// @return recipient The recipient of the settlement
-    function selfSettle(address token, uint256 amount, bytes memory data)
+    /// @param migrationData The migration data
+    /// @return isAccepted Whether the migration was accepted
+    function selfSettle(bytes32 migrationId, address token, uint256 amount, MigrationData memory migrationData)
         external
         virtual
         nonReentrant
-        returns (bytes32, address)
+        returns (bool)
     {
         // must be called by the contract itself, for wrapping in a try/catch
         if (msg.sender != address(this)) revert NotSelf();
-        if (amount == 0) revert MissingAmount(token);
 
-        (bytes32 migrationHash, MigrationData memory migrationData) = abi.decode(data, (bytes32, MigrationData));
-        if (migrationData.toHash() != migrationHash) revert InvalidMigration();
         SettlementParams memory settlementParams = abi.decode(migrationData.settlementData, (SettlementParams));
 
         if (migrationData.mode == MigrationModes.SINGLE) {
@@ -68,31 +65,31 @@ abstract contract Settler is ISettler, ProtocolFees, ReentrancyGuard {
             );
 
             // transfer fees after minting position to prevent reentrancy
-            _payFees(migrationHash, token, protocolFee, senderFee, settlementParams.senderFeeRecipient);
+            _payFees(migrationId, token, protocolFee, senderFee, settlementParams.senderFeeRecipient);
 
-            emit Settlement(migrationHash, settlementParams.recipient, positionId);
+            emit Settlement(migrationId, settlementParams.recipient, positionId);
         } else if (migrationData.mode == MigrationModes.DUAL) {
             (address token0, address token1, uint256 amount0Min, uint256 amount1Min) =
                 abi.decode(migrationData.routesData, (address, address, uint256, uint256));
             if (token == token0) {
-                if (amount < amount0Min) revert AmountTooLow(token, amount, amount0Min);
+                if (amount < amount0Min) return false;
             } else if (token == token1) {
-                if (amount < amount1Min) revert AmountTooLow(token, amount, amount1Min);
+                if (amount < amount1Min) return false;
             } else {
-                revert UnexpectedToken(token);
+                return false;
             }
 
-            SettlementCache memory settlementCache = settlementCaches[migrationHash];
+            SettlementCache memory settlementCache = settlementCaches[migrationId];
 
             if (settlementCache.amount == 0) {
                 // cache settlement to wait for the other half
-                settlementCaches[migrationHash] =
+                settlementCaches[migrationId] =
                     SettlementCache({recipient: settlementParams.recipient, token: token, amount: amount});
             } else {
                 if (token == settlementCache.token) revert SameToken();
 
                 // delete settlement cache to prevent reentrancy
-                delete settlementCaches[migrationHash];
+                delete settlementCaches[migrationId];
 
                 // calculate fees
                 (uint256 protocolFeeA, uint256 senderFeeA) = _calculateFees(amount, settlementParams.senderShareBps);
@@ -110,24 +107,24 @@ abstract contract Settler is ISettler, ProtocolFees, ReentrancyGuard {
                 );
 
                 // transfer fees after minting position to prevent reentrancy
-                _payFees(migrationHash, token, protocolFeeA, senderFeeA, settlementParams.senderFeeRecipient);
+                _payFees(migrationId, token, protocolFeeA, senderFeeA, settlementParams.senderFeeRecipient);
                 _payFees(
-                    migrationHash, settlementCache.token, protocolFeeB, senderFeeB, settlementParams.senderFeeRecipient
+                    migrationId, settlementCache.token, protocolFeeB, senderFeeB, settlementParams.senderFeeRecipient
                 );
 
-                emit Settlement(migrationHash, settlementParams.recipient, positionId);
+                emit Settlement(migrationId, settlementParams.recipient, positionId);
             }
         } else {
             revert UnsupportedMode(migrationData.mode);
         }
 
-        return (migrationHash, settlementParams.recipient);
+        return true;
     }
 
     /// @notice Function to withdraw a migration
-    /// @param migrationHash The migration hash
-    function withdraw(bytes32 migrationHash) external nonReentrant {
-        _refund(migrationHash, true);
+    /// @param migrationId The migration ID
+    function withdraw(bytes32 migrationId) external nonReentrant {
+        _refund(migrationId, true);
     }
 
     /// @notice Internal function to calculate fees
@@ -153,13 +150,13 @@ abstract contract Settler is ISettler, ProtocolFees, ReentrancyGuard {
     }
 
     /// @notice Internal function to pay fees
-    /// @param migrationHash The migration hash
+    /// @param migrationId The migration ID
     /// @param token The token to pay fees for
     /// @param protocolFee The protocol fee
     /// @param senderFee The sender fee
     /// @param senderFeeRecipient The recipient of the sender fee
     function _payFees(
-        bytes32 migrationHash,
+        bytes32 migrationId,
         address token,
         uint256 protocolFee,
         uint256 senderFee,
@@ -168,23 +165,23 @@ abstract contract Settler is ISettler, ProtocolFees, ReentrancyGuard {
         if (protocolFee > 0) IERC20(token).safeTransfer(protocolFeeRecipient, protocolFee);
         if (senderFee > 0) IERC20(token).safeTransfer(senderFeeRecipient, senderFee);
 
-        emit FeePayment(migrationHash, token, protocolFee, senderFee);
+        emit FeePayment(migrationId, token, protocolFee, senderFee);
     }
 
     /// @notice Internal function to refund a migration
-    /// @param migrationHash The migration hash
+    /// @param migrationId The migration ID
     /// @param onlyRecipient Whether to only refund the recipient
-    function _refund(bytes32 migrationHash, bool onlyRecipient) internal virtual {
-        SettlementCache memory settlementCache = settlementCaches[migrationHash];
+    function _refund(bytes32 migrationId, bool onlyRecipient) internal virtual {
+        SettlementCache memory settlementCache = settlementCaches[migrationId];
 
         if (settlementCache.amount > 0) {
             if (onlyRecipient && msg.sender != settlementCache.recipient) revert NotRecipient();
 
             // delete settlement cache before transfer to prevent reentrancy
-            delete settlementCaches[migrationHash];
+            delete settlementCaches[migrationId];
             IERC20(settlementCache.token).safeTransfer(settlementCache.recipient, settlementCache.amount);
 
-            emit Refund(migrationHash, settlementCache.recipient, settlementCache.token, settlementCache.amount);
+            emit Refund(migrationId, settlementCache.recipient, settlementCache.token, settlementCache.amount);
         }
     }
 

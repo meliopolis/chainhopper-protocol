@@ -19,7 +19,7 @@ interface IMigrator {
 
     /// @notice Event emitted when a migration is started
     event MigrationStarted(
-        bytes32 indexed migrationHash,
+        bytes32 indexed migrationId,
         uint256 indexed positionId,
         uint256 indexed chainId,
         address settler,

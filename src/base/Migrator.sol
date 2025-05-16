@@ -52,14 +52,14 @@ abstract contract Migrator is IMigrator, ChainSettlers {
                 routesData: "",
                 settlementData: params.settlementParams
             });
-            bytes32 migrationHash = migrationData.toHash();
-            data = abi.encode(migrationHash, migrationData);
+            bytes32 migrationId = migrationData.toId();
+            data = abi.encode(migrationId, migrationData);
 
             // bridge token
             _bridge(sender, params.chainId, params.settler, token0, amount, tokenRoute.token, tokenRoute.route, data);
 
             emit MigrationStarted(
-                migrationHash,
+                migrationId,
                 positionId,
                 params.chainId,
                 params.settler,
@@ -92,15 +92,15 @@ abstract contract Migrator is IMigrator, ChainSettlers {
                 ),
                 settlementData: params.settlementParams
             });
-            bytes32 migrationHash = migrationData.toHash();
-            data = abi.encode(migrationHash, migrationData);
+            bytes32 migrationId = migrationData.toId();
+            data = abi.encode(migrationId, migrationData);
 
             // bridge tokens
             _bridge(sender, params.chainId, params.settler, token0, amount0, tokenRoute0.token, tokenRoute0.route, data);
             _bridge(sender, params.chainId, params.settler, token1, amount1, tokenRoute1.token, tokenRoute1.route, data);
 
             emit MigrationStarted(
-                migrationHash,
+                migrationId,
                 positionId,
                 params.chainId,
                 params.settler,
@@ -110,7 +110,7 @@ abstract contract Migrator is IMigrator, ChainSettlers {
                 amount0
             );
             emit MigrationStarted(
-                migrationHash,
+                migrationId,
                 positionId,
                 params.chainId,
                 params.settler,

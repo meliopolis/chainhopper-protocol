@@ -29,33 +29,22 @@ abstract contract AcrossSettler is IAcrossSettler, IAcrossMessageHandler, Settle
     /// @param message The message to settle
     function handleV3AcrossMessage(address token, uint256 amount, address, bytes memory message) external {
         if (msg.sender != spokePool) revert NotSpokePool();
+        if (amount == 0) revert MissingAmount(token);
+        (bytes32 migrationId, MigrationData memory migrationData) = abi.decode(message, (bytes32, MigrationData));
+        if (migrationData.toId() != migrationId) revert InvalidMigration();
 
-        try this.selfSettle(token, amount, message) returns (bytes32 migrationHash, address recipient) {
-            emit Receipt(migrationHash, recipient, token, amount);
-        } catch (bytes memory reason) {
-            bytes4 selector;
-            if (reason.length >= 4) {
-                selector = (
-                    bytes4(reason[0]) | (bytes4(reason[1]) >> 8) | (bytes4(reason[2]) >> 16) | (bytes4(reason[3]) >> 24)
-                );
-            }
+        emit Receipt(migrationId, token, amount);
 
-            if (
-                selector == InvalidMigration.selector || selector == AmountTooLow.selector
-                    || selector == UnexpectedToken.selector
-            ) {
-                revert();
-            } else {
-                (bytes32 migrationHash, MigrationData memory migrationData) =
-                    abi.decode(message, (bytes32, MigrationData));
-                SettlementParams memory settlementParams = abi.decode(migrationData.settlementData, (SettlementParams));
+        try this.selfSettle(migrationId, token, amount, migrationData) returns (bool isAccepted) {
+            if (!isAccepted) revert();
+        } catch {
+            SettlementParams memory settlementParams = abi.decode(migrationData.settlementData, (SettlementParams));
 
-                // refund this and cached settlement if applicable (Across only receive ERC20 tokens)
-                IERC20(token).safeTransfer(settlementParams.recipient, amount);
-                emit Refund(migrationHash, settlementParams.recipient, token, amount);
-                if (migrationData.mode == MigrationModes.DUAL) {
-                    _refund(migrationHash, false);
-                }
+            // refund this and cached settlement if applicable (Across only receive ERC20 tokens)
+            IERC20(token).safeTransfer(settlementParams.recipient, amount);
+            emit Refund(migrationId, settlementParams.recipient, token, amount);
+            if (migrationData.mode == MigrationModes.DUAL) {
+                _refund(migrationId, false);
             }
         }
     }

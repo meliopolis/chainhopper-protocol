@@ -19,10 +19,10 @@ using MigrationDataLibrary for MigrationData global;
 /// @title MigrationDataLibrary
 /// @notice Library for handling migration data
 library MigrationDataLibrary {
-    /// @notice Function to create a hash of the migration data
+    /// @notice Function to create a migration ID from data
     /// @param self The migration data
-    /// @return The hash of the migration data
-    function toHash(MigrationData memory self) internal pure returns (bytes32) {
+    /// @return The migration ID
+    function toId(MigrationData memory self) internal pure returns (bytes32) {
         return keccak256(
             abi.encode(self.sourceChainId, self.migrator, self.nonce, self.mode, self.routesData, self.settlementData)
         );
