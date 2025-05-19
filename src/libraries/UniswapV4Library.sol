@@ -77,6 +77,8 @@ library UniswapV4Library {
 
         // calculate and approve amounts (reuse amountXDesired variable)
         uint256 value;
+        bool danglingApprovalToken0 = false;
+        bool danglingApprovalToken1 = false;
         if (sqrtPriceX96Upper < sqrtPriceX96) {
             amount0Desired = 0;
         } else {
@@ -88,6 +90,7 @@ library UniswapV4Library {
                 value = amount0Desired;
             } else {
                 approve(permit2, isPermit2Approved, poolKey.currency0, address(positionManager), amount0Desired);
+                danglingApprovalToken0 = true;
             }
         }
         if (sqrtPriceX96Lower > sqrtPriceX96) {
@@ -98,6 +101,7 @@ library UniswapV4Library {
             );
 
             approve(permit2, isPermit2Approved, poolKey.currency1, address(positionManager), amount1Desired);
+            danglingApprovalToken1 = true;
         }
 
         // mint position
@@ -113,6 +117,14 @@ library UniswapV4Library {
         amount1 = balance1Before - poolKey.currency1.balanceOfSelf();
 
         if (amount0 < amount0Min || amount1 < amount1Min) revert TooMuchSlippage();
+
+        // remove dangling approvals
+        if (danglingApprovalToken0) {
+            approve(permit2, true, poolKey.currency0, address(positionManager), 0);
+        }
+        if (danglingApprovalToken1) {
+            approve(permit2, true, poolKey.currency1, address(positionManager), 0);
+        }
     }
 
     /// @notice Liquidate a position
