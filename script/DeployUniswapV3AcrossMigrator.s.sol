@@ -28,10 +28,16 @@ contract DeployUniswapV3AcrossMigrator is Script, ChainSettlerHelper {
             vm.envAddress(string(abi.encodePacked(env, "_WETH")))
         );
 
-        (uint32[] memory chainIds, address[] memory chainSettlers, bool[] memory values) =
+        (uint256[] memory chainIds, address[] memory chainSettlers, bool[] memory values) =
             ChainSettlerHelper.getChainSettlersArrays("DEPLOY_CHAIN_IDS");
         if (chainIds.length > 0) {
             migrator.setChainSettlers(chainIds, chainSettlers, values);
+        }
+
+        // set a new owner if needed
+        address finalOwner = vm.envAddress("DEPLOY_FINAL_OWNER");
+        if (finalOwner != address(0) && finalOwner != initialOwner) {
+            migrator.transferOwnership(finalOwner);
         }
 
         console.log("UniswapV3AcrossMigrator deployed at:", address(migrator));

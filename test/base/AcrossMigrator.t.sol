@@ -9,14 +9,15 @@ import {MockAcrossMigrator} from "../mocks/MockAcrossMigrator.sol";
 import {TestContext} from "../utils/TestContext.sol";
 
 contract AcrossMigratorTest is TestContext {
-    string constant CHAIN_NAME = "BASE";
+    string public constant SRC_CHAIN_NAME = "BASE";
+    string public constant DEST_CHAIN_NAME = "";
 
     MockAcrossMigrator private migrator;
 
     function setUp() public {
-        _loadChain(CHAIN_NAME);
+        _loadChain(SRC_CHAIN_NAME, DEST_CHAIN_NAME);
 
-        migrator = new MockAcrossMigrator(owner, acrossSpokePool, weth);
+        migrator = new MockAcrossMigrator(owner, address(acrossSpokePool), weth);
     }
 
     function test_fuzz_bridge(uint256 amount, IAcrossMigrator.Route memory route, bool isTokenNative) public {
@@ -38,17 +39,17 @@ contract AcrossMigratorTest is TestContext {
 
         if (!isTokenNative) {
             vm.expectEmit(true, true, true, true, inputToken);
-            emit IERC20.Approval(address(migrator), acrossSpokePool, amount);
+            emit IERC20.Approval(address(migrator), address(acrossSpokePool), amount);
             vm.expectEmit(true, true, true, true, inputToken);
-            emit IERC20.Transfer(address(migrator), acrossSpokePool, amount);
+            emit IERC20.Transfer(address(migrator), address(acrossSpokePool), amount);
         }
-        vm.expectEmit(true, false, true, false, acrossSpokePool);
+        vm.expectEmit(true, false, true, false, address(acrossSpokePool));
         emit IAcrossSpokePool.FundsDeposited(
             bytes32(0), bytes32(0), 0, 0, 1, 0, 0, 0, 0, bytes32(uint256(uint160(user))), 0, 0, ""
         );
         if (!isTokenNative) {
             vm.expectEmit(true, true, true, true, inputToken);
-            emit IERC20.Approval(address(migrator), acrossSpokePool, 0);
+            emit IERC20.Approval(address(migrator), address(acrossSpokePool), 0);
         }
 
         migrator.bridge(user, 1, address(0), token, amount, inputToken, abi.encode(route), "");
@@ -60,15 +61,11 @@ contract AcrossMigratorTest is TestContext {
         bool isRouteTokenWeth,
         bool areTokensEqual
     ) public view {
-        vm.assume(!(isTokenNative && isRouteTokenWeth && areTokensEqual));
-        address token = isTokenNative ? address(0) : address(1);
         tokenRoute.token = isRouteTokenWeth ? weth : usdc;
-        if (areTokensEqual) {
-            isTokenNative ? tokenRoute.token = token : token = tokenRoute.token;
-        }
 
-        bool misMatch = !areTokensEqual && (!isTokenNative || !isRouteTokenWeth);
-        assertEq(migrator.matchTokenWithRoute(token, tokenRoute), !misMatch);
+        address token = areTokensEqual ? (isRouteTokenWeth && isTokenNative ? address(0) : tokenRoute.token) : usdt;
+
+        assertEq(migrator.matchTokenWithRoute(token, tokenRoute), areTokensEqual);
     }
 
     function test_fuzz_isAmountSufficient(

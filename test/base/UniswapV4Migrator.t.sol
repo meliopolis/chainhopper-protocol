@@ -13,16 +13,20 @@ import {MockUniswapV4Settler} from "../mocks/MockUniswapV4Settler.sol";
 import {TestContext} from "../utils/TestContext.sol";
 
 contract UniswapV4MigratorTest is TestContext {
-    string constant CHAIN_NAME = "BASE";
+    string public constant SRC_CHAIN_NAME = "BASE";
+    string public constant DEST_CHAIN_NAME = "";
 
     MockUniswapV4Migrator migrator;
     MockUniswapV4Settler settler;
 
     function setUp() public {
-        _loadChain(CHAIN_NAME);
+        _loadChain(SRC_CHAIN_NAME, DEST_CHAIN_NAME);
 
-        migrator = new MockUniswapV4Migrator(owner, v4PositionManager, universalRouter, permit2);
-        settler = new MockUniswapV4Settler(owner, v4PositionManager, universalRouter, permit2, weth);
+        migrator =
+            new MockUniswapV4Migrator(owner, address(v4PositionManager), address(universalRouter), address(permit2));
+        settler = new MockUniswapV4Settler(
+            owner, address(v4PositionManager), address(universalRouter), address(permit2), weth
+        );
     }
 
     function test_onERC721Received_fails_ifNotPositionManager() public {
@@ -33,7 +37,7 @@ contract UniswapV4MigratorTest is TestContext {
     }
 
     function test_fuzz_onERC721Received(address from, uint256 tokenId, bytes memory data) public {
-        vm.prank(v4PositionManager);
+        vm.prank(address(v4PositionManager));
         bytes4 selector = migrator.onERC721Received(address(0), from, tokenId, data);
         assertEq(selector, IERC721Receiver.onERC721Received.selector);
     }

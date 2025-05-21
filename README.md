@@ -1,11 +1,11 @@
-# Hopper Protocol: Migrate Uniswap LP positions cross-chain
+# ChainHopper Protocol: Migrate Uniswap LP positions cross-chain
 
 ## Overview
 
-Hopper migrates Uniswap v3 and v4 LP positions between different EVM chains with a single click.
+ChainHopper migrates Uniswap v3 and v4 LP positions between different EVM chains with a single click.
 
 To move a Uniswap LP position manually from say Arbitrum to Unichain requires several steps:
-1. Burn position on Arbitrum (to collect all assets in the pool and fees)
+1. Burn position on Arbitrum (to collect all assets in the pool *and* fees)
 2. Swap to a single token (like WETH)
 3. Bridge WETH to Unichain
 4. Swap back into the "other token" (like USDC)
@@ -13,7 +13,13 @@ To move a Uniswap LP position manually from say Arbitrum to Unichain requires se
 
 This assumes you have gas on Unichain, otherwise an extra step to procure gas token.
 
-Hopper allows all of these steps to be combined in a single transaction, using Across Protocol as the bridge.
+ChainHopper allows all of these steps to be combined in a single transaction, using Across Protocol as the bridge.
+
+## Getting started
+
+1. Try it at [chainhopper.xyz](https://chainhopper.xyz)
+
+2. Integrate it directly in your products using our SDK: [ChainHopper SDK](https://github.com/meliopolis/chainhopper-sdk/)
 
 ## Core Components
 
@@ -57,9 +63,13 @@ Key Settler contracts:
 - Partial settlement support for dual-token migrations
 - Comprehensive migration ID system for tracking migrations
 
+## Audit Report
+
+You can find the audit report in `docs/`.
+
 ## Usage
 
-Check `script/` for deployment instructions
+While you can access the contracts directly at the deployed addresses, we recommend starting with our SDK: [ChainHopper SDK](https://github.com/meliopolis/chainhopper-sdk).
 
 ## Testing
 
@@ -85,11 +95,17 @@ We strive for 100% test coverage. Foundry currently doesn't recognize test cover
 forge coverage --ir-minimum
 ```
 
+## Deploying
+
+Contracts are currently deployed on 5 chains: Mainnet, Unichain, Base, Optimism and Arbitrum. You can find the deployment addresses in either the `broadcast/` directory or in the [SDK](https://github.com/meliopolis/chainhopper-sdk/blob/main/src/chains.ts).
+
+You can also deploy all the contracts directly via scripts in `bash_scripts/` or individually via `script/`. 
+
 ## Future work
 
-We plan to support:
-- additional bridges
-- additional DEXes
+We are exploring additional bridges like Wormhole and Op Stack interop.
+
+Additionally, we are also exploring if more of the calcs (like how much to swap on destination chain) can be done on-chain in Solidity.
 
 ## Comments/Questions
 

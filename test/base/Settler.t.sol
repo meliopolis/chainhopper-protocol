@@ -3,19 +3,20 @@ pragma solidity ^0.8.24;
 
 import {IERC20} from "@openzeppelin/token/ERC20/IERC20.sol";
 import {ISettler} from "../../src/interfaces/ISettler.sol";
-import {MigrationId, MigrationIdLibrary} from "../../src/types/MigrationId.sol";
+import {IAcrossSettler} from "../../src/interfaces/IAcrossSettler.sol";
+import {MigrationData} from "../../src/types/MigrationData.sol";
 import {MigrationMode, MigrationModes} from "../../src/types/MigrationMode.sol";
 import {MockSettler} from "../mocks/MockSettler.sol";
 import {TestContext} from "../utils/TestContext.sol";
-import {RejectingRecipient} from "../mocks/MockRejectingRecipient.sol";
 
 contract SettlerTest is TestContext {
-    string constant CHAIN_NAME = "BASE";
+    string public constant SRC_CHAIN_NAME = "BASE";
+    string public constant DEST_CHAIN_NAME = "";
 
-    MockSettler settler;
+    MockSettler internal settler;
 
     function setUp() public {
-        _loadChain(CHAIN_NAME);
+        _loadChain(SRC_CHAIN_NAME, DEST_CHAIN_NAME);
 
         settler = new MockSettler(owner);
 
@@ -30,97 +31,63 @@ contract SettlerTest is TestContext {
 
     function test_selfSettle_fails_ifNotSelf() public {
         vm.expectRevert(abi.encodeWithSelector(ISettler.NotSelf.selector), address(settler));
-        settler.selfSettle(address(0), 0, "");
-    }
-
-    function test_selfSettle_fails_ifMissingAmount() public {
-        vm.expectRevert(abi.encodeWithSelector(ISettler.MissingAmount.selector, address(0)), address(settler));
-        vm.prank(address(settler));
-        settler.selfSettle(address(0), 0, "");
+        settler.selfSettle(
+            bytes32(0),
+            address(0),
+            0,
+            MigrationData({
+                sourceChainId: 0,
+                migrator: address(0),
+                nonce: 1,
+                mode: MigrationMode.wrap(type(uint8).max),
+                routesData: "",
+                settlementData: ""
+            })
+        );
     }
 
     function test_selfSettle_fails_ifUnsupportedMode() public {
-        MigrationId migrationId = MigrationIdLibrary.from(0, address(0), MigrationMode.wrap(type(uint8).max), 0);
-        bytes memory data =
-            abi.encode(migrationId, abi.encode(ISettler.SettlementParams(address(0), 0, address(0), "")));
+        bytes memory settlementParams = abi.encode(ISettler.SettlementParams(address(0), 0, address(0), ""));
+        MigrationData memory migrationData =
+            MigrationData(0, address(0), 0, MigrationMode.wrap(type(uint8).max), "", settlementParams);
 
         vm.expectRevert(abi.encodeWithSelector(ISettler.UnsupportedMode.selector, type(uint8).max), address(settler));
         vm.prank(address(settler));
-        settler.selfSettle(address(0), 100, data);
+        settler.selfSettle(bytes32(0), address(0), 100, migrationData);
     }
 
-    function test_fuzz_withdraw(bool isNative, bool isRecipient) public {
-        MigrationId migrationId = MigrationId.wrap(0);
-        address token;
-        if (isNative) {
-            deal(address(settler), 100);
-        } else {
-            token = weth;
-            deal(token, address(settler), 100);
-        }
+    function test_fuzz_withdraw(bool isRecipient) public {
+        address token = weth;
+        bytes32 messageHash = keccak256("");
 
-        settler.setSettlementCache(migrationId, isRecipient ? user : owner, token, 100, "");
+        deal(token, address(settler), 100);
+
+        settler.setSettlementCache(messageHash, isRecipient ? user : owner, token, 100);
 
         if (!isRecipient) {
             vm.expectRevert(abi.encodeWithSelector(ISettler.NotRecipient.selector), address(settler));
         } else {
-            if (!isNative) {
-                vm.expectEmit(true, true, true, true);
-                emit IERC20.Transfer(address(settler), user, 100);
-            } else {
-                vm.expectEmit(true, true, true, true);
-                emit ISettler.Refund(migrationId, user, address(0), 100);
-            }
+            vm.expectEmit(true, true, true, true);
+            emit IERC20.Transfer(address(settler), user, 100);
+
+            vm.expectEmit(true, true, true, true);
+            emit ISettler.Refund(messageHash, user, token, 100);
         }
 
         vm.prank(user);
-        settler.withdraw(migrationId);
-    }
-
-    function test_fuzz_exposeTransfer(bool isNative, bool useRejectingRecipient) public {
-        address token;
-        if (isNative) {
-            deal(address(settler), 100);
-            token = address(0);
-        } else {
-            deal(weth, address(settler), 100);
-            token = weth;
-        }
-
-        address recipient;
-        if (useRejectingRecipient) {
-            recipient = address(new RejectingRecipient());
-        } else {
-            recipient = user;
-        }
-
-        if (isNative) {
-            if (useRejectingRecipient) {
-                vm.expectRevert(abi.encodeWithSelector(ISettler.NativeTokenTransferFailed.selector, recipient, 100));
-            }
-        } else {
-            vm.expectEmit(true, true, true, true);
-            emit IERC20.Transfer(address(settler), recipient, 100);
-        }
-
-        vm.prank(address(settler));
-        settler.exposeTransfer(token, recipient, 100);
+        settler.withdraw(messageHash);
     }
 
     // single token
 
-    function test_fuzz_selfSettle_singleRoute(ISettler.SettlementParams memory params, bool isTokenNative) public {
+    function test_fuzz_selfSettle_singleRoute(ISettler.SettlementParams memory params) public {
         vm.assume(params.senderShareBps < type(uint16).max - settler.protocolShareBps());
-        MigrationId migrationId = MigrationIdLibrary.from(0, address(0), MigrationModes.SINGLE, 0);
-        bytes memory data = abi.encode(migrationId, abi.encode(params));
 
-        address token;
-        if (isTokenNative) {
-            deal(address(settler), 100);
-        } else {
-            token = weth;
-            deal(token, address(settler), 100);
-        }
+        address token = weth;
+        MigrationData memory migrationData =
+            MigrationData(0, address(0), 0, MigrationModes.SINGLE, "", abi.encode(params));
+
+        deal(token, address(settler), 100);
 
         if (params.senderShareBps + settler.protocolShareBps() > settler.MAX_SHARE_BPS()) {
             vm.expectRevert(
@@ -131,50 +98,33 @@ contract SettlerTest is TestContext {
             );
         } else {
             vm.expectEmit(true, true, true, true);
-            emit ISettler.Settlement(migrationId, params.recipient, 0);
+            emit ISettler.Settlement(migrationData.toId(), params.recipient, 0);
         }
 
         vm.prank(address(settler));
-        settler.selfSettle(token, 100, data);
+        settler.selfSettle(migrationData.toId(), token, 100, migrationData);
     }
 
     // dual tokens
 
-    function test_fuzz_selfSettle_dualRoute(
-        ISettler.SettlementParams memory params,
-        bool hasSettlementCache,
-        bool isToken0Native,
-        bool isToken1Native,
-        bool isDataMatching
-    ) public {
+    function test_fuzz_selfSettle_dualRoute(ISettler.SettlementParams memory params, bool hasSettlementCache) public {
         vm.assume(params.senderShareBps < type(uint16).max - settler.protocolShareBps());
-        MigrationId migrationId = MigrationIdLibrary.from(0, address(0), MigrationModes.DUAL, 0);
-        bytes memory data = abi.encode(migrationId, abi.encode(params));
 
-        address token0;
-        if (isToken0Native) {
-            deal(address(settler), 100);
-        } else {
-            token0 = weth;
-            deal(token0, address(settler), 100);
-        }
+        address token0 = weth < usdc ? weth : usdc;
+        address token1 = weth < usdc ? usdc : weth;
+        bytes memory routesData = abi.encode(token0, token1, 100, 200);
+        MigrationData memory migrationData =
+            MigrationData(0, address(0), 0, MigrationModes.DUAL, routesData, abi.encode(params));
 
-        address token1;
-        if (isToken1Native) {
-            deal(address(settler), 100);
-        } else {
-            token1 = weth;
-            deal(token1, address(settler), 100);
-        }
+        deal(token0, address(settler), 100);
+        deal(token1, address(settler), 200);
 
+        bool isRevert;
         if (hasSettlementCache) {
-            settler.setSettlementCache(migrationId, params.recipient, token1, 200, isDataMatching ? data : bytes(""));
-        }
+            settler.setSettlementCache(migrationData.toId(), params.recipient, token1, 200);
 
-        if (hasSettlementCache) {
-            if (!isDataMatching) {
-                vm.expectRevert(abi.encodeWithSelector(ISettler.MismatchingData.selector), address(settler));
-            } else if (params.senderShareBps + settler.protocolShareBps() > settler.MAX_SHARE_BPS()) {
+            if (params.senderShareBps + settler.protocolShareBps() > settler.MAX_SHARE_BPS()) {
+                isRevert = true;
                 vm.expectRevert(
                     abi.encodeWithSelector(
                         ISettler.MaxFeeExceeded.selector, settler.protocolShareBps(), params.senderShareBps
@@ -183,11 +133,91 @@ contract SettlerTest is TestContext {
                 );
             } else {
                 vm.expectEmit(true, true, true, true);
-                emit ISettler.Settlement(migrationId, params.recipient, 0);
+                emit ISettler.Settlement(migrationData.toId(), params.recipient, 0);
             }
         }
 
         vm.prank(address(settler));
-        settler.selfSettle(token0, 100, data);
+        settler.selfSettle(migrationData.toId(), token0, 100, migrationData);
+
+        (,, uint256 amount) = settler.getSettlementCache(migrationData.toId());
+        if (hasSettlementCache != isRevert) {
+            vm.assertEq(amount, 0);
+        } else {
+            vm.assertGt(amount, 0);
+        }
+    }
+
+    function test_selfSettle_dualRoute_fails_ifSameToken() public {
+        address token0 = weth < usdc ? weth : usdc;
+        address token1 = weth < usdc ? usdc : weth;
+        MigrationData memory migrationData = MigrationData(
+            0,
+            address(0),
+            0,
+            MigrationModes.DUAL,
+            abi.encode(token0, token1, 100, 100),
+            abi.encode(ISettler.SettlementParams(address(0), 0, address(0), ""))
+        );
+
+        deal(token1, address(settler), 100);
+
+        settler.setSettlementCache(migrationData.toId(), address(0), token1, 100);
+
+        vm.expectRevert(abi.encodeWithSelector(ISettler.SameToken.selector), address(settler));
+
+        vm.prank(address(settler));
+        settler.selfSettle(migrationData.toId(), token1, 100, migrationData);
+    }
+
+    function test_selfSettle_dualRoute_fails_ifUnexpectedToken() public {
+        address token0 = weth < usdc ? weth : usdc;
+        address token1 = weth < usdc ? usdc : weth;
+        MigrationData memory migrationData = MigrationData(
+            0,
+            address(0),
+            0,
+            MigrationModes.DUAL,
+            abi.encode(token0, token1, 100, 200),
+            abi.encode(ISettler.SettlementParams(address(0), 0, address(0), ""))
+        );
+
+        vm.prank(address(settler));
+        bool shouldBeFalse = settler.selfSettle(bytes32(0), usdt, 100, migrationData);
+        vm.assertEq(shouldBeFalse, false);
+    }
+
+    function test_selfSettle_dualRoute_fails_ifAmount0TooLow() public {
+        address token0 = weth < usdc ? weth : usdc;
+        address token1 = weth < usdc ? usdc : weth;
+        MigrationData memory migrationData = MigrationData(
+            0,
+            address(0),
+            0,
+            MigrationModes.DUAL,
+            abi.encode(token0, token1, type(uint256).max, 200),
+            abi.encode(ISettler.SettlementParams(address(0), 0, address(0), ""))
+        );
+
+        vm.prank(address(settler));
+        bool shouldBeFalse = settler.selfSettle(bytes32(0), token0, 100, migrationData);
+        vm.assertEq(shouldBeFalse, false);
+    }
+
+    function test_selfSettle_dualRoute_fails_ifAmount1TooLow() public {
+        address token0 = weth < usdc ? weth : usdc;
+        address token1 = weth < usdc ? usdc : weth;
+        MigrationData memory migrationData = MigrationData(
+            0,
+            address(0),
+            0,
+            MigrationModes.DUAL,
+            abi.encode(token0, token1, 100, type(uint256).max),
+            abi.encode(ISettler.SettlementParams(address(0), 0, address(0), ""))
+        );
+
+        vm.prank(address(settler));
+        bool shouldBeFalse = settler.selfSettle(bytes32(0), token1, 200, migrationData);
+        vm.assertEq(shouldBeFalse, false);
     }
 }

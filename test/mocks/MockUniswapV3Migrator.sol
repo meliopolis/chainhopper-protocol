@@ -14,7 +14,7 @@ contract MockUniswapV3Migrator is UniswapV3Migrator {
 
     function _bridge(
         address sender,
-        uint32 chainId,
+        uint256 chainId,
         address settler,
         address token,
         uint256 amount,

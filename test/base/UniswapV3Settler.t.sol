@@ -8,14 +8,16 @@ import {MockUniswapV3Settler} from "../mocks/MockUniswapV3Settler.sol";
 import {TestContext} from "../utils/TestContext.sol";
 
 contract UniswapV3SettlerTest is TestContext {
-    string constant CHAIN_NAME = "BASE";
+    string public constant SRC_CHAIN_NAME = "BASE";
+    string public constant DEST_CHAIN_NAME = "";
 
     MockUniswapV3Settler settler;
 
     function setUp() public {
-        _loadChain(CHAIN_NAME);
+        _loadChain(SRC_CHAIN_NAME, DEST_CHAIN_NAME);
 
-        settler = new MockUniswapV3Settler(owner, v3PositionManager, universalRouter, permit2);
+        settler =
+            new MockUniswapV3Settler(owner, address(v3PositionManager), address(universalRouter), address(permit2));
     }
 
     function test_mintPosition_singleRoute_fails_ifTokenIsUnused() public {

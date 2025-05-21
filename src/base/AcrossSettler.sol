@@ -1,12 +1,12 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
 import {AcrossMessageHandler as IAcrossMessageHandler} from "@across/interfaces/SpokePoolMessageHandler.sol";
 import {IERC20} from "@openzeppelin/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/token/ERC20/utils/SafeERC20.sol";
 import {IAcrossSettler} from "../interfaces/IAcrossSettler.sol";
-import {MigrationId} from "../types/MigrationId.sol";
-import {MigrationModes} from "../types/MigrationMode.sol";
+import {MigrationData} from "../types/MigrationData.sol";
+import {MigrationMode, MigrationModes} from "../types/MigrationMode.sol";
 import {Settler} from "./Settler.sol";
 
 /// @title AcrossSettler
@@ -29,16 +29,21 @@ abstract contract AcrossSettler is IAcrossSettler, IAcrossMessageHandler, Settle
     /// @param message The message to settle
     function handleV3AcrossMessage(address token, uint256 amount, address, bytes memory message) external {
         if (msg.sender != spokePool) revert NotSpokePool();
+        if (amount == 0) revert MissingAmount(token);
+        (bytes32 migrationId, MigrationData memory migrationData) = abi.decode(message, (bytes32, MigrationData));
+        if (migrationData.toId() != migrationId) revert InvalidMigration();
 
-        try this.selfSettle(token, amount, message) returns (MigrationId migrationId, address recipient) {
-            emit Receipt(migrationId, recipient, token, amount);
+        emit Receipt(migrationId, token, amount);
+
+        try this.selfSettle(migrationId, token, amount, migrationData) returns (bool isAccepted) {
+            if (!isAccepted) revert();
         } catch {
-            (MigrationId migrationId, SettlementParams memory settlementParams) =
-                abi.decode(message, (MigrationId, SettlementParams));
+            SettlementParams memory settlementParams = abi.decode(migrationData.settlementData, (SettlementParams));
 
             // refund this and cached settlement if applicable (Across only receive ERC20 tokens)
             IERC20(token).safeTransfer(settlementParams.recipient, amount);
-            if (migrationId.mode() == MigrationModes.DUAL) {
+            emit Refund(migrationId, settlementParams.recipient, token, amount);
+            if (migrationData.mode == MigrationModes.DUAL) {
                 _refund(migrationId, false);
             }
         }

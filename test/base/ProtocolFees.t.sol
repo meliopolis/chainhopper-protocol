@@ -6,10 +6,10 @@ import {Ownable} from "@openzeppelin/access/Ownable.sol";
 import {ProtocolFees} from "../../src/base/ProtocolFees.sol";
 
 contract ProtocolFeesTest is Test {
-    address user = makeAddr("user");
-    address owner = makeAddr("owner");
+    address internal user = makeAddr("user");
+    address internal owner = makeAddr("owner");
 
-    ProtocolFees protocolFees;
+    ProtocolFees internal protocolFees;
 
     function setUp() public {
         protocolFees = new ProtocolFees(owner);

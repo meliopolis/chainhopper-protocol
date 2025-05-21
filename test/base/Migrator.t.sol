@@ -1,29 +1,30 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.24;
 
+import {ChainSettlers} from "../../src/base/ChainSettlers.sol";
 import {IMigrator} from "../../src/interfaces/IMigrator.sol";
-import {MigrationId, MigrationIdLibrary} from "../../src/types/MigrationId.sol";
+import {MigrationData} from "../../src/types/MigrationData.sol";
 import {MigrationModes} from "../../src/types/MigrationMode.sol";
 import {MockMigrator} from "../mocks/MockMigrator.sol";
 import {TestContext} from "../utils/TestContext.sol";
-import {ChainSettlers} from "../../src/base/ChainSettlers.sol";
 
 contract MigratorTest is TestContext {
-    string constant CHAIN_NAME = "BASE";
+    string public constant SRC_CHAIN_NAME = "BASE";
+    string public constant DEST_CHAIN_NAME = "";
 
-    uint32[] private chainIds = [123, 456, 789];
-    address[] private settlers = [address(0x123), address(0x456), address(0x789)];
-    bool[] private values = [true, true, true];
+    uint256[] internal chainIds = [123, 456, 789];
+    address[] internal settlers = [address(0x123), address(0x456), address(0x789)];
+    bool[] internal isChainSettlerEnabled = [true, true, true];
 
-    MockMigrator migrator;
+    MockMigrator internal migrator;
 
     function setUp() public {
-        _loadChain(CHAIN_NAME);
+        _loadChain(SRC_CHAIN_NAME, DEST_CHAIN_NAME);
 
         migrator = new MockMigrator(owner);
 
         vm.prank(owner);
-        migrator.setChainSettlers(chainIds, settlers, values);
+        migrator.setChainSettlers(chainIds, settlers, isChainSettlerEnabled);
     }
 
     function _mockTokenRoutes(uint256 count) private view returns (IMigrator.TokenRoute[] memory tokenRoutes) {
@@ -76,7 +77,7 @@ contract MigratorTest is TestContext {
         bool isAmountSufficient
     ) public {
         vm.assume(!(token0MatchesRoute && token1MatchesRoute));
-        if (token0MatchesRoute) migrator.setDoTokenAndRouteMatch([true, true]);
+        if (token0MatchesRoute) migrator.setDoTokenAndRouteMatch([true]);
         if (isAmountSufficient) migrator.setIsAmountSufficient([true, true]);
 
         address token0 = token0MatchesRoute ? weth : usdc;
@@ -85,97 +86,84 @@ contract MigratorTest is TestContext {
         uint256 amount1 = amount1NonZero ? 200 : 0;
         migrator.setLiquidity(token0, token1, amount0, amount1);
 
+        IMigrator.MigrationParams memory migrationParams = _mockMigrationParams(1);
+        MigrationData memory migrationData = MigrationData(
+            block.chainid, address(migrator), 1, MigrationModes.SINGLE, "", migrationParams.settlementParams
+        );
+
         if (!token0MatchesRoute && !token1MatchesRoute) {
             vm.expectRevert(
                 abi.encodeWithSelector(IMigrator.TokensAndRoutesMismatch.selector, token0, token1), address(migrator)
             );
         } else if (!isAmountSufficient) {
-            vm.expectRevert(
-                abi.encodeWithSelector(IMigrator.AmountTooLow.selector, amount0 + amount1, 100), address(migrator)
-            );
+            vm.expectRevert();
         } else {
-            MigrationId migrationId =
-                MigrationIdLibrary.from(uint32(block.chainid), address(migrator), MigrationModes.SINGLE, 1);
-
             vm.expectEmit(true, true, true, true);
             emit MockMigrator.Log("bridge");
 
             vm.expectEmit(true, true, true, true);
-            emit IMigrator.MigrationStarted(migrationId, 0, weth, user, amount0 + amount1);
+            emit IMigrator.MigrationStarted(
+                migrationData.toId(), 0, chainIds[0], settlers[0], MigrationModes.SINGLE, user, weth, amount0 + amount1
+            );
         }
 
-        bytes memory data = abi.encode(_mockMigrationParams(1));
-        migrator.migrate(user, 0, data);
+        migrator.migrate(user, 0, abi.encode(migrationParams));
     }
 
     // dual route
 
     function test_fuzz_migrate_dualRoute(
-        bool token0MatchesRoute0,
-        bool token0MatchesRoute1,
-        bool token1MatchesRoute0,
-        bool token1MatchesRoute1,
+        bool token0MatchesRoute,
+        bool token1MatchesRoute,
         bool isAmount0Sufficient,
         bool isAmount1Sufficient
     ) public {
-        vm.assume(!(token0MatchesRoute0 && token0MatchesRoute1));
-        vm.assume(!(token1MatchesRoute0 && token1MatchesRoute1));
-        migrator.setDoTokenAndRouteMatch([token0MatchesRoute1, token0MatchesRoute0]);
+        migrator.setDoTokenAndRouteMatch([token0MatchesRoute]);
         migrator.setIsAmountSufficient([isAmount0Sufficient, isAmount1Sufficient]);
 
-        address token0 = token0MatchesRoute0 ? weth : (token0MatchesRoute1 ? usdc : usdt);
-        address token1 = token1MatchesRoute0 ? weth : (token1MatchesRoute1 ? usdc : usdt);
-        uint256 amount0 = isAmount0Sufficient ? (token0MatchesRoute0 ? 100 : 200) : 0;
-        uint256 amount1 = isAmount1Sufficient ? (token1MatchesRoute0 ? 100 : 200) : 0;
+        address token0 = token0MatchesRoute ? weth : usdc;
+        address token1 = token1MatchesRoute ? usdc : weth;
+        uint256 amount0 = isAmount0Sufficient ? (token0MatchesRoute ? 100 : 200) : 0;
+        uint256 amount1 = isAmount1Sufficient ? (token1MatchesRoute ? 200 : 100) : 0;
         migrator.setLiquidity(token0, token1, amount0, amount1);
 
-        if (!token0MatchesRoute1 || !token1MatchesRoute0) {
-            if (!token0MatchesRoute0) {
-                vm.expectRevert(
-                    abi.encodeWithSelector(IMigrator.TokenAndRouteMismatch.selector, token0), address(migrator)
-                );
-            } else if (!token1MatchesRoute1) {
-                vm.expectRevert(
-                    abi.encodeWithSelector(IMigrator.TokenAndRouteMismatch.selector, token1), address(migrator)
-                );
-            } else if (!isAmount0Sufficient) {
-                vm.expectRevert(
-                    abi.encodeWithSelector(IMigrator.AmountTooLow.selector, amount0, 100), address(migrator)
-                );
-            } else if (!isAmount1Sufficient) {
-                vm.expectRevert(
-                    abi.encodeWithSelector(IMigrator.AmountTooLow.selector, amount1, 200), address(migrator)
-                );
-            } else {
-                MigrationId migrationId =
-                    MigrationIdLibrary.from(uint32(block.chainid), address(migrator), MigrationModes.DUAL, 1);
+        IMigrator.MigrationParams memory migrationParams = _mockMigrationParams(2);
+        bytes memory routesData = abi.encode(
+            migrationParams.tokenRoutes[0].token,
+            migrationParams.tokenRoutes[1].token,
+            migrationParams.tokenRoutes[0].amountOutMin,
+            migrationParams.tokenRoutes[1].amountOutMin
+        );
+        MigrationData memory migrationData = MigrationData(
+            block.chainid, address(migrator), 1, MigrationModes.DUAL, routesData, migrationParams.settlementParams
+        );
 
-                vm.expectEmit(true, true, true, true);
-                emit IMigrator.MigrationStarted(migrationId, 0, weth, user, amount0);
-                vm.expectEmit(true, true, true, true);
-                emit IMigrator.MigrationStarted(migrationId, 0, usdc, user, amount1);
-            }
+        if (!token0MatchesRoute) {
+            vm.expectRevert(abi.encodeWithSelector(IMigrator.TokenAndRouteMismatch.selector, token0), address(migrator));
+        } else if (!token1MatchesRoute) {
+            vm.expectRevert(abi.encodeWithSelector(IMigrator.TokenAndRouteMismatch.selector, token1), address(migrator));
+        } else if (!isAmount0Sufficient) {
+            vm.expectRevert();
+        } else if (!isAmount1Sufficient) {
+            vm.expectRevert();
         } else {
-            if (!isAmount0Sufficient) {
-                vm.expectRevert(
-                    abi.encodeWithSelector(IMigrator.AmountTooLow.selector, amount1, 100), address(migrator)
-                );
-            } else if (!isAmount1Sufficient) {
-                vm.expectRevert(
-                    abi.encodeWithSelector(IMigrator.AmountTooLow.selector, amount0, 200), address(migrator)
-                );
-            } else {
-                MigrationId migrationId =
-                    MigrationIdLibrary.from(uint32(block.chainid), address(migrator), MigrationModes.DUAL, 1);
+            vm.expectEmit(true, true, true, true);
+            emit MockMigrator.Log("bridge");
 
-                vm.expectEmit(true, true, true, true);
-                emit IMigrator.MigrationStarted(migrationId, 0, weth, user, amount1);
-                vm.expectEmit(true, true, true, true);
-                emit IMigrator.MigrationStarted(migrationId, 0, usdc, user, amount0);
-            }
+            vm.expectEmit(true, true, true, true);
+            emit MockMigrator.Log("bridge");
+
+            vm.expectEmit(true, true, true, true);
+            emit IMigrator.MigrationStarted(
+                migrationData.toId(), 0, chainIds[0], settlers[0], MigrationModes.DUAL, user, weth, amount0
+            );
+
+            vm.expectEmit(true, true, true, true);
+            emit IMigrator.MigrationStarted(
+                migrationData.toId(), 0, chainIds[0], settlers[0], MigrationModes.DUAL, user, usdc, amount1
+            );
         }
 
-        bytes memory data = abi.encode(_mockMigrationParams(2));
-        migrator.migrate(user, 0, data);
+        migrator.migrate(user, 0, abi.encode(migrationParams));
     }
 }

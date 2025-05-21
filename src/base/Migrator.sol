@@ -1,8 +1,8 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
 import {IMigrator} from "../interfaces/IMigrator.sol";
-import {MigrationId, MigrationIdLibrary} from "../types/MigrationId.sol";
+import {MigrationData} from "../types/MigrationData.sol";
 import {MigrationModes} from "../types/MigrationMode.sol";
 import {ChainSettlers} from "./ChainSettlers.sol";
 
@@ -33,34 +33,46 @@ abstract contract Migrator is IMigrator, ChainSettlers {
             revert MissingTokenRoutes();
         } else if (params.tokenRoutes.length == 1) {
             TokenRoute memory tokenRoute = params.tokenRoutes[0];
+            bool isRoutingToken0 = _matchTokenWithRoute(token0, tokenRoute);
 
-            if (!_matchTokenWithRoute(token0, tokenRoute) && token1 != tokenRoute.token) {
-                revert TokensAndRoutesMismatch(token0, token1);
-            }
+            if (!isRoutingToken0 && token1 != tokenRoute.token) revert TokensAndRoutesMismatch(token0, token1);
 
             // calculate amount, swap if needed
-            uint256 amount = _matchTokenWithRoute(token0, tokenRoute)
+            uint256 amount = isRoutingToken0
                 ? amount0 + (amount1 > 0 ? _swap(poolInfo, false, amount1) : 0)
                 : amount1 + (amount0 > 0 ? _swap(poolInfo, true, amount0) : 0);
             if (!_isAmountSufficient(amount, tokenRoute)) revert AmountTooLow(amount, tokenRoute.amountOutMin);
 
-            // generate migration id and data (reusing the data variable)
-            MigrationId migrationId =
-                MigrationIdLibrary.from(uint32(block.chainid), address(this), MigrationModes.SINGLE, ++migrationCounter);
-            data = abi.encode(migrationId, params.settlementParams);
+            // generate data to send through the bridge (reusing the data variable)
+            MigrationData memory migrationData = MigrationData({
+                sourceChainId: block.chainid,
+                migrator: address(this),
+                nonce: ++migrationCounter,
+                mode: MigrationModes.SINGLE,
+                routesData: "",
+                settlementData: params.settlementParams
+            });
+            bytes32 migrationId = migrationData.toId();
+            data = abi.encode(migrationId, migrationData);
 
             // bridge token
             _bridge(sender, params.chainId, params.settler, token0, amount, tokenRoute.token, tokenRoute.route, data);
 
-            emit MigrationStarted(migrationId, positionId, tokenRoute.token, sender, amount);
+            emit MigrationStarted(
+                migrationId,
+                positionId,
+                params.chainId,
+                params.settler,
+                MigrationModes.SINGLE,
+                sender,
+                tokenRoute.token,
+                amount
+            );
         } else if (params.tokenRoutes.length == 2) {
             TokenRoute memory tokenRoute0 = params.tokenRoutes[0];
             TokenRoute memory tokenRoute1 = params.tokenRoutes[1];
 
-            if (_matchTokenWithRoute(token0, tokenRoute1) && token1 == tokenRoute0.token) {
-                // flip amounts to match token routes
-                (amount0, amount1) = (amount1, amount0);
-            } else if (!_matchTokenWithRoute(token0, tokenRoute0)) {
+            if (!_matchTokenWithRoute(token0, tokenRoute0)) {
                 revert TokenAndRouteMismatch(token0);
             } else if (token1 != tokenRoute1.token) {
                 revert TokenAndRouteMismatch(token1);
@@ -69,17 +81,44 @@ abstract contract Migrator is IMigrator, ChainSettlers {
             if (!_isAmountSufficient(amount0, tokenRoute0)) revert AmountTooLow(amount0, tokenRoute0.amountOutMin);
             if (!_isAmountSufficient(amount1, tokenRoute1)) revert AmountTooLow(amount1, tokenRoute1.amountOutMin);
 
-            // generate migration id and data (reusing the data variable)
-            MigrationId migrationId =
-                MigrationIdLibrary.from(uint32(block.chainid), address(this), MigrationModes.DUAL, ++migrationCounter);
-            data = abi.encode(migrationId, params.settlementParams);
+            // generate data to send through the bridge (reusing the data variable)
+            MigrationData memory migrationData = MigrationData({
+                sourceChainId: block.chainid,
+                migrator: address(this),
+                nonce: ++migrationCounter,
+                mode: MigrationModes.DUAL,
+                routesData: abi.encode(
+                    tokenRoute0.token, tokenRoute1.token, tokenRoute0.amountOutMin, tokenRoute1.amountOutMin
+                ),
+                settlementData: params.settlementParams
+            });
+            bytes32 migrationId = migrationData.toId();
+            data = abi.encode(migrationId, migrationData);
 
             // bridge tokens
             _bridge(sender, params.chainId, params.settler, token0, amount0, tokenRoute0.token, tokenRoute0.route, data);
             _bridge(sender, params.chainId, params.settler, token1, amount1, tokenRoute1.token, tokenRoute1.route, data);
 
-            emit MigrationStarted(migrationId, positionId, tokenRoute0.token, sender, amount0);
-            emit MigrationStarted(migrationId, positionId, tokenRoute1.token, sender, amount1);
+            emit MigrationStarted(
+                migrationId,
+                positionId,
+                params.chainId,
+                params.settler,
+                MigrationModes.DUAL,
+                sender,
+                tokenRoute0.token,
+                amount0
+            );
+            emit MigrationStarted(
+                migrationId,
+                positionId,
+                params.chainId,
+                params.settler,
+                MigrationModes.DUAL,
+                sender,
+                tokenRoute1.token,
+                amount1
+            );
         } else {
             revert TooManyTokenRoutes();
         }
@@ -93,7 +132,7 @@ abstract contract Migrator is IMigrator, ChainSettlers {
     /// @param amount The amount to bridge
     function _bridge(
         address sender,
-        uint32 chainId,
+        uint256 chainId,
         address settler,
         address token,
         uint256 amount,

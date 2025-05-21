@@ -25,19 +25,21 @@ contract MockMigrator is Migrator {
         amount1 = _amount1;
     }
 
-    function setDoTokenAndRouteMatch(bool[2] memory matches) external {
+    function setDoTokenAndRouteMatch(bool[1] memory matches) external {
         doTokenAndRouteMatch = matches;
+        tokenRouteMatchCounter = 0;
     }
 
     function setIsAmountSufficient(bool[2] memory amounts) external {
         isAmountSufficient = amounts;
+        isAmountSufficientCounter = 0;
     }
 
     function migrate(address sender, uint256 positionId, bytes memory data) public {
         _migrate(sender, positionId, data);
     }
 
-    function _bridge(address, uint32, address, address, uint256, address, bytes memory, bytes memory)
+    function _bridge(address, uint256, address, address, uint256, address, bytes memory, bytes memory)
         internal
         override
     {

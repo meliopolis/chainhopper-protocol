@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
 import {IERC20} from "@openzeppelin/token/ERC20/IERC20.sol";
@@ -36,7 +36,7 @@ abstract contract AcrossMigrator is IAcrossMigrator, Migrator {
     /// @param data The data to bridge
     function _bridge(
         address sender,
-        uint32 chainId,
+        uint256 chainId,
         address settler,
         address token,
         uint256 amount,

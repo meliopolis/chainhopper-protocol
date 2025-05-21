@@ -6,10 +6,10 @@ import {Ownable} from "@openzeppelin/access/Ownable.sol";
 import {ChainSettlers} from "../../src/base/ChainSettlers.sol";
 
 contract ChainSettlersTest is Test {
-    address user = makeAddr("user");
-    address owner = makeAddr("owner");
+    address internal user = makeAddr("user");
+    address internal owner = makeAddr("owner");
 
-    ChainSettlers chainSettlers;
+    ChainSettlers internal chainSettlers;
 
     function setUp() public {
         chainSettlers = new ChainSettlers(owner);
@@ -21,28 +21,28 @@ contract ChainSettlersTest is Test {
         );
 
         vm.prank(user);
-        chainSettlers.setChainSettlers(new uint32[](0), new address[](0), new bool[](0));
+        chainSettlers.setChainSettlers(new uint256[](0), new address[](0), new bool[](0));
     }
 
     function test_setChainSettlers_fails_ifParamsLengthMismatch() public {
         vm.startPrank(owner);
 
         vm.expectRevert(abi.encodeWithSelector(ChainSettlers.ChainSettlersParamsLengthMismatch.selector));
-        chainSettlers.setChainSettlers(new uint32[](1), new address[](0), new bool[](0));
+        chainSettlers.setChainSettlers(new uint256[](1), new address[](0), new bool[](0));
 
         vm.expectRevert(abi.encodeWithSelector(ChainSettlers.ChainSettlersParamsLengthMismatch.selector));
-        chainSettlers.setChainSettlers(new uint32[](0), new address[](1), new bool[](0));
+        chainSettlers.setChainSettlers(new uint256[](0), new address[](1), new bool[](0));
 
         vm.expectRevert(abi.encodeWithSelector(ChainSettlers.ChainSettlersParamsLengthMismatch.selector));
-        chainSettlers.setChainSettlers(new uint32[](0), new address[](0), new bool[](1));
+        chainSettlers.setChainSettlers(new uint256[](0), new address[](0), new bool[](1));
 
         vm.stopPrank();
     }
 
-    function test_fuzz_setChainSettlers(uint32[3] memory chainIds, address[3] memory settlers, bool[3] memory values)
+    function test_fuzz_setChainSettlers(uint256[3] memory chainIds, address[3] memory settlers, bool[3] memory values)
         public
     {
-        uint32[] memory _chainIds = new uint32[](chainIds.length);
+        uint256[] memory _chainIds = new uint256[](chainIds.length);
         address[] memory _settlers = new address[](settlers.length);
         bool[] memory _values = new bool[](values.length);
 

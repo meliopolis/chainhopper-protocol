@@ -3,25 +3,39 @@ pragma solidity ^0.8.24;
 
 import {AcrossSettler} from "../../src/base/AcrossSettler.sol";
 import {Settler} from "../../src/base/Settler.sol";
-import {MigrationId, MigrationIdLibrary} from "../../src/types/MigrationId.sol";
-import {MigrationModes} from "../../src/types/MigrationMode.sol";
+import {MigrationData} from "../../src/types/MigrationData.sol";
 
 contract MockAcrossSettler is AcrossSettler {
-    bool private shouldSettleRevert;
+    bytes4 private errorSelector;
+
+    event Log(string message);
 
     constructor(address initialOwner, address spokePool) Settler(initialOwner) AcrossSettler(spokePool) {}
 
-    function setSettlementCache(MigrationId migrationId, SettlementCache memory cache) external {
-        settlementCaches[migrationId] = cache;
+    function setErrorSelector(bytes4 selector) external {
+        errorSelector = selector;
     }
 
-    function setShouldSettleRevert(bool shouldRevert) external {
-        shouldSettleRevert = shouldRevert;
+    function selfSettle(bytes32, address, uint256, MigrationData memory migrationData)
+        external
+        view
+        override
+        returns (bool)
+    {
+        bytes4 selector = errorSelector;
+
+        if (errorSelector != bytes4(0)) {
+            assembly ("memory-safe") {
+                let ptr := mload(0x40)
+                mstore(ptr, selector)
+                revert(ptr, 4)
+            }
+        }
+        return true;
     }
 
-    function selfSettle(address, uint256, bytes memory) external view override returns (MigrationId, address) {
-        if (shouldSettleRevert) revert();
-        return (MigrationIdLibrary.from(uint32(block.chainid), address(2), MigrationModes.DUAL, 1), address(2));
+    function _refund(bytes32, bool) internal override {
+        emit Log("refund");
     }
 
     function _mintPosition(address token, uint256 amount, address recipient, bytes memory data)

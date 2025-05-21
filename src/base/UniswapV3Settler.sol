@@ -1,10 +1,14 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
 import {IERC20} from "@openzeppelin/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/token/ERC20/utils/SafeERC20.sol";
+import {IPermit2} from "@uniswap-permit2/interfaces/IPermit2.sol";
+import {IUniversalRouter} from "@uniswap-universal-router/interfaces/IUniversalRouter.sol";
+// copied and modified from uniswap-v3-periphery, as the original had bad imports
+import {INonfungiblePositionManager as IPositionManager} from "../interfaces/external/INonfungiblePositionManager.sol";
 import {IUniswapV3Settler} from "../interfaces/IUniswapV3Settler.sol";
-import {UniswapV3Proxy} from "../libraries/UniswapV3Proxy.sol";
+import {UniswapV3Library} from "../libraries/UniswapV3Library.sol";
 import {Settler} from "./Settler.sol";
 
 /// @title UniswapV3Settler
@@ -12,15 +16,19 @@ import {Settler} from "./Settler.sol";
 abstract contract UniswapV3Settler is IUniswapV3Settler, Settler {
     using SafeERC20 for IERC20;
 
-    /// @notice The Uniswap V3 proxy
-    UniswapV3Proxy private proxy;
+    IPositionManager private immutable positionManager;
+    IUniversalRouter private immutable universalRouter;
+    IPermit2 private immutable permit2;
+    mapping(address => bool) isPermit2Approved;
 
     /// @notice Constructor for the UniswapV3Settler contract
-    /// @param positionManager The position manager address
-    /// @param universalRouter The universal router address
-    /// @param permit2 The permit2 address
-    constructor(address positionManager, address universalRouter, address permit2) {
-        proxy.initialize(positionManager, universalRouter, permit2);
+    /// @param _positionManager The position manager address
+    /// @param _universalRouter The universal router address
+    /// @param _permit2 The permit2 address
+    constructor(address _positionManager, address _universalRouter, address _permit2) {
+        positionManager = IPositionManager(_positionManager);
+        universalRouter = IUniversalRouter(_universalRouter);
+        permit2 = IPermit2(_permit2);
     }
 
     /// @notice Function to mint a position
@@ -38,11 +46,15 @@ abstract contract UniswapV3Settler is IUniswapV3Settler, Settler {
 
         // get token out and amount in
         address tokenOut = token == mintParams.token0 ? mintParams.token1 : mintParams.token0;
-        uint256 amountIn = (amount * mintParams.swapAmountInMilliBps) / 10_000_000;
+        uint256 amountIn = (amount * mintParams.swapAmountInMilliBps) / UNIT_IN_MILLI_BASIS_POINTS;
 
         // swap tokens if needed
         uint256 amountOut;
-        if (amountIn > 0) amountOut = proxy.swap(token, tokenOut, mintParams.fee, amountIn, 0, address(this));
+        if (amountIn > 0) {
+            amountOut = UniswapV3Library.swap(
+                universalRouter, permit2, isPermit2Approved, token, tokenOut, mintParams.fee, amountIn, 0, address(this)
+            );
+        }
 
         return _mintPosition(token, tokenOut, amount - amountIn, amountOut, recipient, data);
     }
@@ -70,14 +82,15 @@ abstract contract UniswapV3Settler is IUniswapV3Settler, Settler {
         (uint256 amount0, uint256 amount1) = tokenA == mintParams.token0 ? (amountA, amountB) : (amountB, amountA);
 
         // create and initialize pool if necessary
-        proxy.createAndInitializePoolIfNecessary(
-            mintParams.token0, mintParams.token1, mintParams.fee, mintParams.sqrtPriceX96
+        UniswapV3Library.createAndInitializePoolIfNecessary(
+            positionManager, mintParams.token0, mintParams.token1, mintParams.fee, mintParams.sqrtPriceX96
         );
 
         // mint position
         uint256 amount0Used;
         uint256 amount1Used;
-        (positionId,, amount0Used, amount1Used) = proxy.mintPosition(
+        (positionId,, amount0Used, amount1Used) = UniswapV3Library.mintPosition(
+            positionManager,
             mintParams.token0,
             mintParams.token1,
             mintParams.fee,

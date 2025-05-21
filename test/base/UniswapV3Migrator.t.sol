@@ -11,12 +11,16 @@ import {IERC20} from "@openzeppelin/token/ERC20/IERC20.sol";
 import {INonfungiblePositionManager} from "../../src/interfaces/external/INonfungiblePositionManager.sol";
 
 contract UniswapV3MigratorTest is TestContext, UniswapV3Helpers {
+    string public constant SRC_CHAIN_NAME = "BASE";
+    string public constant DEST_CHAIN_NAME = "";
+
     MockUniswapV3Migrator migrator;
 
     function setUp() public {
-        _loadChain("BASE");
+        _loadChain(SRC_CHAIN_NAME, DEST_CHAIN_NAME);
 
-        migrator = new MockUniswapV3Migrator(owner, v3PositionManager, universalRouter, permit2);
+        migrator =
+            new MockUniswapV3Migrator(owner, address(v3PositionManager), address(universalRouter), address(permit2));
     }
 
     function test_onERC721Received_fails_ifNotPositionManager() public {
@@ -27,13 +31,13 @@ contract UniswapV3MigratorTest is TestContext, UniswapV3Helpers {
     }
 
     function test_fuzz_onERC721Received(address from, uint256 tokenId, bytes memory data) public {
-        vm.prank(v3PositionManager);
+        vm.prank(address(v3PositionManager));
         bytes4 selector = migrator.onERC721Received(address(0), from, tokenId, data);
         assertEq(selector, IERC721Receiver.onERC721Received.selector);
     }
 
     function test_liquidate() public {
-        uint256 positionId = mintV3Position(v3PositionManager, user, weth, usdc, -300000, 200000, 500);
+        (uint256 positionId,,) = mintV3Position(address(v3PositionManager), user, weth, usdc, -300000, 200000, 500);
         vm.prank(user);
         IERC721(v3PositionManager).approve(address(migrator), positionId);
 
