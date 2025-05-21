@@ -34,6 +34,12 @@ contract DeployUniswapV3AcrossMigrator is Script, ChainSettlerHelper {
             migrator.setChainSettlers(chainIds, chainSettlers, values);
         }
 
+        // set a new owner if needed
+        address finalOwner = vm.envAddress("DEPLOY_FINAL_OWNER");
+        if (finalOwner != address(0) && finalOwner != initialOwner) {
+            migrator.transferOwnership(finalOwner);
+        }
+
         console.log("UniswapV3AcrossMigrator deployed at:", address(migrator));
 
         vm.stopBroadcast();
