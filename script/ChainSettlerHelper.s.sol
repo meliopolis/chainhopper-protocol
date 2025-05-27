@@ -10,11 +10,19 @@ contract ChainSettlerHelper is Script {
     function getContractAddress(string memory chainId, string memory contractName) public view returns (address) {
         string memory root = vm.projectRoot();
         string memory path = string.concat(root, "/broadcast/", contractName, ".s.sol/", chainId, "/run-latest.json");
-        string memory json = vm.readFile(path);
-        if (bytes(json).length == 0) {
+        string memory fileString = vm.readFile(path);
+        if (bytes(fileString).length == 0) {
             return address(0);
         }
-        bytes memory parsedAddress = json.parseRaw(".transactions[0].contractAddress");
+        bytes memory parsedDeployedContractName = fileString.parseRaw(".transactions[0].contractName");
+        string memory deployedContractName = abi.decode(parsedDeployedContractName, (string));
+        bytes memory parsedAddress;
+        if (keccak256(abi.encodePacked(deployedContractName)) == keccak256(abi.encodePacked("UniswapV4Library"))) {
+            // this is for v4Settler because it deploys a library first
+            parsedAddress = fileString.parseRaw(".transactions[1].contractAddress");
+        } else {
+            parsedAddress = fileString.parseRaw(".transactions[0].contractAddress");
+        }
         address contractAddress = abi.decode(parsedAddress, (address));
         if (contractAddress == address(0)) {
             revert("Contract not found");

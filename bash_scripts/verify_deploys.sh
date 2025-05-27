@@ -35,7 +35,7 @@ check_settler_registration() {
     local rpc_var="${migrator_chain_name}_RPC_URL"
     
     # Call chainSettlers(uint256,address) function
-    local is_registered=$(cast call --rpc-url "${!rpc_var}" "$migrator_address" "chainSettlers(uint32,address)(bool)" "$settler_chain_id" "$settler_address" 2>/dev/null || echo "N/A")
+    local is_registered=$(cast call --rpc-url "${!rpc_var}" "$migrator_address" "chainSettlers(uint256,address)(bool)" "$settler_chain_id" "$settler_address" 2>/dev/null || echo "N/A")
     echo "$is_registered"
 }
 
