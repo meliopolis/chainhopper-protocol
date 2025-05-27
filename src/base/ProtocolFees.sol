@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import {Ownable2Step, Ownable} from "@openzeppelin/access/Ownable2Step.sol";
+import {Ownable} from "@openzeppelin/access/Ownable.sol";
 
 /// @title ProtocolFees
 /// @notice Contract for managing protocol fees
-contract ProtocolFees is Ownable2Step {
+contract ProtocolFees is Ownable {
     /// @notice Error thrown when the protocol share bps is invalid
     error InvalidProtocolShareBps(uint16 protocolShareBps);
     /// @notice Error thrown when the protocol share of sender fee pct is invalid
