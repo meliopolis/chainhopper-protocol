@@ -10,8 +10,8 @@ find ./broadcast -name "run-latest.json" | while read file; do
     cleaned_dir=$(echo "$dir" | sed 's/^Deploy//' | cut -d. -f1)
     # Extract chainId from the file
     chainId=$(jq -r '.chain' "$file")
-    # Extract contract address
-    addr=$(jq -r '.transactions[].contractAddress' "$file" | grep -v null | head -n 1)
+    # Extract contract address, skipping Library deployments
+    addr=$(jq -r '.transactions[] | select(.contractName | contains("Library") | not) | .contractAddress' "$file" | grep -v null | head -n 1)
     if [ ! -z "$addr" ] && [ "$addr" != "null" ]; then
         echo "$chainId:$cleaned_dir:$addr"
     fi

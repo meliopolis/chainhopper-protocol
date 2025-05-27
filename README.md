@@ -4,7 +4,7 @@
 
 ChainHopper migrates Uniswap v3 and v4 LP positions between different EVM chains with a single click.
 
-To move a Uniswap LP position manually from say Arbitrum to Unichain requires several steps:
+To move a Uniswap LP position manually requires several steps. Let's say we are moving from Arbitrum to Unichain:
 1. Burn position on Arbitrum (to collect all assets in the pool *and* fees)
 2. Swap to a single token (like WETH)
 3. Bridge WETH to Unichain
@@ -87,19 +87,13 @@ To run tests, you can use the following command:
 forge test
 ```
 
-## Coverage 
-
-We strive for 100% test coverage. Foundry currently doesn't recognize test coverage for inline `assembly` calls in Solidity, thus our coverage for `MigrationId.sol` lags below our target (though the test cases fully cover it).
-
-```bash
-forge coverage --ir-minimum
-```
+This will run unit tests as well as full e2e tests for all major contracts.
 
 ## Deploying
 
-Contracts are currently deployed on 5 chains: Mainnet, Unichain, Base, Optimism and Arbitrum. You can find the deployment addresses in either the `broadcast/` directory or in the [SDK](https://github.com/meliopolis/chainhopper-sdk/blob/main/src/chains.ts).
+Contracts are currently deployed on 5 chains: Mainnet, Unichain, Base, Optimism and Arbitrum. You can find the deployment addresses in either the `broadcast/` directory, in the [SDK](https://github.com/meliopolis/chainhopper-sdk/blob/main/src/chains.ts) or by running `bash_scripts/get_deployed_addresses.sh`. 
 
-You can also deploy all the contracts directly via scripts in `bash_scripts/` or individually via `script/`. 
+You can also deploy all the contracts directly via scripts in `bash_scripts/` or individually via `script/`. The scripts are setup to deploy via an EOA and then switch ownership to another address (like a SAFE).
 
 ## Future work
 

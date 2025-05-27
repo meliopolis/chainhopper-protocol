@@ -18,11 +18,14 @@ done
 # deploy settlers
 for chain in $(echo $DEPLOY_CHAINS | tr ',' ' '); do
     rpc_var="${chain}_RPC_URL"
+    etherscan_var="${chain}_ETHERSCAN_API_KEY"
 
     echo "Deploying UniswapV3AcrossSettler on chain ${chain}..."
     if ! forge script script/DeployUniswapV3AcrossSettler.s.sol:DeployUniswapV3AcrossSettler \
     --rpc-url "${!rpc_var}" \
+    --etherscan-api-key "${!etherscan_var}" \
     --broadcast \
+    --delay 15 \
     --verify \
     --sig 'run(string,address)' "${chain}" "${DEPLOY_INITIAL_OWNER}"; then
         echo "Failed to deploy UniswapV3AcrossSettler on chain ${chain}"
@@ -34,6 +37,7 @@ for chain in $(echo $DEPLOY_CHAINS | tr ',' ' '); do
     --rpc-url "${!rpc_var}" \
     --etherscan-api-key "${!etherscan_var}" \
     --broadcast \
+    --delay 15 \
     --verify \
     --sig 'run(string,address)' "${chain}" "${DEPLOY_INITIAL_OWNER}"; then
         echo "Failed to deploy UniswapV4AcrossSettler on chain ${chain}"
@@ -49,8 +53,9 @@ for chain in $(echo $DEPLOY_CHAINS | tr ',' ' '); do
     echo "Deploying UniswapV3AcrossMigrator on chain ${chain}..."
     if ! forge script script/DeployUniswapV3AcrossMigrator.s.sol:DeployUniswapV3AcrossMigrator \
     --rpc-url "${!rpc_var}" \
-    --etherscan-api-key "${!etherscan_var}" \
     --broadcast \
+    --delay 15 \
+    --etherscan-api-key "${!etherscan_var}" \
     --verify \
     --sig 'run(string,address)' "${chain}" "${DEPLOY_INITIAL_OWNER}"; then
         echo "Failed to deploy UniswapV3AcrossMigrator on chain ${chain}"
@@ -60,8 +65,9 @@ for chain in $(echo $DEPLOY_CHAINS | tr ',' ' '); do
     echo "Deploying UniswapV4AcrossMigrator on chain ${chain}..."
     if ! forge script script/DeployUniswapV4AcrossMigrator.s.sol:DeployUniswapV4AcrossMigrator \
     --rpc-url "${!rpc_var}" \
-    --etherscan-api-key "${!etherscan_var}" \
     --broadcast \
+    --delay 15 \
+    --etherscan-api-key "${!etherscan_var}" \
     --verify \
     --sig 'run(string,address)' "${chain}" "${DEPLOY_INITIAL_OWNER}"; then
         echo "Failed to deploy UniswapV4AcrossMigrator on chain ${chain}"
