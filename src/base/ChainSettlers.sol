@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import {Ownable2Step, Ownable} from "@openzeppelin/access/Ownable2Step.sol";
+import {Ownable} from "@openzeppelin/access/Ownable.sol";
 
 /// @title ChainSettlers
 /// @notice Contract for managing chain settlers
-contract ChainSettlers is Ownable2Step {
+contract ChainSettlers is Ownable {
     /// @notice Error thrown when the chain settler params length mismatch
     error ChainSettlersParamsLengthMismatch();
     /// @notice Error thrown when the chain settler is not supported
