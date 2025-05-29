@@ -1,5 +1,7 @@
 # ChainHopper Protocol: Migrate Uniswap LP positions cross-chain
 
+This project was generously funded via a [Uniswap Foundation Grant](https://x.com/UniswapFND). 
+
 ## Overview
 
 ChainHopper migrates Uniswap v3 and v4 LP positions between different EVM chains with a single click.
@@ -17,9 +19,9 @@ ChainHopper allows all of these steps to be combined in a single transaction, us
 
 ## Getting started
 
-1. Try it at [chainhopper.xyz](https://chainhopper.xyz)
+1. Integrate it directly in your products using our SDK: [ChainHopper SDK](https://github.com/meliopolis/chainhopper-sdk/)
 
-2. Integrate it directly in your products using our SDK: [ChainHopper SDK](https://github.com/meliopolis/chainhopper-sdk/)
+2. A demo frontend coming soon!
 
 ## Core Components
 
