@@ -32,7 +32,7 @@ abstract contract Settler is ISettler, ProtocolFees, ReentrancyGuard {
     uint256 internal constant UNIT_IN_MILLI_BASIS_POINTS = 10_000_000;
 
     /// @notice Mapping of migration ID to settlement cach
-    mapping(bytes32 => SettlementCache) internal settlementCaches;
+    mapping(bytes32 => SettlementCache) public settlementCaches;
 
     /// @notice Constructor for the Settler contract
     /// @param initialOwner The initial owner of the contract
