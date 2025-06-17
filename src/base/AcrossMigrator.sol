@@ -82,4 +82,9 @@ abstract contract AcrossMigrator is IAcrossMigrator, Migrator {
     function _isAmountSufficient(uint256 amount, TokenRoute memory tokenRoute) internal pure override returns (bool) {
         return amount >= tokenRoute.amountOutMin + abi.decode(tokenRoute.route, (Route)).maxFees;
     }
+
+    /// @notice Internal function to get the output token from a token rout
+    function _getOutputToken(TokenRoute memory tokenRoute) internal pure override returns (address outputToken) {
+        outputToken = abi.decode(tokenRoute.route, (Route)).outputToken;
+    }
 }

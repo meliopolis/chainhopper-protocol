@@ -88,7 +88,10 @@ abstract contract Migrator is IMigrator, ChainSettlers {
                 nonce: ++migrationCounter,
                 mode: MigrationModes.DUAL,
                 routesData: abi.encode(
-                    tokenRoute0.token, tokenRoute1.token, tokenRoute0.amountOutMin, tokenRoute1.amountOutMin
+                    _getOutputToken(tokenRoute0),
+                    _getOutputToken(tokenRoute1),
+                    tokenRoute0.amountOutMin,
+                    tokenRoute1.amountOutMin
                 ),
                 settlementData: params.settlementParams
             });
@@ -180,4 +183,9 @@ abstract contract Migrator is IMigrator, ChainSettlers {
         internal
         virtual
         returns (bool isSufficient);
+
+    /// @notice Internal function to get the output token from a token route
+    /// @param tokenRoute The token route to get the output token from
+    /// @return outputToken The output token address
+    function _getOutputToken(TokenRoute memory tokenRoute) internal virtual returns (address outputToken);
 }

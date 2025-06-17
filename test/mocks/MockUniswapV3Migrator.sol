@@ -31,6 +31,8 @@ contract MockUniswapV3Migrator is UniswapV3Migrator {
 
     function _isAmountSufficient(uint256 amount, TokenRoute memory tokenRoute) internal view override returns (bool) {}
 
+    function _getOutputToken(TokenRoute memory tokenRoute) internal pure override returns (address outputToken) {}
+
     function liquidate(uint256 positionId) public returns (address, address, uint256, uint256, bytes memory) {
         return _liquidate(positionId);
     }

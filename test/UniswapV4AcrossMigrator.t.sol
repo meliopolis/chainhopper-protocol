@@ -1230,7 +1230,7 @@ contract UniswapV4AcrossMigratorTest is TestContext, UniswapV4Helpers {
             migrator: address(migrator),
             nonce: 1,
             mode: MigrationModes.DUAL,
-            routesData: abi.encode(token0, token1, amount0 - maxFees - 1, amount1 - maxFees - 1),
+            routesData: abi.encode(token0, destChainUsdc, amount0 - maxFees - 1, amount1 - maxFees - 1),
             settlementData: ""
         });
         bytes32 migrationId = migrationData.toId();
@@ -1349,7 +1349,7 @@ contract UniswapV4AcrossMigratorTest is TestContext, UniswapV4Helpers {
             migrator: address(migrator),
             nonce: 1,
             mode: MigrationModes.DUAL,
-            routesData: abi.encode(token0, token1, amount0 - maxFees - 1, amount1 - maxFees - 1),
+            routesData: abi.encode(token0, destChainUsdc, amount0 - maxFees - 1, amount1 - maxFees - 1),
             settlementData: ""
         });
         bytes32 migrationId = migrationData.toId();
