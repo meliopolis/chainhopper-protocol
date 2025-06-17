@@ -62,6 +62,10 @@ contract MockMigrator is Migrator {
         return isAmountSufficient[isAmountSufficientCounter++];
     }
 
+    function _getOutputToken(TokenRoute memory tokenRoute) internal pure override returns (address outputToken) {
+        return tokenRoute.token;
+    }
+
     // add this to be excluded from coverage report
     function test() public {}
 }

@@ -16,12 +16,7 @@ contract MockAcrossSettler is AcrossSettler {
         errorSelector = selector;
     }
 
-    function selfSettle(bytes32, address, uint256, MigrationData memory migrationData)
-        external
-        view
-        override
-        returns (bool)
-    {
+    function selfSettle(bytes32, address, uint256, MigrationData memory) external view override returns (bool) {
         bytes4 selector = errorSelector;
 
         if (errorSelector != bytes4(0)) {
