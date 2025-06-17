@@ -23,7 +23,7 @@ remappings = [
 fs_permissions = [{ access = "read", path = "./broadcast" }]
 
 [etherscan]
-mainnet = { key = "${MAINNET_ETHERSCAN_API_KEY}" }
+mainnet = { key = "${ETHEREUM_ETHERSCAN_API_KEY}" }
 10 = { key = "${OPTIMISM_ETHERSCAN_API_KEY}" }
 130 = { key = "${UNICHAIN_ETHERSCAN_API_KEY}", url = "${UNICHAIN_ETHERSCAN_API_URL}" }
 42161 = { key = "${ARBITRUM_ETHERSCAN_API_KEY}" }
