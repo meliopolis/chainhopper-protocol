@@ -16,7 +16,7 @@ abstract contract DirectSettler is IDirectSettler, Settler {
     /// @param token The token to settle
     /// @param amount The amount to settle
     /// @param message The message containing migration data
-    function handleDTMessage(address token, uint256 amount, bytes memory message) external {
+    function handleDirectTransfer(address token, uint256 amount, bytes memory message) external {
         if (amount == 0) revert MissingAmount(token);
 
         (bytes32 migrationId, MigrationData memory migrationData) = abi.decode(message, (bytes32, MigrationData));

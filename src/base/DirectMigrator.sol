@@ -55,9 +55,9 @@ abstract contract DirectMigrator is IDirectMigrator, Migrator {
             IERC20(token).safeTransferFrom(address(this), settler, amount);
         }
 
-        // call the handleDTMessage function on the settler
+        // call the handleDirectTransfer function on the settler
         (bool success,) =
-            settler.call(abi.encodeWithSelector(IDirectSettler.handleDTMessage.selector, token, amount, data));
+            settler.call(abi.encodeWithSelector(IDirectSettler.handleDirectTransfer.selector, token, amount, data));
         if (!success) revert();
     }
 
