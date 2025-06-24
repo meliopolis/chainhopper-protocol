@@ -3,14 +3,14 @@ pragma solidity ^0.8.24;
 
 import {IERC20} from "@openzeppelin/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/token/ERC20/utils/SafeERC20.sol";
-import {IDirectTransferSettler} from "../interfaces/IDirectTransferSettler.sol";
+import {IDirectSettler} from "../interfaces/IDirectSettler.sol";
 import {MigrationData} from "../types/MigrationData.sol";
 import {MigrationMode, MigrationModes} from "../types/MigrationMode.sol";
 import {Settler} from "./Settler.sol";
 
-/// @title DirectTransferSettler
+/// @title DirectSettler
 /// @notice Contract for settling migrations on the same chain using direct transfers
-abstract contract DirectTransferSettler is IDirectTransferSettler, Settler {
+abstract contract DirectSettler is IDirectSettler, Settler {
     using SafeERC20 for IERC20;
 
     /// @notice Function to handle a direct transfer message
@@ -21,7 +21,6 @@ abstract contract DirectTransferSettler is IDirectTransferSettler, Settler {
         if (amount == 0) revert MissingAmount(token);
 
         (bytes32 migrationId, MigrationData memory migrationData) = abi.decode(message, (bytes32, MigrationData));
-        if (migrationData.toId() != migrationId) revert InvalidMigration();
 
         emit Receipt(migrationId, token, amount);
 
