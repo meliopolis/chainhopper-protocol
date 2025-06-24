@@ -13,13 +13,7 @@ contract UniswapV3DTMigrator is UniswapV3Migrator, DirectTransferMigrator {
     /// @param positionManager The position manager
     /// @param universalRouter The universal router
     /// @param permit2 The permit2 contract
-    constructor(
-        address initialOwner,
-        address positionManager,
-        address universalRouter,
-        address permit2,
-        address weth
-    )
+    constructor(address initialOwner, address positionManager, address universalRouter, address permit2, address weth)
         Migrator(initialOwner)
         UniswapV3Migrator(positionManager, universalRouter, permit2)
         DirectTransferMigrator()

@@ -6,7 +6,7 @@ pragma solidity ^0.8.24;
 interface IDirectTransferSettler {
     /// @notice Error thrown when amount is missing
     error MissingAmount(address token);
-    
+
     /// @notice Error thrown when migration is invalid
     error InvalidMigration();
 
@@ -15,4 +15,4 @@ interface IDirectTransferSettler {
     /// @param amount The amount to settle
     /// @param message The message containing migration data
     function handleDTMessage(address token, uint256 amount, bytes memory message) external;
-} 
+}
