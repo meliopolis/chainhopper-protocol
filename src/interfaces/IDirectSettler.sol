@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-/// @title IDirectTransferSettler
-/// @notice Interface for the DirectTransferSettler contract
-interface IDirectTransferSettler {
+/// @title IDirectSettler
+/// @notice Interface for the DirectSettler contract
+interface IDirectSettler {
     /// @notice Error thrown when amount is missing
     error MissingAmount(address token);
 
