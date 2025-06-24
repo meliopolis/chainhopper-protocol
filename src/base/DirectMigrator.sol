@@ -56,7 +56,8 @@ abstract contract DirectMigrator is IDirectMigrator, Migrator {
         }
 
         // call the handleDTMessage function on the settler
-        (bool success, ) = settler.call(abi.encodeWithSelector(IDirectSettler.handleDTMessage.selector, token, amount, data));
+        (bool success,) =
+            settler.call(abi.encodeWithSelector(IDirectSettler.handleDTMessage.selector, token, amount, data));
         if (!success) revert();
     }
 
