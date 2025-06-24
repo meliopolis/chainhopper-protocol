@@ -13,10 +13,9 @@ contract UniswapV3DTSettler is UniswapV3Settler, DirectTransferSettler {
     /// @param positionManager The position manager
     /// @param universalRouter The universal router
     /// @param permit2 The permit2 contract
-    constructor(
-        address initialOwner,
-        address positionManager,
-        address universalRouter,
-        address permit2
-    ) UniswapV3Settler(positionManager, universalRouter, permit2) DirectTransferSettler() Settler(initialOwner) {}
+    constructor(address initialOwner, address positionManager, address universalRouter, address permit2)
+        UniswapV3Settler(positionManager, universalRouter, permit2)
+        DirectTransferSettler()
+        Settler(initialOwner)
+    {}
 }

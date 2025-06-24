@@ -19,7 +19,7 @@ abstract contract DirectTransferSettler is IDirectTransferSettler, Settler {
     /// @param message The message containing migration data
     function handleDTMessage(address token, uint256 amount, bytes memory message) external {
         if (amount == 0) revert MissingAmount(token);
-        
+
         (bytes32 migrationId, MigrationData memory migrationData) = abi.decode(message, (bytes32, MigrationData));
         if (migrationData.toId() != migrationId) revert InvalidMigration();
 
@@ -28,4 +28,4 @@ abstract contract DirectTransferSettler is IDirectTransferSettler, Settler {
         bool isAccepted = this.selfSettle(migrationId, token, amount, migrationData);
         if (!isAccepted) revert();
     }
-} 
+}

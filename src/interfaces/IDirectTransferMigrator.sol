@@ -6,5 +6,4 @@ pragma solidity ^0.8.24;
 interface IDirectTransferMigrator {
     /// @notice Error thrown when cross-chain migration is attempted
     error CrossChainNotSupported();
-
-} 
+}

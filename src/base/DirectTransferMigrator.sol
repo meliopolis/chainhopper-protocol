@@ -63,4 +63,4 @@ abstract contract DirectTransferMigrator is IDirectTransferMigrator, Migrator {
         // For direct transfer, the output token is the same as the input token
         outputToken = tokenRoute.token;
     }
-} 
+}
