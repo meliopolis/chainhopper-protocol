@@ -14,5 +14,5 @@ interface IDirectSettler {
     /// @param token The token to settle
     /// @param amount The amount to settle
     /// @param message The message containing migration data
-    function handleDTMessage(address token, uint256 amount, bytes memory message) external;
+    function handleDirectTransfer(address token, uint256 amount, bytes memory message) external;
 }
