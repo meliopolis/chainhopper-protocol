@@ -49,10 +49,11 @@ abstract contract DirectMigrator is IDirectMigrator, Migrator {
         if (token == address(0)) {
             // wrap the native token to WETH and transfer to the settler
             IWETH9(weth).deposit{value: amount}();
-            IERC20(weth).safeTransferFrom(address(this), settler, amount);
+            IERC20(weth).safeTransfer(settler, amount);
+            token = weth;
         } else {
             // transfer ERC20 token to the settler
-            IERC20(token).safeTransferFrom(address(this), settler, amount);
+            IERC20(token).safeTransfer(settler, amount);
         }
 
         // call the handleDirectTransfer function on the settler

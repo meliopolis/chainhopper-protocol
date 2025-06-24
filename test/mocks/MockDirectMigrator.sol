@@ -1,15 +1,12 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.24;
 
-import {AcrossMigrator} from "../../src/base/AcrossMigrator.sol";
+import {DirectMigrator} from "../../src/base/DirectMigrator.sol";
 import {Migrator} from "../../src/base/Migrator.sol";
 import {IMigrator} from "../../src/interfaces/IMigrator.sol";
 
-contract MockAcrossMigrator is AcrossMigrator {
-    constructor(address initialOwner, address spokePool, address weth)
-        Migrator(initialOwner)
-        AcrossMigrator(spokePool, weth)
-    {}
+contract MockDirectMigrator is DirectMigrator {
+    constructor(address initialOwner, address _weth) Migrator(initialOwner) DirectMigrator(_weth) {}
 
     function bridge(
         address sender,
@@ -43,6 +40,10 @@ contract MockAcrossMigrator is AcrossMigrator {
         override
         returns (uint256 amountOut)
     {}
+
+    function getOutputToken(IMigrator.TokenRoute memory tokenRoute) external pure returns (address outputToken) {
+        return _getOutputToken(tokenRoute);
+    }
 
     // add this to be excluded from coverage report
     function test() public {}
