@@ -17,24 +17,6 @@ library AerodromeLibrary {
     using SafeERC20 for IERC20;
     using SafeCast for uint256;
 
-    // TODO: Implement; Aerodrome does not have a createAndInitializePoolIfNecessary function
-    // /// @notice Create and initialize a pool if necessary
-    // /// @param positionManager The position manager
-    // /// @param token0 The first token
-    // /// @param token1 The second token
-    // /// @param tickSpacing The tick spacing
-    // /// @param sqrtPriceX96 The sqrtPriceX96
-    // function createAndInitializePoolIfNecessary(
-    //     IPositionManager positionManager,
-    //     address token0,
-    //     address token1,
-    //     int24 tickSpacing,
-    //     uint160 sqrtPriceX96
-    // ) internal {
-    //     // create and initialize pool
-    //     positionManager.createAndInitializePoolIfNecessary(token0, token1, tickSpacing, sqrtPriceX96);
-    // }
-
     /// @notice Mint a position
     /// @param positionManager The position manager
     /// @param token0 The first token
