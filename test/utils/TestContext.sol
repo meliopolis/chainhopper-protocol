@@ -12,6 +12,8 @@ import {IPositionManager as IV4PositionManager} from "@uniswap-v4-periphery/inte
 import {IStateView} from "@uniswap-v4-periphery/interfaces/IStateView.sol";
 import {IPoolManager} from "@uniswap-v4-core/interfaces/IPoolManager.sol";
 
+import {IAerodromeNonfungiblePositionManager as IAerodromePositionManager} from
+    "../../src/interfaces/external/IAerodromeNonfungiblePositionManager.sol";
 // copied and modified from uniswap-v3-periphery, as the original had bad imports
 import {INonfungiblePositionManager as IV3PositionManager} from
     "../../src/interfaces/external/INonfungiblePositionManager.sol";
@@ -32,6 +34,7 @@ contract TestContext is Test {
     IPermit2 internal permit2;
     IUniversalRouter internal universalRouter;
     IUniversalRouter internal aerodromeRouter;
+    IAerodromePositionManager internal aerodromePositionManager;
     IV3PositionManager internal v3PositionManager;
     IV4PositionManager internal v4PositionManager;
     IStateView internal v4StateView;
@@ -56,7 +59,11 @@ contract TestContext is Test {
         permit2 = IPermit2(vm.envAddress(string(abi.encodePacked(srcChainName, "_UNISWAP_PERMIT2"))));
         universalRouter =
             IUniversalRouter(vm.envAddress(string(abi.encodePacked(srcChainName, "_UNISWAP_UNIVERSAL_ROUTER"))));
-        aerodromeRouter = IUniversalRouter(vm.envAddress(string(abi.encodePacked(srcChainName, "_AERODROME_UNIVERSAL_ROUTER"))));
+        aerodromeRouter =
+            IUniversalRouter(vm.envAddress(string(abi.encodePacked(srcChainName, "_AERODROME_UNIVERSAL_ROUTER"))));
+        aerodromePositionManager = IAerodromePositionManager(
+            vm.envAddress(string(abi.encodePacked(srcChainName, "_AERODROME_POSITION_MANAGER")))
+        );
         v3PositionManager =
             IV3PositionManager(vm.envAddress(string(abi.encodePacked(srcChainName, "_UNISWAP_V3_POSITION_MANAGER"))));
         v4PositionManager =

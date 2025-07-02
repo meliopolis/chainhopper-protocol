@@ -2,10 +2,24 @@
 pragma solidity ^0.8.13;
 
 import {Test, console, Vm} from "lib/forge-std/src/Test.sol";
-import {IAerodromeNonfungiblePositionManager} from "../../src/interfaces/external/IAerodromeNonfungiblePositionManager.sol";
+import {IAerodromeNonfungiblePositionManager as IAerodromePositionManager} from
+    "../../src/interfaces/external/IAerodromeNonfungiblePositionManager.sol";
 import {IERC20} from "@openzeppelin/token/ERC20/IERC20.sol";
+import {IAerodromeFactory} from "../../src/interfaces/external/IAerodromeFactory.sol";
+import {IAerodromePool} from "../../src/interfaces/external/IAerodromePool.sol";
 
 contract AerodromeHelpers is Test {
+    function getCurrentTick(address nftPositionManager, address token0, address token1, int24 tickSpacing)
+        public
+        view
+        returns (int24)
+    {
+        IAerodromeFactory factory = IAerodromeFactory(IAerodromePositionManager(nftPositionManager).factory());
+        IAerodromePool pool = IAerodromePool(factory.getPool(token0, token1, tickSpacing));
+        (, int24 currentTick,,,,) = pool.slot0();
+        return currentTick;
+    }
+
     function mintAerodromePosition(
         address nftPositionManager,
         address user,
@@ -19,7 +33,7 @@ contract AerodromeHelpers is Test {
         // give user tokens
         deal(token0, user, 10_000_000_000_000_000_000_000);
         deal(token1, user, 10_000_000_000_000_000_000_000);
-        
+
         // mint aerodrome position
         vm.prank(user);
         IERC20(token0).approve(nftPositionManager, 1_000_000_000_000_000_000);
@@ -27,7 +41,7 @@ contract AerodromeHelpers is Test {
         IERC20(token1).approve(nftPositionManager, 1000_000_000);
 
         vm.prank(user);
-        IAerodromeNonfungiblePositionManager.MintParams memory mintParams = IAerodromeNonfungiblePositionManager.MintParams({
+        IAerodromePositionManager.MintParams memory mintParams = IAerodromePositionManager.MintParams({
             token0: token0,
             token1: token1,
             tickSpacing: tickSpacing,
@@ -42,15 +56,15 @@ contract AerodromeHelpers is Test {
             sqrtPriceX96: sqrtPriceX96
         });
         (uint256 tokenId,, uint256 amount0, uint256 amount1) =
-            IAerodromeNonfungiblePositionManager(nftPositionManager).mint(mintParams);
+            IAerodromePositionManager(nftPositionManager).mint(mintParams);
         // return position id
         return (tokenId, amount0, amount1);
     }
 
     function withdrawLiquidity(address nftPositionManager, address user, uint256 tokenId) public {
-        (,,,,,,, uint128 liquidity,,,,) = IAerodromeNonfungiblePositionManager(nftPositionManager).positions(tokenId);
+        (,,,,,,, uint128 liquidity,,,,) = IAerodromePositionManager(nftPositionManager).positions(tokenId);
         vm.prank(user);
-        IAerodromeNonfungiblePositionManager.DecreaseLiquidityParams memory decreaseLiquidityParams = IAerodromeNonfungiblePositionManager
+        IAerodromePositionManager.DecreaseLiquidityParams memory decreaseLiquidityParams = IAerodromePositionManager
             .DecreaseLiquidityParams({
             tokenId: tokenId,
             liquidity: liquidity,
@@ -58,7 +72,7 @@ contract AerodromeHelpers is Test {
             amount1Min: 0,
             deadline: block.timestamp
         });
-        IAerodromeNonfungiblePositionManager(nftPositionManager).decreaseLiquidity(decreaseLiquidityParams);
+        IAerodromePositionManager(nftPositionManager).decreaseLiquidity(decreaseLiquidityParams);
     }
 
     function findSwapEvents(Vm.Log[] memory logs) public view returns (Vm.Log[] memory) {
@@ -118,4 +132,4 @@ contract AerodromeHelpers is Test {
 
     // add this to be excluded from coverage report
     function test() public virtual {}
-} 
+}

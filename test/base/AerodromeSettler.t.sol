@@ -11,38 +11,20 @@ contract AerodromeSettlerTest is TestContext {
     string public constant DEST_CHAIN_NAME = "";
 
     MockAerodromeSettler settler;
-    address private aerodromePositionManager;
     int24 private tickSpacing = 100; // Default tick spacing for Aerodrome
     uint160 private sqrtPriceX96 = 79228162514264337593543950336; // 1:1 price ratio
 
     function setUp() public {
         _loadChain(SRC_CHAIN_NAME, DEST_CHAIN_NAME);
 
-        // Set up Aerodrome position manager
-        aerodromePositionManager = vm.envAddress(string(abi.encodePacked(SRC_CHAIN_NAME, "_AERODROME_POSITION_MANAGER")));
-
         settler = new MockAerodromeSettler(
-            owner, 
-            aerodromePositionManager, 
-            address(universalRouter), 
-            address(permit2)
+            owner, address(aerodromePositionManager), address(aerodromeRouter), address(permit2)
         );
     }
 
     function test_mintPosition_singleRoute_fails_ifTokenIsUnused() public {
-        bytes memory data = abi.encode(
-            IAerodromeSettler.MintParams(
-                weth, 
-                usdc, 
-                tickSpacing, 
-                sqrtPriceX96, 
-                -600, 
-                600, 
-                5_000_000, 
-                0, 
-                0
-            )
-        );
+        bytes memory data =
+            abi.encode(IAerodromeSettler.MintParams(weth, usdc, tickSpacing, sqrtPriceX96, -600, 600, 5_000_000, 0, 0));
 
         vm.expectRevert(abi.encodeWithSelector(IAerodromeSettler.UnusedToken.selector, usdt));
 
@@ -54,19 +36,8 @@ contract AerodromeSettlerTest is TestContext {
         address token = isToken0 ? token0 : token1;
         deal(token, address(settler), 100);
 
-        bytes memory data = abi.encode(
-            IAerodromeSettler.MintParams(
-                token0, 
-                token1, 
-                tickSpacing, 
-                0, 
-                -600, 
-                600, 
-                5_000_000, 
-                0, 
-                0
-            )
-        );
+        bytes memory data =
+            abi.encode(IAerodromeSettler.MintParams(token0, token1, tickSpacing, 0, -600, 600, 5_000_000, 0, 0));
 
         vm.expectEmit(true, true, false, false);
         emit IERC721.Transfer(address(0), user, 0);
@@ -75,19 +46,8 @@ contract AerodromeSettlerTest is TestContext {
     }
 
     function test_mintPosition_dualRoute_fails_ifTokenAIsUnused() public {
-        bytes memory data = abi.encode(
-            IAerodromeSettler.MintParams(
-                weth, 
-                usdc, 
-                tickSpacing, 
-                sqrtPriceX96, 
-                -600, 
-                600, 
-                5_000_000, 
-                0, 
-                0
-            )
-        );
+        bytes memory data =
+            abi.encode(IAerodromeSettler.MintParams(weth, usdc, tickSpacing, sqrtPriceX96, -600, 600, 5_000_000, 0, 0));
 
         vm.expectRevert(abi.encodeWithSelector(IAerodromeSettler.UnusedToken.selector, usdt));
 
@@ -95,19 +55,8 @@ contract AerodromeSettlerTest is TestContext {
     }
 
     function test_mintPosition_dualRoute_fails_ifTokenBIsUnused() public {
-        bytes memory data = abi.encode(
-            IAerodromeSettler.MintParams(
-                weth, 
-                usdc, 
-                tickSpacing, 
-                sqrtPriceX96, 
-                -600, 
-                600, 
-                5_000_000, 
-                0, 
-                0
-            )
-        );
+        bytes memory data =
+            abi.encode(IAerodromeSettler.MintParams(weth, usdc, tickSpacing, sqrtPriceX96, -600, 600, 5_000_000, 0, 0));
 
         vm.expectRevert(abi.encodeWithSelector(IAerodromeSettler.UnusedToken.selector, usdt));
 
@@ -121,17 +70,7 @@ contract AerodromeSettlerTest is TestContext {
         deal(tokenB, address(settler), 200);
 
         bytes memory data = abi.encode(
-            IAerodromeSettler.MintParams(
-                token0, 
-                token1, 
-                tickSpacing, 
-                sqrtPriceX96, 
-                -600, 
-                600, 
-                5_000_000, 
-                0, 
-                0
-            )
+            IAerodromeSettler.MintParams(token0, token1, tickSpacing, sqrtPriceX96, -600, 600, 5_000_000, 0, 0)
         );
 
         vm.expectEmit(true, true, false, false);
@@ -147,14 +86,14 @@ contract AerodromeSettlerTest is TestContext {
 
         bytes memory data = abi.encode(
             IAerodromeSettler.MintParams(
-                token0, 
-                token1, 
-                tickSpacing, 
-                0, 
-                -600, 
-                600, 
+                token0,
+                token1,
+                tickSpacing,
+                0,
+                -600,
+                600,
                 5_000_000, // 50% swap
-                0, 
+                0,
                 0
             )
         );
@@ -172,14 +111,14 @@ contract AerodromeSettlerTest is TestContext {
 
         bytes memory data = abi.encode(
             IAerodromeSettler.MintParams(
-                token0, 
-                token1, 
-                tickSpacing, 
-                0, 
-                -600, 
-                600, 
+                token0,
+                token1,
+                tickSpacing,
+                0,
+                -600,
+                600,
                 0, // No swap
-                0, 
+                0,
                 0
             )
         );
@@ -197,15 +136,15 @@ contract AerodromeSettlerTest is TestContext {
 
         bytes memory data = abi.encode(
             IAerodromeSettler.MintParams(
-                token0, 
-                token1, 
-                tickSpacing, 
-                0, 
-                -300000, 
-                300000, 
-                5_000_000, 
+                token0,
+                token1,
+                tickSpacing,
+                0,
+                -300000,
+                300000,
+                5_000_000,
                 100, // Minimum amount0
-                100  // Minimum amount1
+                100 // Minimum amount1
             )
         );
 
@@ -221,23 +160,13 @@ contract AerodromeSettlerTest is TestContext {
         deal(token1, address(settler), 1000000000000000000);
 
         int24[] memory tickRanges = new int24[](3);
-        tickRanges[0] = 300000;  // Narrow range
+        tickRanges[0] = 300000; // Narrow range
         tickRanges[1] = 400000;
-        tickRanges[2] = 700000;  // Wide range
+        tickRanges[2] = 700000; // Wide range
 
-        for (uint i = 0; i < tickRanges.length; i++) {
+        for (uint256 i = 0; i < tickRanges.length; i++) {
             bytes memory data = abi.encode(
-                IAerodromeSettler.MintParams(
-                    token0, 
-                    token1, 
-                    tickSpacing, 
-                    0, 
-                    -tickRanges[i], 
-                    tickRanges[i], 
-                    0, 
-                    0, 
-                    0
-                )
+                IAerodromeSettler.MintParams(token0, token1, tickSpacing, 0, -tickRanges[i], tickRanges[i], 0, 0, 0)
             );
 
             vm.expectEmit(true, true, false, false);
@@ -252,23 +181,12 @@ contract AerodromeSettlerTest is TestContext {
         deal(token0, address(settler), 1000000000000000000);
         deal(token1, address(settler), 1000000000000000000);
 
-        bytes memory data = abi.encode(
-            IAerodromeSettler.MintParams(
-                token0, 
-                token1, 
-                tickSpacing, 
-                sqrtPriceX96,
-                -600, 
-                600, 
-                0, 
-                0, 
-                0
-            )
-        );
+        bytes memory data =
+            abi.encode(IAerodromeSettler.MintParams(token0, token1, tickSpacing, sqrtPriceX96, -600, 600, 0, 0, 0));
 
         vm.expectEmit(true, true, false, false);
         emit IERC721.Transfer(address(0), user, 0);
 
         settler.mintPosition(token0, token1, 1000, 1000, user, data);
     }
-} 
+}

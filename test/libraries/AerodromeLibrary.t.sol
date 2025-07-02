@@ -2,7 +2,6 @@
 pragma solidity ^0.8.24;
 
 import {AerodromeLibrary} from "../../src/libraries/AerodromeLibrary.sol";
-import {IAerodromeNonfungiblePositionManager} from "../../src/interfaces/external/IAerodromeNonfungiblePositionManager.sol";
 import {TestContext} from "../utils/TestContext.sol";
 
 contract AerodromeLibraryTest is TestContext {
@@ -12,9 +11,8 @@ contract AerodromeLibraryTest is TestContext {
     address private token0;
     address private token1;
     mapping(address => bool) private isPermit2Approved;
-    
+
     // Aerodrome-specific variables
-    IAerodromeNonfungiblePositionManager private aerodromePositionManager;
     int24 private tickSpacing = 100; // Default tick spacing for Aerodrome
     uint160 private sqrtPriceX96 = 79228162514264337593543950336; // 1:1 price ratio
 
@@ -24,11 +22,6 @@ contract AerodromeLibraryTest is TestContext {
         token0 = usdc < weth ? usdc : weth;
         token1 = usdc > weth ? usdc : weth;
 
-        // For Aerodrome, we need to set up the position manager
-        // Since this is a test, we'll use a mock or the actual Aerodrome position manager
-        // You may need to add this to your environment variables
-        aerodromePositionManager = IAerodromeNonfungiblePositionManager(vm.envAddress(string(abi.encodePacked(SRC_CHAIN_NAME, "_AERODROME_POSITION_MANAGER"))));
-        
         // Note: AerodromeLibrary doesn't have a createAndInitializePoolIfNecessary function
         // The pool should already exist or be created through other means
     }
@@ -57,13 +50,13 @@ contract AerodromeLibraryTest is TestContext {
         this.mintPositionWrapper(
             _token0,
             _token1,
-            tickSpacing, 
-            -600, 
-            600, 
-            amount0Desired, 
-            amount1Desired, 
-            amount0Min, 
-            amount1Min, 
+            tickSpacing,
+            -600,
+            600,
+            amount0Desired,
+            amount1Desired,
+            amount0Min,
+            amount1Min,
             address(this),
             newPool ? sqrtPriceX96 : 0
         );
@@ -73,20 +66,9 @@ contract AerodromeLibraryTest is TestContext {
         deal(token0, address(this), 200);
         deal(token1, address(this), 200);
 
-        (uint256 positionId,,,) = this.mintPositionWrapper(
-            token0,
-            token1,
-            tickSpacing, 
-            -600, 
-            600, 
-            200, 
-            200, 
-            0, 
-            0, 
-            address(this),
-            0
-        );
-        
+        (uint256 positionId,,,) =
+            this.mintPositionWrapper(token0, token1, tickSpacing, -600, 600, 200, 200, 0, 0, address(this), 0);
+
         uint256 amount0Min = hasMinMounts ? type(uint128).max : 0;
         uint256 amount1Min = hasMinMounts ? type(uint128).max : 0;
 
@@ -154,7 +136,7 @@ contract AerodromeLibraryTest is TestContext {
             0
         );
 
-        (address returnedToken0, address returnedToken1, int24 returnedTickSpacing, uint256 amount0, uint256 amount1) = 
+        (address returnedToken0, address returnedToken1, int24 returnedTickSpacing, uint256 amount0, uint256 amount1) =
             this.liquidatePositionWrapper(positionId, 0, 0, address(this));
 
         assertEq(returnedToken0, token0, "Returned token0 should match");
@@ -187,7 +169,7 @@ contract AerodromeLibraryTest is TestContext {
         tickRanges[2] = 10000;
         bool firstTime = true;
 
-        for (uint i = 0; i < tickRanges.length; i++) {
+        for (uint256 i = 0; i < tickRanges.length; i++) {
             (uint256 positionId, uint128 liquidity, uint256 amount0, uint256 amount1) = this.mintPositionWrapper(
                 _token0,
                 _token1,
@@ -215,11 +197,11 @@ contract AerodromeLibraryTest is TestContext {
         deal(token1, address(this), 1000000000000000000);
 
         uint256[] memory amounts = new uint256[](3);
-        amounts[0] = 1000000000000;   // Small amount
-        amounts[1] = 10000000000000;  // Medium amount
-        amounts[2] = 50000000000000;  // Large amount
+        amounts[0] = 1000000000000; // Small amount
+        amounts[1] = 10000000000000; // Medium amount
+        amounts[2] = 50000000000000; // Large amount
 
-        for (uint i = 0; i < amounts.length; i++) {
+        for (uint256 i = 0; i < amounts.length; i++) {
             uint256 amountOut = this.swapWrapper(token0, token1, tickSpacing, amounts[i], 0, address(this));
             assertGt(amountOut, 0, "Amount out should be greater than 0");
         }
@@ -270,7 +252,8 @@ contract AerodromeLibraryTest is TestContext {
         public
         returns (address, address, int24, uint256, uint256)
     {
-        return AerodromeLibrary.liquidatePosition(aerodromePositionManager, positionId, amount0Min, amount1Min, recipient);
+        return
+            AerodromeLibrary.liquidatePosition(aerodromePositionManager, positionId, amount0Min, amount1Min, recipient);
     }
 
     function swapWrapper(
@@ -282,15 +265,15 @@ contract AerodromeLibraryTest is TestContext {
         address recipient
     ) public returns (uint256) {
         return AerodromeLibrary.swap(
-            aerodromeRouter, 
-            permit2, 
-            isPermit2Approved, 
-            tokenIn, 
-            tokenOut, 
-            _tickSpacing, 
-            amountIn, 
-            amountOutMin, 
+            aerodromeRouter,
+            permit2,
+            isPermit2Approved,
+            tokenIn,
+            tokenOut,
+            _tickSpacing,
+            amountIn,
+            amountOutMin,
             recipient
         );
     }
-} 
+}
