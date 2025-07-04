@@ -49,6 +49,7 @@ contract ChainSettlerHelper is Script {
             }
             address UniswapV3AcrossSettler = getContractAddress(chainIds[i], "DeployUniswapV3AcrossSettler");
             address UniswapV4AcrossSettler = getContractAddress(chainIds[i], "DeployUniswapV4AcrossSettler");
+            // address AerodromeAcrossSettler = getContractAddress(chainIds[i], "DeployAerodromeAcrossSettler");
             if (UniswapV3AcrossSettler == address(0) || UniswapV4AcrossSettler == address(0)) {
                 revert("UniswapV3AcrossSettler or UniswapV4AcrossSettler not found");
             }
