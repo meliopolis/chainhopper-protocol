@@ -61,6 +61,47 @@ contract AerodromeHelpers is Test {
         return (tokenId, amount0, amount1);
     }
 
+    function mintAerodromePositionNonWETH(
+        address nftPositionManager,
+        address user,
+        address token0,
+        address token1,
+        int24 tickLower,
+        int24 tickUpper,
+        int24 tickSpacing,
+        uint160 sqrtPriceX96
+    ) public returns (uint256, uint256, uint256) {
+        // give user tokens
+        deal(token0, user, 10_000_000_000_000_000_000_000);
+        deal(token1, user, 10_000_000_000_000_000_000_000);
+
+        // mint aerodrome position
+        vm.prank(user);
+        IERC20(token0).approve(nftPositionManager, 1_000_000_000_000_000_000);
+        vm.prank(user);
+        IERC20(token1).approve(nftPositionManager, 1_000_000_000_000_000_000);
+
+        vm.prank(user);
+        IAerodromePositionManager.MintParams memory mintParams = IAerodromePositionManager.MintParams({
+            token0: token0,
+            token1: token1,
+            tickSpacing: tickSpacing,
+            tickLower: tickLower,
+            tickUpper: tickUpper,
+            amount0Desired: 1_000_000_000_000_000_000,
+            amount1Desired: 1_000_000_000_000_000_000,
+            amount0Min: 0,
+            amount1Min: 0,
+            recipient: user,
+            deadline: block.timestamp,
+            sqrtPriceX96: sqrtPriceX96
+        });
+        (uint256 tokenId,, uint256 amount0, uint256 amount1) =
+            IAerodromePositionManager(nftPositionManager).mint(mintParams);
+        // return position id
+        return (tokenId, amount0, amount1);
+    }
+
     function withdrawLiquidity(address nftPositionManager, address user, uint256 tokenId) public {
         (,,,,,,, uint128 liquidity,,,,) = IAerodromePositionManager(nftPositionManager).positions(tokenId);
         vm.prank(user);

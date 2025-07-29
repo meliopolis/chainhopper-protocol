@@ -840,7 +840,7 @@ contract AerodromeAcrossSettlerTest is TestContext, AerodromeHelpers {
         deal(usdc, address(settler), usdcAmount);
 
         // create the pool first
-        mintAerodromePosition(
+        mintAerodromePositionNonWETH(
             address(aerodromePositionManager), user, usdc, usdt, -5000, 5000, tickSpacing, sqrtPriceX96
         );
 
@@ -868,7 +868,7 @@ contract AerodromeAcrossSettlerTest is TestContext, AerodromeHelpers {
         deal(usdc, address(settler), usdcAmount);
 
         // create the pool first
-        mintAerodromePosition(
+        mintAerodromePositionNonWETH(
             address(aerodromePositionManager), user, usdc, usdt, -5000, 5000, tickSpacing, sqrtPriceX96
         );
 
@@ -921,7 +921,7 @@ contract AerodromeAcrossSettlerTest is TestContext, AerodromeHelpers {
         deal(usdc, address(settler), usdcAmount);
 
         // create the pool first
-        mintAerodromePosition(
+        mintAerodromePositionNonWETH(
             address(aerodromePositionManager), user, usdc, usdt, -5000, 5000, tickSpacing, sqrtPriceX96
         );
 
@@ -974,7 +974,7 @@ contract AerodromeAcrossSettlerTest is TestContext, AerodromeHelpers {
         deal(usdc, address(settler), usdcAmount);
 
         // create the pool first
-        mintAerodromePosition(
+        mintAerodromePositionNonWETH(
             address(aerodromePositionManager), user, usdc, usdt, -5000, 5000, tickSpacing, sqrtPriceX96
         );
 
