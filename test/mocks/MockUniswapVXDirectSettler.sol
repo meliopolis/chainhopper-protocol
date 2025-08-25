@@ -5,7 +5,7 @@ import {DirectSettler} from "../../src/base/DirectSettler.sol";
 import {Settler} from "../../src/base/Settler.sol";
 import {MigrationData} from "../../src/types/MigrationData.sol";
 
-contract MockDirectSettler is DirectSettler {
+contract MockUniswapVXDirectSettler is DirectSettler {
     constructor(address initialOwner) Settler(initialOwner) {}
 
     function getSettlementCache(bytes32 migrationId)
@@ -41,6 +41,10 @@ contract MockDirectSettler is DirectSettler {
     ) internal pure override returns (uint256 positionId) {
         // Mock implementation - return a dummy position ID
         positionId = uint256(keccak256(abi.encodePacked(tokenA, tokenB, amountA, amountB, recipient, data)));
+    }
+
+    function selfSettle(bytes32, address, uint256, MigrationData memory) external pure override returns (bool) {
+        return true;
     }
 
     // add this to be excluded from coverage report

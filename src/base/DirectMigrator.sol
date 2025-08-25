@@ -27,7 +27,7 @@ abstract contract DirectMigrator is IDirectMigrator, Migrator {
     /// @param settler The settler address on destination chain
     /// @param token The token needed on destination chain
     /// @param amount The amount to bridge
-    /// @param 6 Ignored - The input token sent into the bridge (not used for direct transfers)
+    /// @param inputToken The input token sent into the bridge (not used for direct transfers)
     /// @param 7 Ignored - The route data (not used for direct transfers)
     /// @param data The data to bridge
     function _bridge(
@@ -36,7 +36,7 @@ abstract contract DirectMigrator is IDirectMigrator, Migrator {
         address settler,
         address token,
         uint256 amount,
-        address,
+        address inputToken,
         bytes memory,
         bytes memory data
     ) internal override {
@@ -49,16 +49,12 @@ abstract contract DirectMigrator is IDirectMigrator, Migrator {
         if (token == address(0)) {
             // wrap the native token to WETH and transfer to the settler
             IWETH9(weth).deposit{value: amount}();
-            IERC20(weth).safeTransfer(settler, amount);
-            token = weth;
-        } else {
-            // transfer ERC20 token to the settler
-            IERC20(token).safeTransfer(settler, amount);
         }
+        IERC20(inputToken).safeTransfer(settler, amount);
 
         // call the handleDirectTransfer function on the settler
         (bool success,) =
-            settler.call(abi.encodeWithSelector(IDirectSettler.handleDirectTransfer.selector, token, amount, data));
+            settler.call(abi.encodeWithSelector(IDirectSettler.handleDirectTransfer.selector, inputToken, amount, data));
         if (!success) revert();
     }
 

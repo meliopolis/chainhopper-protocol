@@ -158,7 +158,7 @@ contract DirectMigratorTest is TestContext {
             settler,
             token,
             amount,
-            address(0), // inputToken
+            token, // inputToken
             "", // routeData
             data
         );
@@ -213,7 +213,7 @@ contract DirectMigratorTest is TestContext {
             settler,
             token,
             amount,
-            address(0), // inputToken
+            weth, // inputToken
             "", // routeData
             data
         );
@@ -296,7 +296,7 @@ contract DirectMigratorTest is TestContext {
                 settler,
                 token,
                 amount,
-                address(0), // inputToken
+                token, // inputToken
                 "", // routeData
                 data
             );

@@ -9,7 +9,7 @@ import {IDirectMigrator} from "../src/interfaces/IDirectMigrator.sol";
 import {ISettler} from "../src/interfaces/ISettler.sol";
 import {IUniswapV3Settler} from "../src/interfaces/IUniswapV3Settler.sol";
 import {UniswapV3DirectMigrator} from "../src/UniswapV3DirectMigrator.sol";
-import {UniswapV3DirectSettler} from "../src/UniswapV3DirectSettler.sol";
+import {MockUniswapVXDirectSettler} from "./mocks/MockUniswapVXDirectSettler.sol";
 import {UniswapV3Helpers} from "./utils/UniswapV3Helpers.sol";
 import {IERC721} from "@openzeppelin/token/ERC721/IERC721.sol";
 import {IERC20} from "@openzeppelin/token/ERC20/IERC20.sol";
@@ -22,7 +22,7 @@ import {MigrationData} from "../src/types/MigrationData.sol";
 contract UniswapV3DirectMigratorTest is TestContext, UniswapV3Helpers {
     string public constant SRC_CHAIN_NAME = "BASE";
     string public constant DEST_CHAIN_NAME = "";
-    UniswapV3DirectSettler public settler;
+    MockUniswapVXDirectSettler public settler;
     UniswapV3DirectMigrator public migrator;
     uint256 public sourceChainId = 8453;
 
@@ -30,8 +30,7 @@ contract UniswapV3DirectMigratorTest is TestContext, UniswapV3Helpers {
         _loadChain(SRC_CHAIN_NAME, DEST_CHAIN_NAME);
 
         vm.prank(owner);
-        settler =
-            new UniswapV3DirectSettler(owner, address(v3PositionManager), address(universalRouter), address(permit2));
+        settler = new MockUniswapVXDirectSettler(owner);
 
         vm.prank(owner);
         migrator = new UniswapV3DirectMigrator(
@@ -1180,6 +1179,16 @@ contract UniswapV3DirectMigratorTest is TestContext, UniswapV3Helpers {
         address token1 = usdc;
         (uint256 tokenId, uint256 amount0,) =
             mintV3Position(address(v3PositionManager), user, token0, token1, -250000, -100000, 500);
+
+        // Set the settler for the destination chain
+        vm.prank(owner);
+        uint256[] memory chainIds = new uint256[](1);
+        chainIds[0] = sourceChainId + 1;
+        address[] memory settlers = new address[](1);
+        settlers[0] = address(settler);
+        bool[] memory values = new bool[](1);
+        values[0] = true;
+        migrator.setChainSettlers(chainIds, settlers, values);
 
         // Try to migrate to a different chain
         IMigrator.MigrationParams memory migrationParams =
