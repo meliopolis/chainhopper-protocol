@@ -4,7 +4,9 @@ pragma solidity ^0.8.24;
 import {IERC20} from "@openzeppelin/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/token/ERC20/utils/SafeERC20.sol";
 import {IDirectSettler} from "../interfaces/IDirectSettler.sol";
+import {ISettler} from "../interfaces/ISettler.sol";
 import {MigrationData} from "../types/MigrationData.sol";
+import {MigrationModes} from "../types/MigrationMode.sol";
 import {Settler} from "./Settler.sol";
 
 /// @title DirectSettler
@@ -25,7 +27,18 @@ abstract contract DirectSettler is IDirectSettler, Settler {
 
         emit Receipt(migrationId, token, amount);
 
-        bool isAccepted = this.selfSettle(migrationId, token, amount, migrationData);
-        if (!isAccepted) revert();
+        try this.selfSettle(migrationId, token, amount, migrationData) returns (bool isAccepted) {
+            if (!isAccepted) revert();
+        } catch {
+            ISettler.SettlementParams memory settlementParams =
+                abi.decode(migrationData.settlementData, (ISettler.SettlementParams));
+
+            // refund this and cached settlement if applicable
+            IERC20(token).safeTransfer(settlementParams.recipient, amount);
+            emit Refund(migrationId, settlementParams.recipient, token, amount);
+            if (migrationData.mode == MigrationModes.DUAL) {
+                _refund(migrationId, false);
+            }
+        }
     }
 }
