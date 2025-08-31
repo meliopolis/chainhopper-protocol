@@ -1,12 +1,12 @@
-# ChainHopper Protocol: Migrate Uniswap LP positions cross-chain
+# ChainHopper Protocol: Migrate Uniswap and Aerodrome LP positions cross-chain
 
 This project was generously funded via a [Uniswap Foundation Grant](https://x.com/UniswapFND). 
 
 ## Overview
 
-ChainHopper migrates Uniswap v3 and v4 LP positions between different EVM chains with a single click.
+ChainHopper migrates Uniswap v3, v4, and Aerodrome LP positions between different EVM chains with a single click.
 
-To move a Uniswap LP position manually requires several steps. Let's say we are moving from Arbitrum to Unichain:
+To move a Uniswap or Aerodrome LP position manually requires several steps. Let's say we are moving from Arbitrum to Unichain:
 1. Burn position on Arbitrum (to collect all assets in the pool *and* fees)
 2. Swap to a single token (like WETH)
 3. Bridge WETH to Unichain
@@ -37,13 +37,14 @@ Key Migrator contracts:
 - `AcrossMigrator.sol`: Base migrator implementation for Across Protocol
 - `UniswapV3AcrossMigrator.sol`: Deployed migrator to receive Uniswap **v3** Positions
 - `UniswapV4AcrossMigrator.sol`: Deployed migrator to receive Uniswap **v4** Positions
+- `AerodromeAcrossMigrator.sol`: Deployed migrator to receive Aerodrome Positions (Base only)
 
 ### Settlers
 
 Settlers handle the receiving end of migrations. They:
 - Process incoming tokens from a bridge
 - Swap (if needed)
-- Create new positions in specified protocols (e.g., Uniswap V3/V4)
+- Create new positions in specified protocols (e.g., Uniswap V3/V4, Aerodrome)
 - Handle fee calculations and distributions
 
 Key Settler contracts:
@@ -51,6 +52,7 @@ Key Settler contracts:
 - `AcrossSettler.sol`: Receives tokens from Across
 - `UniswapV3AcrossSettler.sol`: Deployed settler to create Uniswap **v3** Positions
 - `UniswapV4AcrossSettler.sol`: Deployed settler to create Uniswap **v4** Positions
+- `AerodromeAcrossSettler.sol`: Deployed settler to create Aerodrome Positions (Base only)
 
 
 ## Key Features
