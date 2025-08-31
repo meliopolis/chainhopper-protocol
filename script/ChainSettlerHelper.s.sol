@@ -36,7 +36,15 @@ contract ChainSettlerHelper is Script {
         returns (uint256[] memory, address[] memory, bool[] memory)
     {
         string[] memory chainIds = vm.envString(env, ",");
-        uint256 chainSettlersCount = (chainIds.length - 1) * 2;
+        // Calculate total settlers count (2 per chain, +1 for BASE Aerodrome)
+        uint256 baseCount = 0;
+        for (uint256 i = 0; i < chainIds.length; i++) {
+            if (vm.parseUint(chainIds[i]) == 8453 && vm.parseUint(chainIds[i]) != block.chainid) {
+                baseCount = 1;
+                break;
+            }
+        }
+        uint256 chainSettlersCount = (chainIds.length - 1) * 2 + baseCount;
         uint256[] memory chainIdsUint = new uint256[](chainSettlersCount);
         address[] memory chainSettlers = new address[](chainSettlersCount);
         bool[] memory values = new bool[](chainSettlersCount);
@@ -49,6 +57,7 @@ contract ChainSettlerHelper is Script {
             }
             address UniswapV3AcrossSettler = getContractAddress(chainIds[i], "DeployUniswapV3AcrossSettler");
             address UniswapV4AcrossSettler = getContractAddress(chainIds[i], "DeployUniswapV4AcrossSettler");
+
             if (UniswapV3AcrossSettler == address(0) || UniswapV4AcrossSettler == address(0)) {
                 revert("UniswapV3AcrossSettler or UniswapV4AcrossSettler not found");
             }
@@ -61,6 +70,17 @@ contract ChainSettlerHelper is Script {
             chainSettlers[counter + 1] = UniswapV4AcrossSettler;
             values[counter + 1] = true;
             counter += 2;
+
+            // Add Aerodrome Settler for BASE chain (chain ID 8453)
+            if (currentChainId == 8453) {
+                address AerodromeAcrossSettler = getContractAddress(chainIds[i], "DeployAerodromeAcrossSettler");
+                if (AerodromeAcrossSettler != address(0)) {
+                    chainIdsUint[counter] = currentChainId;
+                    chainSettlers[counter] = AerodromeAcrossSettler;
+                    values[counter] = true;
+                    counter += 1;
+                }
+            }
         }
 
         for (uint256 i = 0; i < chainIdsUint.length; i++) {
