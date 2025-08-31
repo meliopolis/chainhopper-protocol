@@ -43,6 +43,21 @@ for chain in $(echo $DEPLOY_CHAINS | tr ',' ' '); do
         echo "Failed to deploy UniswapV4AcrossSettler on chain ${chain}"
         exit 1
     fi
+
+    # Deploy Aerodrome Settler only on BASE
+    if [ "${chain}" = "BASE" ]; then
+        echo "Deploying AerodromeAcrossSettler on chain ${chain}..."
+        if ! forge script script/DeployAerodromeAcrossSettler.s.sol:DeployAerodromeAcrossSettler \
+        --rpc-url "${!rpc_var}" \
+        --etherscan-api-key "${!etherscan_var}" \
+        --broadcast \
+        --delay 15 \
+        --verify \
+        --sig 'run(string,address)' "${chain}" "${DEPLOY_INITIAL_OWNER}"; then
+            echo "Failed to deploy AerodromeAcrossSettler on chain ${chain}"
+            exit 1
+        fi
+    fi
 done
 
 # deploy migrators
@@ -72,5 +87,20 @@ for chain in $(echo $DEPLOY_CHAINS | tr ',' ' '); do
     --sig 'run(string,address)' "${chain}" "${DEPLOY_INITIAL_OWNER}"; then
         echo "Failed to deploy UniswapV4AcrossMigrator on chain ${chain}"
         exit 1
+    fi
+
+    # Deploy Aerodrome Migrator only on BASE
+    if [ "${chain}" = "BASE" ]; then
+        echo "Deploying AerodromeAcrossMigrator on chain ${chain}..."
+        if ! forge script script/DeployAerodromeAcrossMigrator.s.sol:DeployAerodromeAcrossMigrator \
+        --rpc-url "${!rpc_var}" \
+        --etherscan-api-key "${!etherscan_var}" \
+        --broadcast \
+        --delay 15 \
+        --verify \
+        --sig 'run(string,address)' "${chain}" "${DEPLOY_INITIAL_OWNER}"; then
+            echo "Failed to deploy AerodromeAcrossMigrator on chain ${chain}"
+            exit 1
+        fi
     fi
 done
