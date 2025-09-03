@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.24;
 
-import {console} from "forge-std/console.sol";
 import {Vm} from "forge-std/Test.sol";
 import {TestContext} from "./utils/TestContext.sol";
 import {IMigrator} from "../src/interfaces/IMigrator.sol";
