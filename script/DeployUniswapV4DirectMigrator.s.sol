@@ -2,37 +2,35 @@
 pragma solidity ^0.8.24;
 
 import {Script, console} from "@forge-std/Script.sol";
-import {stdJson} from "@forge-std/StdJson.sol";
-import {UniswapV3AcrossMigrator} from "../src/UniswapV3AcrossMigrator.sol";
+import {UniswapV4DirectMigrator} from "../src/UniswapV4DirectMigrator.sol";
 import {ChainSettlerHelper} from "./ChainSettlerHelper.s.sol";
 
 /*
-    forge script script/DeployUniswapV3AcrossMigrator.s.sol:DeployUniswapV3AcrossMigrator \
+    forge script script/DeployUniswapV4DirectMigrator.s.sol:DeployUniswapV4DirectMigrator \
     --rpc-url <rpc_endpoints> \
     --etherscan-api-key <etherscan_api_key> \
     --broadcast \
     --verify \
-    --sig 'run(string,address)' <ENV> <initialOwner>
+    --sig 'run(string,address,string)' <ENV> <initialOwner> <file>
 */
 
-contract DeployUniswapV3AcrossMigrator is Script, ChainSettlerHelper {
+contract DeployUniswapV4DirectMigrator is Script, ChainSettlerHelper {
     function run(string memory env, address initialOwner) public {
         vm.startBroadcast(vm.envUint("PRIVATE_KEY"));
 
-        UniswapV3AcrossMigrator migrator = new UniswapV3AcrossMigrator(
+        // deploy the migrator
+        UniswapV4DirectMigrator migrator = new UniswapV4DirectMigrator(
             initialOwner,
-            vm.envAddress(string(abi.encodePacked(env, "_UNISWAP_V3_POSITION_MANAGER"))),
+            vm.envAddress(string(abi.encodePacked(env, "_UNISWAP_V4_POSITION_MANAGER"))),
             vm.envAddress(string(abi.encodePacked(env, "_UNISWAP_UNIVERSAL_ROUTER"))),
             vm.envAddress(string(abi.encodePacked(env, "_UNISWAP_PERMIT2"))),
-            vm.envAddress(string(abi.encodePacked(env, "_ACROSS_SPOKE_POOL"))),
             vm.envAddress(string(abi.encodePacked(env, "_WETH")))
         );
 
+        // For Direct migrators, only set the settlers from the current chain
         (uint256[] memory chainIds, address[] memory chainSettlers, bool[] memory values) =
-            ChainSettlerHelper.getAcrossSettlersArrays("DEPLOY_CHAIN_IDS");
-        if (chainIds.length > 0) {
-            migrator.setChainSettlers(chainIds, chainSettlers, values);
-        }
+            ChainSettlerHelper.getDirectSettlersArrays(vm.toString(block.chainid));
+        migrator.setChainSettlers(chainIds, chainSettlers, values);
 
         // set a new owner if needed
         address finalOwner = vm.envAddress("DEPLOY_FINAL_OWNER");
@@ -40,7 +38,7 @@ contract DeployUniswapV3AcrossMigrator is Script, ChainSettlerHelper {
             migrator.transferOwnership(finalOwner);
         }
 
-        console.log("UniswapV3AcrossMigrator deployed at:", address(migrator));
+        console.log("UniswapV4DirectMigrator deployed at:", address(migrator));
 
         vm.stopBroadcast();
     }

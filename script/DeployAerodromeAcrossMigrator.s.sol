@@ -29,7 +29,7 @@ contract DeployAerodromeAcrossMigrator is Script, ChainSettlerHelper {
         );
 
         (uint256[] memory chainIds, address[] memory chainSettlers, bool[] memory values) =
-            ChainSettlerHelper.getChainSettlersArrays("DEPLOY_CHAIN_IDS");
+            ChainSettlerHelper.getAcrossSettlersArrays("DEPLOY_CHAIN_IDS");
         if (chainIds.length > 0) {
             migrator.setChainSettlers(chainIds, chainSettlers, values);
         }

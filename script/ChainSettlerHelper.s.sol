@@ -30,7 +30,7 @@ contract ChainSettlerHelper is Script {
         return contractAddress;
     }
 
-    function getChainSettlersArrays(string memory env)
+    function getAcrossSettlersArrays(string memory env)
         public
         view
         returns (uint256[] memory, address[] memory, bool[] memory)
@@ -82,6 +82,37 @@ contract ChainSettlerHelper is Script {
                 }
             }
         }
+
+        for (uint256 i = 0; i < chainIdsUint.length; i++) {
+            console.logUint(chainIdsUint[i]);
+            console.logAddress(chainSettlers[i]);
+        }
+        return (chainIdsUint, chainSettlers, values);
+    }
+
+    function getDirectSettlersArrays(string memory chainId)
+        public
+        view
+        returns (uint256[] memory, address[] memory, bool[] memory)
+    {
+        uint256 currentChainId = vm.parseUint(chainId);
+        uint256[] memory chainIdsUint = new uint256[](2);
+        address[] memory chainSettlers = new address[](2);
+        bool[] memory values = new bool[](2);
+
+        address UniswapV3DirectSettler = getContractAddress(chainId, "DeployUniswapV3DirectSettler");
+        address UniswapV4DirectSettler = getContractAddress(chainId, "DeployUniswapV4DirectSettler");
+        if (UniswapV3DirectSettler == address(0) || UniswapV4DirectSettler == address(0)) {
+            revert("UniswapV3DirectSettler or UniswapV4DirectSettler not found");
+        }
+
+        chainIdsUint[0] = currentChainId;
+        chainSettlers[0] = UniswapV3DirectSettler;
+        values[0] = true;
+
+        chainIdsUint[1] = currentChainId;
+        chainSettlers[1] = UniswapV4DirectSettler;
+        values[1] = true;
 
         for (uint256 i = 0; i < chainIdsUint.length; i++) {
             console.logUint(chainIdsUint[i]);
