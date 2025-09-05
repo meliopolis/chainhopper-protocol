@@ -64,9 +64,8 @@ abstract contract DirectMigrator is IDirectMigrator, Migrator {
     /// @param token The token to match
     /// @param tokenRoute The route to match
     /// @return isMatch True if the token matches the route, false otherwise
-    function _matchTokenWithRoute(address token, TokenRoute memory tokenRoute) internal pure override returns (bool) {
-        // For direct transfer, we match tokens directly without routing
-        return token == tokenRoute.token;
+    function _matchTokenWithRoute(address token, TokenRoute memory tokenRoute) internal view override returns (bool) {
+        return token == tokenRoute.token || (token == address(0) && tokenRoute.token == weth);
     }
 
     /// @notice Internal function to check if an amount is sufficient
